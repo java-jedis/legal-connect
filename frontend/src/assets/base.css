@@ -1,0 +1,531 @@
+/* color palette from <https://github.com/vuejs/theme> */
+:root {
+  --vt-c-white: #ffffff;
+  --vt-c-white-soft: #f8f8f8;
+  --vt-c-white-mute: #f2f2f2;
+
+  --vt-c-black: #181818;
+  --vt-c-black-soft: #222222;
+  --vt-c-black-mute: #282828;
+
+  --vt-c-indigo: #2c3e50;
+
+  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
+  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
+  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
+  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+
+  --vt-c-text-light-1: var(--vt-c-indigo);
+  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
+  --vt-c-text-dark-1: var(--vt-c-white);
+  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+}
+
+/* Custom color palette for Legal Platform - Clio Inspired */
+:root {
+  /* Light theme colors - Clio Palette */
+  --light-primary: #0693e3; /* Clio blue */
+  --light-secondary: #8ed1fc; /* Light blue */
+  --light-accent: #7bdcb5; /* Green */
+  --light-background: #ffffff; /* White */
+  --light-background-soft: #f5f7f8; /* Light gray */
+  --light-background-mute: #ebf9ff; /* Very light blue */
+
+  /* Dark theme colors - making them actually dark */
+  --dark-primary: #27374d;
+  --dark-secondary: #526d82;
+  --dark-accent: #9db2bf;
+  --dark-background: #0f0f0f;
+
+  /* Light theme semantic variables */
+  --color-background: var(--light-background);
+  --color-background-soft: var(--light-background-soft);
+  --color-background-mute: var(--light-background-mute);
+  --color-surface: var(--light-primary);
+
+  --color-border: #d6eef9; /* Light blue border */
+  --color-border-hover: var(--light-primary);
+
+  --color-heading: #32373c; /* Dark gray for headings */
+  --color-text: #000000; /* Black for main text */
+  --color-text-muted: #6b7280; /* Brighter muted gray for better readability */
+
+  --color-primary: var(--light-primary);
+  --color-secondary: var(--light-secondary);
+  --color-accent: var(--light-accent);
+
+  /* Additional Clio colors for accents */
+  --color-success: #00d084; /* Green */
+  --color-warning: #fcb900; /* Yellow */
+  --color-error: #cf2e2e; /* Red */
+  --color-info: #40d9f1; /* Cyan */
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+  /* Spacing */
+  --section-gap: 160px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--dark-background);
+    --color-background-soft: #1a1a1a;
+    --color-background-mute: #2a2a2a;
+    --color-surface: var(--dark-primary);
+
+    --color-border: var(--dark-secondary);
+    --color-border-hover: var(--dark-accent);
+
+    --color-heading: #ffffff;
+    --color-text: #e0e0e0;
+    --color-text-muted: #b0b0b0;
+
+    --color-primary: var(--dark-primary);
+    --color-secondary: var(--dark-secondary);
+    --color-accent: var(--dark-accent);
+  }
+}
+
+/* Manual dark mode class - HIGHER SPECIFICITY */
+html.dark {
+  --color-background: var(--dark-background) !important;
+  --color-background-soft: #1a1a1a !important;
+  --color-background-mute: #2a2a2a !important;
+  --color-surface: var(--dark-primary) !important;
+
+  --color-border: var(--dark-secondary) !important;
+  --color-border-hover: var(--dark-accent) !important;
+
+  --color-heading: #ffffff !important;
+  --color-text: #e0e0e0 !important;
+  --color-text-muted: #b0b0b0 !important;
+
+  --color-primary: var(--dark-primary) !important;
+  --color-secondary: var(--dark-secondary) !important;
+  --color-accent: var(--dark-accent) !important;
+}
+
+/* Force body and html to use theme colors */
+html.dark body {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+html.dark #app {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
+  transition:
+    color var(--transition-normal),
+    background-color var(--transition-normal);
+  line-height: 1.6;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Utility classes */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Grid layouts */
+.grid {
+  display: grid;
+  gap: 2rem;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Section styles */
+.section {
+  padding: 4rem 0;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+}
+
+.btn-secondary {
+  background: var(--color-background);
+  color: var(--color-heading);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background: var(--color-background-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-outline {
+  background: var(--color-background);
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-outline:hover {
+  background: var(--color-primary);
+  color: var(--color-background);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Small button variant for dashboard cards */
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  transition: all var(--transition-fast);
+}
+
+.btn-sm.btn-outline {
+  background: var(--color-background);
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-sm.btn-outline:hover {
+  background: var(--color-primary);
+  color: var(--color-background);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn-sm.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-sm.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Dark mode specific button improvements */
+@media (prefers-color-scheme: dark) {
+  .btn-outline {
+    background: var(--color-background);
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .btn-outline:hover {
+    background: var(--color-accent);
+    color: var(--color-background);
+  }
+
+  .btn-sm.btn-outline {
+    border: 1.5px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .btn-sm.btn-outline:hover {
+    background: var(--color-accent);
+    color: var(--color-background);
+  }
+}
+
+html.dark .btn-outline {
+  background: var(--color-background) !important;
+  border: 2px solid var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+html.dark .btn-outline:hover {
+  background: var(--color-accent) !important;
+  color: var(--color-background) !important;
+}
+
+html.dark .btn-sm.btn-outline {
+  border: 1.5px solid var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+html.dark .btn-sm.btn-outline:hover {
+  background: var(--color-accent) !important;
+  color: var(--color-background) !important;
+}
+
+/* Light mode specific button improvements */
+@media (prefers-color-scheme: light) {
+  .btn-outline {
+    background: var(--color-background-soft) !important;
+    border: 2px solid var(--color-primary) !important;
+    color: var(--color-heading) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .btn-outline:hover {
+    background: var(--color-primary) !important;
+    color: var(--color-background) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .btn-sm.btn-outline {
+    background: var(--color-background-soft) !important;
+    border: 1.5px solid var(--color-primary) !important;
+    color: var(--color-heading) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .btn-sm.btn-outline:hover {
+    background: var(--color-primary) !important;
+    color: var(--color-background) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .btn-secondary {
+    background: var(--color-background-soft) !important;
+    color: var(--color-heading) !important;
+    border: 2px solid var(--color-border) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-primary) !important;
+    border-color: var(--color-primary) !important;
+    color: var(--color-background) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Brighter muted text for light mode */
+  :root {
+    --color-text-muted: #6b7280 !important;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.slide-in {
+  animation: slideIn 0.6s ease-out;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .section {
+    padding: 2rem 0;
+  }
+
+  .section-title {
+    font-size: 2rem;
+  }
+}
+
+/* Clio Color Utility Classes */
+.text-clio-primary {
+  color: var(--color-primary) !important;
+}
+.text-clio-secondary {
+  color: var(--color-secondary) !important;
+}
+.text-clio-accent {
+  color: var(--color-accent) !important;
+}
+.text-clio-success {
+  color: var(--color-success) !important;
+}
+.text-clio-warning {
+  color: var(--color-warning) !important;
+}
+.text-clio-error {
+  color: var(--color-error) !important;
+}
+.text-clio-info {
+  color: var(--color-info) !important;
+}
+
+.bg-clio-primary {
+  background-color: var(--color-primary) !important;
+}
+.bg-clio-secondary {
+  background-color: var(--color-secondary) !important;
+}
+.bg-clio-accent {
+  background-color: var(--color-accent) !important;
+}
+.bg-clio-success {
+  background-color: var(--color-success) !important;
+}
+.bg-clio-warning {
+  background-color: var(--color-warning) !important;
+}
+.bg-clio-error {
+  background-color: var(--color-error) !important;
+}
+.bg-clio-info {
+  background-color: var(--color-info) !important;
+}
+
+.border-clio-primary {
+  border-color: var(--color-primary) !important;
+}
+.border-clio-secondary {
+  border-color: var(--color-secondary) !important;
+}
+.border-clio-accent {
+  border-color: var(--color-accent) !important;
+}
+.border-clio-success {
+  border-color: var(--color-success) !important;
+}
+.border-clio-warning {
+  border-color: var(--color-warning) !important;
+}
+.border-clio-error {
+  border-color: var(--color-error) !important;
+}
+.border-clio-info {
+  border-color: var(--color-info) !important;
+}
