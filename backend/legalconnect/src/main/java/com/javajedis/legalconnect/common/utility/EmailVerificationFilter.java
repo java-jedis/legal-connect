@@ -8,7 +8,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.EmailNotVerifiedException;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
@@ -92,10 +91,13 @@ public class EmailVerificationFilter extends OncePerRequestFilter {
     private void sendErrorResponse(HttpServletResponse response, HttpStatus status, String message) throws IOException {
         response.setStatus(status.value());
         response.setContentType("application/json");
-        response.getWriter().write(
-                new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(
-                        ApiResponse.error(message, status).getBody()
-                )
+        
+        // Create a simple JSON response without OffsetDateTime to avoid serialization issues
+        String jsonResponse = String.format(
+            "{\"error\":{\"status\":%d,\"message\":\"%s\"},\"status\":%d,\"message\":\"%s\"}",
+            status.value(), message, status.value(), message
         );
+        
+        response.getWriter().write(jsonResponse);
     }
 }

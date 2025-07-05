@@ -1,9 +1,7 @@
 package com.javajedis.legalconnect.common.utility;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +11,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JWTFilter extends OncePerRequestFilter {
@@ -58,8 +59,7 @@ public class JWTFilter extends OncePerRequestFilter {
             username = jwtUtil.extractUsername(jwt);
             // Check if token is blacklisted in Redis
             String blacklistKey = "blacklist:jwt:" + jwt;
-            Boolean isBlacklisted = Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey));
-            if (Boolean.TRUE.equals(isBlacklisted)) {
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
                 // Optionally, you can log or set a response header here
                 chain.doFilter(request, response);
                 return;
