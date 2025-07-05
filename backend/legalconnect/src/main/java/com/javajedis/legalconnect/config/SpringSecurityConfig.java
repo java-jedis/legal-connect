@@ -38,8 +38,6 @@ public class SpringSecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/videocall.html", "/static/**", "/*.html").permitAll()
-                        .requestMatchers("/ws/**", "/v1/ws/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(filterWithRedis, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(emailVerificationFilter, JWTFilter.class)

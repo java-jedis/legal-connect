@@ -33,6 +33,7 @@ public class EmailVerificationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         // Skip email verification check for public endpoints and email verification endpoints
         return path.startsWith("/v1/public/")
+                || path.startsWith("/v1/auth/")
                 || path.startsWith("/auth/")
                 || path.equals("/public/login")
                 || path.equals("/public/sign-up");

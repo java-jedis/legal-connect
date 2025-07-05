@@ -1,6 +1,8 @@
 package com.javajedis.legalconnect.auth;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.common.service.VerificationCodeService;
 import com.javajedis.legalconnect.common.utility.JWTUtil;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
@@ -13,6 +15,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 /**
  * Service for handling user authentication and registration operations.
  */
@@ -24,6 +28,8 @@ public class AuthService {
     private final UserRepo userRepo;
     private final JWTUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final VerificationCodeService verificationCodeService;
 
     /**
      * Constructs AuthService with required dependencies.
@@ -32,11 +38,15 @@ public class AuthService {
             AuthenticationManager authenticationManager,
             UserRepo userRepo,
             JWTUtil jwtUtil,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            EmailService emailService,
+            VerificationCodeService verificationCodeService) {
         this.authenticationManager = authenticationManager;
         this.userRepo = userRepo;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.verificationCodeService = verificationCodeService;
     }
 
     /**
@@ -112,5 +122,74 @@ public class AuthService {
 
         log.info("User logged in successfully: {}", user.getEmail());
         return ApiResponse.success(responseDTO, HttpStatus.OK, "User login successful");
+    }
+
+    /**
+     * Sends a verification code (OTP) to the user's email for verification.
+     *
+     * @param email the email address to send the verification code to
+     * @return ResponseEntity with a success message or error status
+     */
+    public ResponseEntity<ApiResponse<String>> sendVerificationCode(String email) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+
+        String otp = verificationCodeService.generateAndStoreOTP(user.getId(), user.getEmail());
+        Map<String, Object> variables = Map.of(
+                "otp", otp,
+                "expirationMinutes", 5
+        );
+        emailService.sendTemplateEmail(
+                user.getEmail(),
+                "Your LegalConnect Email Verification Code",
+                "otp-verification",
+                variables
+        );
+        return ApiResponse.success("Verification code sent to your email", HttpStatus.OK, "Verification code sent successfully");
+    }
+
+    /**
+     * Verifies the user's email using the provided OTP code.
+     *
+     * @param verificationData the email and OTP code for verification
+     * @return ResponseEntity indicating whether the email was successfully verified
+     */
+    public ResponseEntity<ApiResponse<Boolean>> verifyEmail(EmailVerifyDTO verificationData) {
+        User user = userRepo.findByEmail(verificationData.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+
+        if (user.isEmailVerified()) {
+            return ApiResponse.error("Email is already verified", HttpStatus.BAD_REQUEST);
+        }
+
+        boolean valid = verificationCodeService.isVerificationCodeValid(user.getId(), user.getEmail(), verificationData.getOtp());
+        if (!valid) {
+            return ApiResponse.error("Invalid or expired verification code", HttpStatus.BAD_REQUEST);
+        }
+
+        user.setEmailVerified(true);
+        userRepo.save(user);
+        verificationCodeService.removeVerificationCode(user.getId(), user.getEmail());
+        return ApiResponse.success(true, HttpStatus.OK, "Email verified successfully");
+    }
+
+    /**
+     * Resets the user's password using OTP verification.
+     *
+     * @param data the reset password data containing email, OTP, and new password
+     * @return ResponseEntity indicating whether the password was successfully reset
+     */
+    public ResponseEntity<ApiResponse<Boolean>> resetPassword(ResetPasswordDTO data) {
+        User user = userRepo.findByEmail(data.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+
+        boolean valid = verificationCodeService.isVerificationCodeValid(user.getId(), user.getEmail(), data.getOtp());
+        if (!valid) {
+            return ApiResponse.error("Otp is Invalid or expired", HttpStatus.BAD_REQUEST);
+        }
+        user.setPassword(passwordEncoder.encode(data.getPassword()));
+        userRepo.save(user);
+        verificationCodeService.removeVerificationCode(user.getId(), user.getEmail());
+        return ApiResponse.success(true, HttpStatus.OK, "Password reset successful");
     }
 }

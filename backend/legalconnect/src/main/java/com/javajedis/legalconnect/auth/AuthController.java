@@ -50,4 +50,41 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponseDTO>> login(@Valid @RequestBody LoginDTO loginData) {
         return authService.loginUser(loginData.getEmail(), loginData.getPassword());
     }
+
+    /**
+     * Sends a verification code (OTP) to the user's email for verification.
+     *
+     * @param email the email address to send the verification code to
+     * @return the response entity containing a success message or error status
+     */
+    @Operation(summary = "Send verification code (OTP)", description = "Sends a verification code to the user's email for verification.", tags = {"1. Auth"})
+    @PostMapping("/send-verification-code")
+    public ResponseEntity<ApiResponse<String>> sendVerificationCode(@Valid @RequestBody RequestOTPDTO email) {
+        return authService.sendVerificationCode(email.getEmail());
+    }
+
+    /**
+     * Verifies the user's email using the provided OTP code.
+     *
+     * @param verificationData the email and OTP code for verification
+     * @return the response entity indicating whether the email was successfully verified
+     */
+    @Operation(summary = "Verify email with OTP", description = "Verifies the user's email address using the provided OTP code.", tags = {"1. Auth"})
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Boolean>> verifyEmail(@Valid @RequestBody EmailVerifyDTO verificationData) {
+        return authService.verifyEmail(verificationData);
+    }
+
+    /**
+     * Resets the user's password using OTP verification.
+     *
+     * @param data the reset password data containing email, OTP, and new password
+     * @return the response entity indicating whether the password was successfully reset
+     */
+    @Operation(summary = "Reset password with OTP", description = "Resets the user's password using OTP verification.", tags = {"1. Auth"})
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Boolean>> resetPassword(@Valid @RequestBody ResetPasswordDTO data) {
+        return authService.resetPassword(data);
+    }
+
 }
