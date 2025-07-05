@@ -1,4 +1,4 @@
-package com.java_jedis.legalconnect;
+package com.javajedis.legalconnect;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class LegalconnectApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(LegalconnectApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(LegalconnectApplication.class, args);
+    }
 
 }
