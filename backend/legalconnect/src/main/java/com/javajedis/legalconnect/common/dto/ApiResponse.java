@@ -3,6 +3,7 @@ package com.javajedis.legalconnect.common.dto;
 import java.time.OffsetDateTime;
 import java.util.Map;
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -10,11 +11,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.javajedis.legalconnect.config.ApiConfig;
+import com.javajedis.legalconnect.config.ApplicationContextProvider;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
     @JsonProperty("version")
-    private String version = "v1";
+    private String version;
     
     @JsonProperty("data")
     private T data;
@@ -44,6 +47,7 @@ public class ApiResponse<T> {
         this.message = message;
         this.timestamp = OffsetDateTime.now();
         this.path = getCurrentRequestPath();
+        this.version = getApiVersion();
     }
 
     /**
@@ -113,6 +117,19 @@ public class ApiResponse<T> {
             // Fallback if request context is not available
         }
         return null;
+    }
+
+    private String getApiVersion() {
+        try {
+            ApplicationContext context = ApplicationContextProvider.getApplicationContext();
+            if (context != null) {
+                ApiConfig apiConfig = context.getBean(ApiConfig.class);
+                return apiConfig.getVersion();
+            }
+        } catch (Exception e) {
+            // Fallback to default version if configuration is not available
+        }
+        return "v1"; // Default fallback
     }
 
     // Getters
