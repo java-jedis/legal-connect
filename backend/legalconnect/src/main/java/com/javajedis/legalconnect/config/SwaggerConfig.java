@@ -50,7 +50,7 @@ public class SwaggerConfig {
                                 
                                 Base URL: [https://api.legalconnect.live/v1](https://api.legalconnect.live/v1)
                                 
-                                ## 👨‍💻 Developers
+                                ## 👨💻 Developers
                                 
                                 **Majedul Islam**
                                 

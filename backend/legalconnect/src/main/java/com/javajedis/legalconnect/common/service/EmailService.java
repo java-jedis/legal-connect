@@ -1,8 +1,8 @@
 package com.javajedis.legalconnect.common.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,8 +11,9 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.util.Map;
-import java.util.regex.Pattern;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -60,6 +61,9 @@ public class EmailService {
             context.setVariables(variables);
         }
         String htmlContent = templateEngine.process(templateName, context);
+        if (htmlContent == null) {
+            htmlContent = "";
+        }
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);

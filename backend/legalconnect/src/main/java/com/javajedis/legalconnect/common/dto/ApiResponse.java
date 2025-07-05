@@ -110,7 +110,7 @@ public class ApiResponse<T> {
     private String getCurrentRequestPath() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null && attributes.getRequest() != null) {
+            if (attributes != null) {
                 return attributes.getRequest().getRequestURI();
             }
         } catch (Exception e) {
