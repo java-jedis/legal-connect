@@ -32,7 +32,7 @@
                 stroke-linejoin="round"
               />
             </svg>
-            <span class="brand-text">LegalAI</span>
+            <span class="brand-text">Legal Connect</span>
           </router-link>
         </div>
 

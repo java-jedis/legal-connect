@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container">
-        <h1 class="hero-title">Join LegalAI</h1>
+        <h1 class="hero-title">Join LegalConnect</h1>
         <p class="hero-subtitle">
           Choose your path and start your legal journey with AI-powered assistance
         </p>

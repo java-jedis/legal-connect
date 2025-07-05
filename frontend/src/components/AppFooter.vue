@@ -32,7 +32,7 @@
                 stroke-linejoin="round"
               />
             </svg>
-            <span class="brand-text">LegalAI</span>
+            <span class="brand-text">Legal Connect</span>
           </div>
           <p class="footer-description">
             Revolutionizing legal services with AI-powered solutions that make legal assistance

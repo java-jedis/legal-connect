@@ -90,7 +90,7 @@
     </section>
 
     <!-- Pricing -->
-    <section class="pricing-section section">
+    <!-- <section class="pricing-section section">
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Transparent Pricing</h2>
@@ -122,7 +122,7 @@
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
   </div>
 </template>
 

@@ -5,7 +5,7 @@
         <div class="hero-text">
           <h1 class="hero-title">
             AI-Powered Legal Solutions
-            <span class="hero-highlight">for Everyone</span>
+            <span class="hero-highlight">for Bangladeshi Citizens</span>
           </h1>
           <p class="hero-description">
             Connect with expert lawyers, get instant legal advice, and manage your cases with
@@ -38,7 +38,7 @@
               </div>
               <div class="status-indicator">
                 <span class="status-dot"></span>
-                AI Assistant Online
+                Legal Connect Chatbot
               </div>
             </div>
             <div class="chat-messages">
