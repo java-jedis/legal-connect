@@ -1,67 +1,69 @@
 <template>
-  <div class="login-page">
-    <!-- Login Form -->
-    <section class="login-section section">
-      <div class="container">
-        <div class="login-container">
-          <div class="login-header">
-            <h2 class="section-title">Sign In</h2>
-            <p class="section-subtitle">
-              Access your account and get back to managing your legal matters
-            </p>
-          </div>
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h1 class="auth-title">Welcome Back</h1>
+          <p class="auth-subtitle">Sign in to continue to your dashboard.</p>
+        </div>
 
-          <form class="login-form" @submit.prevent="submitLogin">
-            <div class="form-section">
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  v-model="form.email"
-                  required
-                  placeholder="Enter your email address"
-                />
-              </div>
-
-              <div class="form-group">
-                <label for="password">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  v-model="form.password"
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
-
-              <div class="form-options">
-                <label class="checkbox-item">
-                  <input type="checkbox" v-model="form.rememberMe" />
-                  <span class="checkmark"></span>
-                  Remember me
-                </label>
-                <a href="#" class="link">Forgot password?</a>
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-                  {{ isSubmitting ? 'Signing In...' : 'Sign In' }}
-                </button>
-              </div>
+        <form class="auth-form" @submit.prevent="submitLogin">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <div class="input-group">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              </span>
+              <input
+                type="email"
+                id="email"
+                v-model="form.email"
+                required
+                placeholder="e.g., name@example.com"
+              />
             </div>
-          </form>
-
-          <!-- Register Link -->
-          <div class="register-link">
-            <p>
-              Don't have an account?
-              <router-link to="/register" class="link">Sign up here</router-link>
-            </p>
           </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-group">
+              <span class="input-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              </span>
+              <input
+                type="password"
+                id="password"
+                v-model="form.password"
+                required
+                placeholder="Enter your password"
+              />
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-item">
+              <input type="checkbox" v-model="form.rememberMe" />
+              <span class="checkmark"></span>
+              Remember me
+            </label>
+            <a href="#" class="link">Forgot password?</a>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Signing In...' : 'Sign In' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="auth-footer">
+          <p>
+            Don't have an account?
+            <router-link to="/register" class="link font-weight-bold">Sign up</router-link>
+          </p>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 </template>
 
@@ -84,24 +86,18 @@ const submitLogin = async () => {
   isSubmitting.value = true
 
   try {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
-    // Hardcoded test credentials
     const testCredentials = {
-      // Normal user credentials
       'user@test.com': { password: 'password123', type: 'user', name: 'John Doe' },
       'client@legalai.com': { password: 'client123', type: 'user', name: 'Jane Smith' },
-
-      // Lawyer credentials
       'lawyer@test.com': { password: 'lawyer123', type: 'lawyer', name: 'Sarah Johnson' },
-      'attorney@legalai.com': { password: 'attorney123', type: 'lawyer', name: 'Michael Chen' },
+      'attorney@legalconnect.com.bd': { password: 'attorney123', type: 'lawyer', name: 'Michael Chen' },
     }
 
     const userCreds = testCredentials[form.email]
 
     if (userCreds && userCreds.password === form.password) {
-      // Store user data in auth store
       authStore.login({
         type: userCreds.type,
         name: userCreds.name,
@@ -112,12 +108,10 @@ const submitLogin = async () => {
         `Welcome back, ${userCreds.name}! You have been successfully signed in as a ${userCreds.type}.`,
       )
 
-      // Reset form
       form.email = ''
       form.password = ''
       form.rememberMe = false
 
-      // Redirect to appropriate dashboard
       if (userCreds.type === 'lawyer') {
         router.push('/dashboard/lawyer')
       } else {
@@ -135,30 +129,43 @@ const submitLogin = async () => {
 </script>
 
 <style scoped>
-.login-page {
+.auth-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   min-height: 100vh;
-}
-
-.login-section {
-  background: var(--color-background-soft);
-}
-
-.login-container {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.login-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.form-section {
-  background: var(--color-background);
+  background-color: var(--color-background-soft);
   padding: 2rem;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card {
+  background: var(--color-background);
+  padding: 2.5rem;
   border-radius: var(--border-radius-lg);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.5s ease-out;
+}
+
+.auth-header {
+  text-align: center;
   margin-bottom: 2rem;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+  color: var(--color-text-muted);
 }
 
 .form-group {
@@ -172,20 +179,34 @@ const submitLogin = async () => {
   color: var(--color-heading);
 }
 
+.input-group {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
 .form-group input {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 3rem;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   background: var(--color-background-soft);
   color: var(--color-text);
   font-size: 1rem;
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-group input:focus {
   outline: none;
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.1);
 }
 
 .form-options {
@@ -193,13 +214,13 @@ const submitLogin = async () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  font-size: 0.875rem;
 }
 
 .checkbox-item {
   display: flex;
   align-items: center;
   cursor: pointer;
-  font-size: 0.875rem;
   color: var(--color-text);
 }
 
@@ -233,13 +254,18 @@ const submitLogin = async () => {
   font-weight: bold;
 }
 
-.form-actions {
-  text-align: center;
+.form-actions .btn {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
 }
 
-.register-link {
+.auth-footer {
   text-align: center;
-  padding-top: 2rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
 }
 
 .link {
@@ -252,11 +278,18 @@ const submitLogin = async () => {
   text-decoration: underline;
 }
 
-@media (max-width: 768px) {
-  .form-options {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+.font-weight-bold {
+  font-weight: 700;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style>

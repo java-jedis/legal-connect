@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container">
-        <h1 class="hero-title">About LegalAI</h1>
+        <h1 class="hero-title">About LegalConnect</h1>
         <p class="hero-subtitle">
           Revolutionizing legal services through AI innovation and human expertise
         </p>
@@ -17,7 +17,7 @@
           <div class="mission-text">
             <h2 class="section-title">Our Mission</h2>
             <p class="mission-description">
-              At LegalAI, we believe that access to quality legal assistance should be available to
+              At LegalConnect, we believe that access to quality legal assistance should be available to
               everyone, regardless of their background or financial situation. Our mission is to
               democratize legal services by combining cutting-edge artificial intelligence with the
               expertise of verified legal professionals.
@@ -141,7 +141,7 @@
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Leadership Team</h2>
-          <p class="section-subtitle">Meet the visionaries behind LegalAI</p>
+          <p class="section-subtitle">Meet the visionaries behind LegalConnect</p>
         </div>
 
         <div class="team-grid grid grid-3">

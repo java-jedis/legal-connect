@@ -49,17 +49,17 @@
           <!-- User navigation -->
           <template v-else-if="authStore.isUser()">
             <router-link to="/dashboard/user" class="nav-link">Dashboard</router-link>
-            <router-link to="/services" class="nav-link">Services</router-link>
-            <router-link to="/about" class="nav-link">About</router-link>
-            <router-link to="/contact" class="nav-link">Contact</router-link>
+            <router-link to="/my-cases" class="nav-link">My Cases</router-link>
+            <router-link to="/find-lawyer" class="nav-link">Find a Lawyer</router-link>
+            <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
 
           <!-- Lawyer navigation -->
           <template v-else-if="authStore.isLawyer()">
             <router-link to="/dashboard/lawyer" class="nav-link">Dashboard</router-link>
-            <router-link to="/services" class="nav-link">Services</router-link>
-            <router-link to="/about" class="nav-link">About</router-link>
-            <router-link to="/contact" class="nav-link">Contact</router-link>
+            <router-link to="/my-profile" class="nav-link">My Profile</router-link>
+            <router-link to="/client-cases" class="nav-link">Client Cases</router-link>
+            <router-link to="/settings" class="nav-link">Settings</router-link>
           </template>
         </div>
 

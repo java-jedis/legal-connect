@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container">
-        <h1 class="hero-title">How LegalAI Works</h1>
+        <h1 class="hero-title">How LegalConnect Works</h1>
         <p class="hero-subtitle">
           Your journey from legal question to expert solution in simple steps
         </p>
@@ -136,7 +136,7 @@
       <div class="container">
         <div class="section-header">
           <h2 class="section-title">Frequently Asked Questions</h2>
-          <p class="section-subtitle">Everything you need to know about using LegalAI</p>
+          <p class="section-subtitle">Everything you need to know about using LegalConnect</p>
         </div>
 
         <div class="faq-list">
@@ -432,14 +432,14 @@ const features = [
 const faqs = ref([
   {
     id: 1,
-    question: 'How much does LegalAI cost?',
+    question: 'How much does LegalConnect cost?',
     answer:
       'Our AI assistant is free to use. Lawyer consultations start at $29 per session, with various pricing plans available for ongoing legal support.',
     isOpen: false,
   },
   {
     id: 2,
-    question: 'Are the lawyers on LegalAI verified?',
+    question: 'Are the lawyers on LegalConnect verified?',
     answer:
       'Yes, all lawyers on our platform are thoroughly vetted, licensed, and verified. We check credentials, experience, and client reviews before allowing them to join.',
     isOpen: false,
@@ -453,7 +453,7 @@ const faqs = ref([
   },
   {
     id: 4,
-    question: 'Can I use LegalAI for any type of legal issue?',
+    question: 'Can I use LegalConnect for any type of legal issue?',
     answer:
       "We cover most major practice areas including family law, business law, criminal defense, property law, and more. If we can't help directly, we'll guide you to the right resources.",
     isOpen: false,

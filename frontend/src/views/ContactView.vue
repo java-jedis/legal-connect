@@ -43,8 +43,8 @@
                 </div>
                 <div class="method-content">
                   <h3>Email Us</h3>
-                  <p>support@legalai.com</p>
-                  <p>partnerships@legalai.com</p>
+                  <p>support@legalconnect.com.bd</p>
+                  <p>partnerships@legalconnect.com.bd</p>
                 </div>
               </div>
 
@@ -292,27 +292,27 @@ const isSubmitting = ref(false)
 const offices = [
   {
     id: 1,
-    name: 'New York',
+    name: 'Dhaka',
     type: 'Headquarters',
-    address: '123 Legal Street, New York, NY 10001',
-    phone: '+1 (555) 123-4567',
-    hours: 'Mon-Fri: 9AM-6PM EST',
+    address: '123 Legal Street, Dhaka, Bangladesh',
+    phone: '+880 171 234 5678',
+    hours: 'Sun-Thu: 9AM-6PM BST',
   },
   {
     id: 2,
-    name: 'San Francisco',
-    type: 'West Coast Office',
-    address: '456 Tech Avenue, San Francisco, CA 94105',
-    phone: '+1 (555) 234-5678',
-    hours: 'Mon-Fri: 9AM-6PM PST',
+    name: 'Chattogram',
+    type: 'Port City Office',
+    address: '456 Commerce Avenue, Chattogram, Bangladesh',
+    phone: '+880 181 234 5678',
+    hours: 'Sun-Thu: 9AM-6PM BST',
   },
   {
     id: 3,
-    name: 'Chicago',
-    type: 'Midwest Office',
-    address: '789 Business Blvd, Chicago, IL 60601',
-    phone: '+1 (555) 345-6789',
-    hours: 'Mon-Fri: 9AM-6PM CST',
+    name: 'Rajshahi',
+    type: 'Silk City Office',
+    address: '789 Silk Road, Rajshahi, Bangladesh',
+    phone: '+880 191 234 5678',
+    hours: 'Sun-Thu: 9AM-6PM BST',
   },
 ]
 

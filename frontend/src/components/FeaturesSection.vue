@@ -2,7 +2,7 @@
   <section class="features section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Why Choose LegalAI?</h2>
+        <h2 class="section-title">Why Choose LegalConnect?</h2>
         <p class="section-subtitle">
           Experience the future of legal services with our comprehensive platform designed to make
           legal assistance accessible, efficient, and intelligent.
