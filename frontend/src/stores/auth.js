@@ -16,11 +16,26 @@ export const useAuthStore = defineStore("auth", () => {
       const response = await authAPI.login(credentials);
 
       // If we reach here, the request was successful
-      const authData = response;
+      const authData = response.data; // Access the data field from ApiResponse
 
-      // Store token
-      token.value = authData.token;
-      localStorage.setItem("auth_token", authData.token);
+      // Validate that we received valid auth data
+      if (!authData || !authData.token || !authData.role) {
+        throw new Error("Invalid authentication response from server");
+      }
+
+      // Store token - only if it's valid
+      if (
+        authData.token &&
+        authData.token.trim() !== "" &&
+        authData.token !== "null" &&
+        authData.token !== "undefined"
+      ) {
+        token.value = authData.token;
+        localStorage.setItem("auth_token", authData.token);
+      } else {
+        console.error("Invalid token received from server:", authData.token);
+        throw new Error("Invalid authentication token received");
+      }
 
       // Store user info
       userInfo.value = {
@@ -34,8 +49,12 @@ export const useAuthStore = defineStore("auth", () => {
         updatedAt: authData.updatedAt,
       };
 
-      // Map role to userType for compatibility
-      userType.value = authData.role.toLowerCase();
+      // Map role to userType for compatibility - handle both string and enum cases
+      const roleString =
+        typeof authData.role === "string"
+          ? authData.role
+          : authData.role?.name || "USER";
+      userType.value = roleString.toLowerCase();
 
       // Update login status
       isLoggedIn.value = true;
@@ -70,11 +89,26 @@ export const useAuthStore = defineStore("auth", () => {
       const response = await authAPI.register(userData);
 
       // If we reach here, the request was successful
-      const authData = response;
+      const authData = response.data; // Access the data field from ApiResponse
 
-      // Store token
-      token.value = authData.token;
-      localStorage.setItem("auth_token", authData.token);
+      // Validate that we received valid auth data
+      if (!authData || !authData.token || !authData.role) {
+        throw new Error("Invalid authentication response from server");
+      }
+
+      // Store token - only if it's valid
+      if (
+        authData.token &&
+        authData.token.trim() !== "" &&
+        authData.token !== "null" &&
+        authData.token !== "undefined"
+      ) {
+        token.value = authData.token;
+        localStorage.setItem("auth_token", authData.token);
+      } else {
+        console.error("Invalid token received from server:", authData.token);
+        throw new Error("Invalid authentication token received");
+      }
 
       // Store user info
       userInfo.value = {
@@ -88,8 +122,12 @@ export const useAuthStore = defineStore("auth", () => {
         updatedAt: authData.updatedAt,
       };
 
-      // Map role to userType for compatibility
-      userType.value = authData.role.toLowerCase();
+      // Map role to userType for compatibility - handle both string and enum cases
+      const roleString =
+        typeof authData.role === "string"
+          ? authData.role
+          : authData.role?.name || "USER";
+      userType.value = roleString.toLowerCase();
 
       // Update login status
       isLoggedIn.value = true;
@@ -160,7 +198,8 @@ export const useAuthStore = defineStore("auth", () => {
       // If we reach here, the request was successful
       return {
         success: true,
-        message: response.message || "OTP sent successfully",
+        message:
+          response.data?.message || response.message || "OTP sent successfully",
       };
     } catch (error) {
       console.error("Send OTP error:", error);
@@ -189,7 +228,10 @@ export const useAuthStore = defineStore("auth", () => {
       // If we reach here, the request was successful
       return {
         success: true,
-        message: response.message || "Password reset successfully",
+        message:
+          response.data?.message ||
+          response.message ||
+          "Password reset successfully",
       };
     } catch (error) {
       console.error("Reset password error:", error);
@@ -211,6 +253,70 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  const sendVerificationCode = async (email) => {
+    try {
+      const response = await authAPI.sendVerificationCode(email);
+
+      // If we reach here, the request was successful
+      return {
+        success: true,
+        message:
+          response.data?.message ||
+          response.message ||
+          "Verification code sent successfully",
+      };
+    } catch (error) {
+      console.error("Send verification code error:", error);
+
+      // Handle the specific error response structure from backend
+      if (error.response?.data?.error?.message) {
+        return {
+          success: false,
+          message: error.response.data.error.message,
+        };
+      }
+
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to send verification code. Please try again.",
+      };
+    }
+  };
+
+  const verifyEmail = async (verificationData) => {
+    try {
+      const response = await authAPI.verifyEmail(verificationData);
+
+      // If we reach here, the request was successful
+      return {
+        success: true,
+        message:
+          response.data?.message ||
+          response.message ||
+          "Email verified successfully",
+      };
+    } catch (error) {
+      console.error("Email verification error:", error);
+
+      // Handle the specific error response structure from backend
+      if (error.response?.data?.error?.message) {
+        return {
+          success: false,
+          message: error.response.data.error.message,
+        };
+      }
+
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "Failed to verify email. Please try again.",
+      };
+    }
+  };
+
   return {
     isLoggedIn,
     userType,
@@ -226,5 +332,7 @@ export const useAuthStore = defineStore("auth", () => {
     getUserInfo,
     sendPasswordResetOTP,
     resetPassword,
+    sendVerificationCode,
+    verifyEmail,
   };
 });
