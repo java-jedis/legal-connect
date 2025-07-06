@@ -77,9 +77,9 @@
             <div class="user-menu">
               <button class="user-menu-toggle" @click="toggleUserMenu">
                 <div class="user-avatar">
-                  <span>{{ authStore.userInfo?.name?.charAt(0) || 'U' }}</span>
+                  <span>{{ userInitial }}</span>
                 </div>
-                <span class="user-name">{{ authStore.userInfo?.name }}</span>
+                <span class="user-name">{{ userFullName }}</span>
                 <svg
                   class="dropdown-icon"
                   viewBox="0 0 24 24"
@@ -152,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import ThemeToggle from './ThemeToggle.vue'
@@ -161,6 +161,24 @@ const router = useRouter()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
+
+// Computed properties for user display
+const userFullName = computed(() => {
+  if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
+    return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`
+  }
+  return authStore.userInfo?.firstName || authStore.userInfo?.email || 'User'
+})
+
+const userInitial = computed(() => {
+  if (authStore.userInfo?.firstName) {
+    return authStore.userInfo.firstName.charAt(0).toUpperCase()
+  }
+  if (authStore.userInfo?.email) {
+    return authStore.userInfo.email.charAt(0).toUpperCase()
+  }
+  return 'U'
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value

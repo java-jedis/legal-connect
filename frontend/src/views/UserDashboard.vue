@@ -21,7 +21,7 @@
       <div class="container">
         <h2 class="section-title">Quick Actions</h2>
         <div class="quick-actions-grid grid grid-4">
-          <div class="quick-action-card" @click="openAIChat">
+          <div class="quick-action-card stagger-item" @click="openAIChat">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -51,7 +51,7 @@
             <p>Get instant legal guidance</p>
           </div>
 
-          <div class="quick-action-card" @click="findLawyer">
+          <div class="quick-action-card stagger-item" @click="findLawyer">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -68,7 +68,7 @@
             <p>Connect with legal experts</p>
           </div>
 
-          <div class="quick-action-card" @click="uploadDocument">
+          <div class="quick-action-card stagger-item" @click="uploadDocument">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -91,7 +91,7 @@
             <p>Share legal documents</p>
           </div>
 
-          <div class="quick-action-card" @click="scheduleAppointment">
+          <div class="quick-action-card stagger-item" @click="scheduleAppointment">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect
@@ -260,11 +260,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
-const userName = ref(authStore.userInfo?.name || 'User')
+const userName = computed(() => {
+  if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
+    return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`
+  }
+  return authStore.userInfo?.firstName || authStore.userInfo?.email || 'User'
+})
 const newMessage = ref('')
 const chatHistory = ref([])
 const chatMessages = ref(null)
