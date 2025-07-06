@@ -1,7 +1,5 @@
 package com.javajedis.legalconnect.config;
 
-import com.javajedis.legalconnect.common.utility.EmailVerificationFilter;
-import com.javajedis.legalconnect.common.utility.JWTFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +12,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import com.javajedis.legalconnect.common.utility.EmailVerificationFilter;
+import com.javajedis.legalconnect.common.utility.JWTFilter;
 
 
 @Configuration
@@ -27,7 +29,7 @@ public class SpringSecurityConfig {
 
     @SuppressWarnings("java:S4502") // CSRF protection is disabled as we use JWT tokens in Authorization header
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JWTFilter jwtFilter, EmailVerificationFilter emailVerificationFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JWTFilter jwtFilter, EmailVerificationFilter emailVerificationFilter, CorsConfigurationSource corsConfigurationSource) throws Exception {
         JWTFilter filterWithRedis = new JWTFilter(jwtFilter.getUserDetailsService(), jwtFilter.getJwtUtil(), redisTemplate);
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**").permitAll()
@@ -41,6 +43,7 @@ public class SpringSecurityConfig {
                         .anyRequest().authenticated())
                 .addFilterBefore(filterWithRedis, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(emailVerificationFilter, JWTFilter.class)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
                 .build();
     }
