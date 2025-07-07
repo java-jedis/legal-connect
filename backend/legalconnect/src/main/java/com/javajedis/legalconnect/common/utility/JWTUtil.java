@@ -1,16 +1,19 @@
 package com.javajedis.legalconnect.common.utility;
 
-import com.javajedis.legalconnect.user.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.javajedis.legalconnect.user.User;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JWTUtil {
@@ -227,5 +230,43 @@ public class JWTUtil {
         userInfo.put(CLAIM_EMAIL_VERIFIED, claims.get(CLAIM_EMAIL_VERIFIED, Boolean.class));
         userInfo.put(CLAIM_TOKEN_TYPE, claims.get(CLAIM_TOKEN_TYPE, String.class));
         return userInfo;
+    }
+
+    /**
+     * Extracts JWT token from the Authorization header.
+     *
+     * @param authorizationHeader the Authorization header value
+     * @return the JWT token if valid, null otherwise
+     */
+    public static String extractJwtFromHeader(String authorizationHeader) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);
+        }
+        return null;
+    }
+
+    /**
+     * Extracts JWT token from the Authorization header and validates it's not null.
+     *
+     * @param authorizationHeader the Authorization header value
+     * @return the JWT token
+     * @throws IllegalArgumentException if the header is invalid or missing
+     */
+    public static String extractAndValidateJwtFromHeader(String authorizationHeader) {
+        String jwt = extractJwtFromHeader(authorizationHeader);
+        if (jwt == null) {
+            throw new IllegalArgumentException("Missing or invalid Authorization header");
+        }
+        return jwt;
+    }
+
+    /**
+     * Checks if the Authorization header is valid and contains a Bearer token.
+     *
+     * @param authorizationHeader the Authorization header value
+     * @return true if the header is valid, false otherwise
+     */
+    public static boolean isValidAuthorizationHeader(String authorizationHeader) {
+        return authorizationHeader != null && authorizationHeader.startsWith("Bearer ");
     }
 }
