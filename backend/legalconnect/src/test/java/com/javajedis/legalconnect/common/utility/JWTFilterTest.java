@@ -318,6 +318,7 @@ class JWTFilterTest {
             (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         assertNotNull(authentication);
         assertEquals(userDetails, authentication.getPrincipal());
+        assertEquals(validToken, authentication.getCredentials());
         // Compare authorities content rather than exact collection type
         assertTrue(authentication.getAuthorities().containsAll(userDetails.getAuthorities()));
         assertTrue(authentication.isAuthenticated());

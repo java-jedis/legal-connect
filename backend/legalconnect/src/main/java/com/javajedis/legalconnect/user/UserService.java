@@ -76,14 +76,22 @@ public class UserService {
     /**
      * Logs out the current user by blacklisting the JWT token in Redis.
      *
-     * @param jwtToken the JWT token from the Authorization header
      * @return ResponseEntity with logout status
      */
-    public ResponseEntity<ApiResponse<String>> logout(String jwtToken) {
+    public ResponseEntity<ApiResponse<String>> logout() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
+        
+        // Get the JWT token from the authentication context
+        Object credentials = authentication.getCredentials();
+        if (credentials == null) {
+            return ApiResponse.error("JWT token not found in authentication context", HttpStatus.UNAUTHORIZED);
+        }
+        
+        String jwtToken = credentials.toString();
+        
         // Blacklist the JWT token for the remaining validity period
         Date expiration = jwtUtil.extractExpiration(jwtToken);
         long now = System.currentTimeMillis();
@@ -99,17 +107,16 @@ public class UserService {
     /**
      * Changes the current user's password.
      *
-     * @param data     the change password data containing old and new password
-     * @param jwtToken the JWT token from the Authorization header
+     * @param data the change password data containing old and new password
      * @return ResponseEntity indicating whether the password was successfully changed
      */
-    public ResponseEntity<ApiResponse<Boolean>> changePassword(ChangePasswordReqDTO data, String jwtToken) {
+    public ResponseEntity<ApiResponse<Boolean>> changePassword(ChangePasswordReqDTO data) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
 
-        String email = jwtUtil.extractUsername(jwtToken);
+        String email = authentication.getName();
         if (email == null) {
             return ApiResponse.error(INVALID_TOKEN_MSG, HttpStatus.UNAUTHORIZED);
         }

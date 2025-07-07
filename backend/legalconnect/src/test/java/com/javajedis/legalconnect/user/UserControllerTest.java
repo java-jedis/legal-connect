@@ -13,12 +13,17 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 
 class UserControllerTest {
     @Mock
     private UserService userService;
+    
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private UserController userController;
@@ -26,10 +31,15 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        SecurityContextHolder.clearContext();
     }
 
     @Test
     void getUserInfo_returnsUserInfo() {
+        // Set up authentication context
+        when(authentication.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
         UserInfoResponseDTO dto = new UserInfoResponseDTO();
         ApiResponse<UserInfoResponseDTO> apiResponse = ApiResponse.success(dto, HttpStatus.OK, "User info retrieved successfully").getBody();
         when(userService.getUserInfo()).thenReturn(ResponseEntity.ok(apiResponse));
@@ -41,11 +51,14 @@ class UserControllerTest {
 
     @Test
     void logout_withValidJwt_returnsSuccess() {
-        String jwt = "valid.jwt.token";
+        // Set up authentication context
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("valid.jwt.token");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
         ApiResponse<String> apiResponse = ApiResponse.success("Logout successful", HttpStatus.OK, "Logout successful").getBody();
-        when(userService.logout(jwt)).thenReturn(ResponseEntity.ok(apiResponse));
-        String header = "Bearer " + jwt;
-        ResponseEntity<ApiResponse<String>> result = userController.logout(header);
+        when(userService.logout()).thenReturn(ResponseEntity.ok(apiResponse));
+        ResponseEntity<ApiResponse<String>> result = userController.logout();
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals("Logout successful", result.getBody().getData());
@@ -53,8 +66,11 @@ class UserControllerTest {
 
     @Test
     void logout_withMissingHeader_returnsError() {
-        ResponseEntity<ApiResponse<String>> result = userController.logout(null);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        // No authentication context set up - should return unauthorized
+        ApiResponse<String> apiResponse = ApiResponse.<String>error("Not authenticated", HttpStatus.UNAUTHORIZED).getBody();
+        when(userService.logout()).thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse));
+        ResponseEntity<ApiResponse<String>> result = userController.logout();
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         assertNotNull(result.getBody());
         assertNull(result.getBody().getData());
         assertNotNull(result.getBody().getError());
@@ -62,8 +78,15 @@ class UserControllerTest {
 
     @Test
     void logout_withInvalidHeader_returnsError() {
-        ResponseEntity<ApiResponse<String>> result = userController.logout("InvalidHeader");
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        // Set up authentication but with null credentials
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        ApiResponse<String> apiResponse = ApiResponse.<String>error("JWT token not found in authentication context", HttpStatus.UNAUTHORIZED).getBody();
+        when(userService.logout()).thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse));
+        ResponseEntity<ApiResponse<String>> result = userController.logout();
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         assertNotNull(result.getBody());
         assertNull(result.getBody().getData());
         assertNotNull(result.getBody().getError());
@@ -71,12 +94,15 @@ class UserControllerTest {
 
     @Test
     void changePassword_withValidJwt_returnsSuccess() {
+        // Set up authentication context
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("valid.jwt.token");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        String jwt = "valid.jwt.token";
         ApiResponse<Boolean> apiResponse = ApiResponse.success(true, HttpStatus.OK, "Password changed successfully").getBody();
-        when(userService.changePassword(req, jwt)).thenReturn(ResponseEntity.ok(apiResponse));
-        String header = "Bearer " + jwt;
-        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req, header);
+        when(userService.changePassword(req)).thenReturn(ResponseEntity.ok(apiResponse));
+        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertTrue(result.getBody().getData());
@@ -84,9 +110,12 @@ class UserControllerTest {
 
     @Test
     void changePassword_withMissingHeader_returnsError() {
+        // No authentication context set up - should return unauthorized
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req, null);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        ApiResponse<Boolean> apiResponse = ApiResponse.<Boolean>error("Not authenticated", HttpStatus.UNAUTHORIZED).getBody();
+        when(userService.changePassword(req)).thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse));
+        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req);
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         assertNotNull(result.getBody());
         assertNull(result.getBody().getData());
         assertNotNull(result.getBody().getError());
@@ -94,9 +123,16 @@ class UserControllerTest {
 
     @Test
     void changePassword_withInvalidHeader_returnsError() {
+        // Set up authentication but with null credentials
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req, "InvalidHeader");
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        ApiResponse<Boolean> apiResponse = ApiResponse.<Boolean>error("JWT token not found in authentication context", HttpStatus.UNAUTHORIZED).getBody();
+        when(userService.changePassword(req)).thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse));
+        ResponseEntity<ApiResponse<Boolean>> result = userController.changePassword(req);
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         assertNotNull(result.getBody());
         assertNull(result.getBody().getData());
         assertNotNull(result.getBody().getError());
