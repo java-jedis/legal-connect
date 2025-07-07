@@ -88,6 +88,7 @@ public class JWTUtil {
      * @return the generated JWT token
      * @deprecated Use generateToken(User user) instead
      */
+    @SuppressWarnings("java:S1133")
     @Deprecated(since = "1.0.0", forRemoval = true)
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
