@@ -270,11 +270,13 @@ const validateEmail = () => {
 };
 
 const validatePassword = () => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!*()_\-[]{}|;:,.<>?])[A-Za-z\d@#$%^&+=!*()_\-[]{}|;:,.<>?]{8,100}$/;
   if (!form.password) {
     errors.password = 'Password is required.';
   } else if (form.password.length < 8) {
     errors.password = 'Password must be at least 8 characters long.';
+  } else if (form.password.length > 100) {
+    errors.password = 'Password must be no more than 100 characters long.';
   } else if (!passwordRegex.test(form.password)) {
     errors.password =
       'Password must contain one uppercase, one lowercase, one number, and one special character.';
@@ -289,8 +291,23 @@ const validatePassword = () => {
   if (form.password.length < 8) {
     passwordErrors.value.push('Password must be at least 8 characters long.')
   }
-  if (!passwordRegex.test(form.password)) {
-    passwordErrors.value.push('Password must contain one uppercase, one lowercase, one number, and one special character.')
+  if (form.password.length > 100) {
+    passwordErrors.value.push('No more than 100 characters')
+  }
+  if (!/(?=.*[a-z])/.test(form.password)) {
+    passwordErrors.value.push('At least one lowercase letter')
+  }
+  if (!/(?=.*[A-Z])/.test(form.password)) {
+    passwordErrors.value.push('At least one uppercase letter')
+  }
+  if (!/(?=.*\d)/.test(form.password)) {
+    passwordErrors.value.push('At least one number')
+  }
+  if (!/[@#$%^&+=!*()_\-[]{}|;:,.<>?]/.test(form.password)) {
+    passwordErrors.value.push('At least one special character (@ # $ % ^ & + = ! * ( ) _ - [ ] { } | ; : , . < > ?)')
+  }
+  if (/\s/.test(form.password)) {
+    passwordErrors.value.push('No spaces allowed')
   }
 };
 

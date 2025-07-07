@@ -88,6 +88,18 @@ export const authAPI = {
     const response = await api.post("/auth/reset-password", resetData);
     return response.data;
   },
+
+  // Change password for authenticated user
+  changePassword: async (data) => {
+    const response = await api.put("/user/change-password", data);
+    return response.data;
+  },
+
+  // Logout user (blacklist JWT)
+  logout: async () => {
+    const response = await api.post("/user/logout");
+    return response.data;
+  },
 };
 
 export default api;

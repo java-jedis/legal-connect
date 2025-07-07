@@ -158,13 +158,16 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch {
+      // Ignore errors, always clear local state
+    }
     isLoggedIn.value = false;
     userType.value = null;
     userInfo.value = null;
     token.value = null;
-
-    // Clear localStorage
     localStorage.removeItem("auth_isLoggedIn");
     localStorage.removeItem("auth_userType");
     localStorage.removeItem("auth_userInfo");
@@ -317,6 +320,35 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  const changePassword = async (data) => {
+    try {
+      const response = await authAPI.changePassword(data);
+      // Success if response.status is 200 and response.data is true
+      if (response.status === 200 && response.data === true) {
+        return {
+          success: true,
+          message: response.message || "Password changed successfully.",
+        };
+      } else {
+        return {
+          success: false,
+          message:
+            response?.error?.message ||
+            response.message ||
+            "Failed to change password.",
+        };
+      }
+    } catch (error) {
+      if (error.response?.data?.error?.message) {
+        return { success: false, message: error.response.data.error.message };
+      }
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to change password.",
+      };
+    }
+  };
+
   return {
     isLoggedIn,
     userType,
@@ -334,5 +366,6 @@ export const useAuthStore = defineStore("auth", () => {
     resetPassword,
     sendVerificationCode,
     verifyEmail,
+    changePassword,
   };
 });

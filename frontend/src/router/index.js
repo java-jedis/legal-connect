@@ -66,6 +66,12 @@ const router = createRouter({
       component: () => import("../views/LawyerDashboard.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
+    {
+      path: "/profile",
+      name: "view-profile",
+      component: () => import("../views/ProfileView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
   ],
 });
 

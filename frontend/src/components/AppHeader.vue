@@ -57,9 +57,8 @@
           <!-- Lawyer navigation -->
           <template v-else-if="authStore.isLawyer()">
             <router-link to="/dashboard/lawyer" class="nav-link">Dashboard</router-link>
-            <router-link to="/my-profile" class="nav-link">My Profile</router-link>
             <router-link to="/client-cases" class="nav-link">Client Cases</router-link>
-            <router-link to="/settings" class="nav-link">Settings</router-link>
+            <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
         </div>
 
@@ -188,8 +187,8 @@ const toggleUserMenu = () => {
   isUserMenuOpen.value = !isUserMenuOpen.value
 }
 
-const logout = () => {
-  authStore.logout()
+const logout = async () => {
+  await authStore.logout()
   isUserMenuOpen.value = false
   router.push('/')
 }
