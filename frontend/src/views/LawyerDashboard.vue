@@ -376,11 +376,16 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
-const lawyerName = ref(authStore.userInfo?.name || 'Lawyer')
+const lawyerName = computed(() => {
+  if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
+    return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`
+  }
+  return authStore.userInfo?.firstName || authStore.userInfo?.email || 'Lawyer'
+})
 
 const stats = ref({
   activeClients: 24,

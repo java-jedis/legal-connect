@@ -132,15 +132,61 @@
             </div>
             <div class="form-group">
               <label for="password">Password</label>
-              <input
-                type="password"
-                id="password"
-                v-model="form.password"
-                required
-                placeholder="Create a strong password"
-                @blur="validatePassword"
-              />
+              <div class="input-group">
+                <span class="input-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  id="password"
+                  v-model="form.password"
+                  required
+                  placeholder="Create a strong password"
+                  @input="validatePassword"
+                />
+                <button 
+                  type="button" 
+                  class="password-toggle"
+                  @click="showPassword = !showPassword"
+                >
+                  <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <div class="password-requirements" v-if="passwordErrors.length > 0">
+                <small class="error-text">Password must meet the following requirements:</small>
+                <ul class="requirements-list">
+                  <li v-for="error in passwordErrors" :key="error" class="requirement-item">
+                    {{ error }}
+                  </li>
+                </ul>
+              </div>
               <p v-if="errors.password" class="error-message">{{ errors.password }}</p>
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <div class="input-group">
+                <span class="input-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </span>
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  id="confirmPassword"
+                  v-model="form.confirmPassword"
+                  required
+                  placeholder="Confirm your password"
+                  @input="validateConfirmPassword"
+                />
+                <button 
+                  type="button" 
+                  class="password-toggle"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                >
+                  <svg v-if="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+              </div>
+              <small v-if="confirmPasswordError" class="error-text">{{ confirmPasswordError }}</small>
             </div>
           </fieldset>
 
@@ -160,6 +206,7 @@
 
           <div class="form-actions">
             <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !isFormValid">
+              <span v-if="isSubmitting" class="loading-spinner"></span>
               {{ isSubmitting ? 'Submitting...' : 'Create Account' }}
             </button>
           </div>
@@ -177,8 +224,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { showErrorAlert } from '../utils/errorHandler'
 
+const router = useRouter()
+const authStore = useAuthStore()
 const userType = ref('')
 const isSubmitting = ref(false)
 
@@ -187,6 +239,7 @@ const form = reactive({
   lastName: '',
   email: '',
   password: '',
+  confirmPassword: '',
   agreeToTerms: false,
   agreeToVerification: false,
 })
@@ -195,6 +248,11 @@ const errors = reactive({
   email: '',
   password: '',
 })
+
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const passwordErrors = ref([])
+const confirmPasswordError = ref('')
 
 const selectUserType = (type) => {
   userType.value = type
@@ -212,18 +270,54 @@ const validateEmail = () => {
 };
 
 const validatePassword = () => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!*()_\-[]{}|;:,.<>?])[A-Za-z\d@#$%^&+=!*()_\-[]{}|;:,.<>?]{8,100}$/;
   if (!form.password) {
     errors.password = 'Password is required.';
   } else if (form.password.length < 8) {
     errors.password = 'Password must be at least 8 characters long.';
+  } else if (form.password.length > 100) {
+    errors.password = 'Password must be no more than 100 characters long.';
   } else if (!passwordRegex.test(form.password)) {
     errors.password =
       'Password must contain one uppercase, one lowercase, one number, and one special character.';
   } else {
     errors.password = '';
   }
+
+  passwordErrors.value = []
+  if (!form.password) {
+    passwordErrors.value.push('Password is required.')
+  }
+  if (form.password.length < 8) {
+    passwordErrors.value.push('Password must be at least 8 characters long.')
+  }
+  if (form.password.length > 100) {
+    passwordErrors.value.push('No more than 100 characters')
+  }
+  if (!/(?=.*[a-z])/.test(form.password)) {
+    passwordErrors.value.push('At least one lowercase letter')
+  }
+  if (!/(?=.*[A-Z])/.test(form.password)) {
+    passwordErrors.value.push('At least one uppercase letter')
+  }
+  if (!/(?=.*\d)/.test(form.password)) {
+    passwordErrors.value.push('At least one number')
+  }
+  if (!/[@#$%^&+=!*()_\-[]{}|;:,.<>?]/.test(form.password)) {
+    passwordErrors.value.push('At least one special character (@ # $ % ^ & + = ! * ( ) _ - [ ] { } | ; : , . < > ?)')
+  }
+  if (/\s/.test(form.password)) {
+    passwordErrors.value.push('No spaces allowed')
+  }
 };
+
+const validateConfirmPassword = () => {
+  if (form.password !== form.confirmPassword) {
+    confirmPasswordError.value = 'Passwords do not match.'
+  } else {
+    confirmPasswordError.value = ''
+  }
+}
 
 const isFormValid = computed(() => {
   return (
@@ -233,14 +327,17 @@ const isFormValid = computed(() => {
     form.lastName &&
     form.email &&
     form.password &&
+    form.confirmPassword &&
     form.agreeToTerms &&
-    (userType.value === 'user' || form.agreeToVerification)
+    (userType.value === 'user' || form.agreeToVerification) &&
+    !confirmPasswordError.value
   )
 })
 
 const submitRegistration = async () => {
   validateEmail()
   validatePassword()
+  validateConfirmPassword()
 
   if (!isFormValid.value) {
     return
@@ -248,11 +345,46 @@ const submitRegistration = async () => {
 
   isSubmitting.value = true
   try {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    alert(`Account created for ${form.firstName} as a ${userType.value}!`)
-    // Reset form or redirect
+    const userData = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      role: userType.value.toUpperCase(), // Convert to uppercase to match backend enum
+    }
+
+    const result = await authStore.register(userData)
+
+    if (result.success) {
+      const userInfo = authStore.getUserInfo()
+      
+      // Reset form
+      form.firstName = ''
+      form.lastName = ''
+      form.email = ''
+      form.password = ''
+      form.confirmPassword = ''
+      form.agreeToTerms = false
+      form.agreeToVerification = false
+      userType.value = ''
+
+      // Check if email is verified
+      if (!userInfo.emailVerified) {
+        router.push('/email-verification')
+      } else {
+        // Redirect to appropriate dashboard
+        if (authStore.isLawyer()) {
+          router.push('/dashboard/lawyer')
+        } else {
+          router.push('/dashboard/user')
+        }
+      }
+    } else {
+      showErrorAlert(result.message || 'Registration failed. Please try again.')
+    }
   } catch (error) {
-    alert('An error occurred.')
+    console.error('Registration error:', error)
+    showErrorAlert('An error occurred during registration. Please try again.')
   } finally {
     isSubmitting.value = false
   }
@@ -446,6 +578,77 @@ const submitRegistration = async () => {
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.input-group {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.input-group input {
+  padding-left: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--border-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-background-soft);
+}
+
+.password-requirements {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius);
+  border-left: 3px solid var(--color-warning);
+}
+
+.requirements-list {
+  margin: 0.5rem 0 0 0;
+  padding-left: 1.25rem;
+  list-style: none;
+}
+
+.requirement-item {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.requirement-item::before {
+  content: "•";
+  color: var(--color-warning);
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
@@ -509,6 +712,24 @@ const submitRegistration = async () => {
   width: 100%;
   padding: 0.875rem;
   font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .auth-footer {
