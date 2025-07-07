@@ -113,6 +113,9 @@ const validatePassword = () => {
   if (form.password.length < 8) {
     errors.push('At least 8 characters long')
   }
+  if (form.password.length > 100) {
+    errors.push('No more than 100 characters')
+  }
   if (!/(?=.*[a-z])/.test(form.password)) {
     errors.push('At least one lowercase letter')
   }
@@ -122,8 +125,11 @@ const validatePassword = () => {
   if (!/(?=.*\d)/.test(form.password)) {
     errors.push('At least one number')
   }
-  if (!/(?=.*[@$!%*?&])/.test(form.password)) {
-    errors.push('At least one special character (@$!%*?&)')
+  if (!/[@#$%^&+=!*()_\-[\]{}|;:,.<>?]/.test(form.password)) {
+    errors.push('At least one special character (@ # $ % ^ & + = ! * ( ) _ - [ ] { } | ; : , . < > ?)')
+  }
+  if (/\s/.test(form.password)) {
+    errors.push('No spaces allowed')
   }
   passwordErrors.value = errors
   validateConfirmPassword()

@@ -214,7 +214,7 @@ const validatePassword = () => {
   if (!/(?=.*\d)/.test(form.password)) {
     errors.push('At least one number')
   }
-  if (!/[@#$%^&+=!*()_\-[]{}|;:,.<>?]/.test(form.password)) {
+  if (!/[@#$%^&+=!*()_\-[\]{}|;:,.<>?]/.test(form.password)) {
     errors.push('At least one special character (@ # $ % ^ & + = ! * ( ) _ - [ ] { } | ; : , . < > ?)')
   }
   if (/\s/.test(form.password)) {
