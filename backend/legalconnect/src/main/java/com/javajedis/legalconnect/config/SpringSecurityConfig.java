@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,6 +19,7 @@ import com.javajedis.legalconnect.common.utility.EmailVerificationFilter;
 import com.javajedis.legalconnect.common.utility.JWTFilter;
 
 
+@EnableMethodSecurity
 @Configuration
 public class SpringSecurityConfig {
     private final StringRedisTemplate redisTemplate;
@@ -34,6 +36,8 @@ public class SpringSecurityConfig {
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/lawyer/profile", "/lawyer/profile/**").authenticated()
+                        .requestMatchers("/lawyer/view-credentials", "/lawyer/view-credentials/**").hasAnyRole("LAWYER", "ADMIN")
                         .requestMatchers("/lawyer/**").hasRole("LAWYER")
                         .requestMatchers(
                                 "/v3/api-docs/**",

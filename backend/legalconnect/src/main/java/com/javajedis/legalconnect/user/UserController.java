@@ -13,7 +13,9 @@ import com.javajedis.legalconnect.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Tag(name = "2. User", description = "User profile and account management endpoints for all types of users")
 @RestController
 @RequestMapping("/user")
@@ -33,6 +35,7 @@ public class UserController {
     @Operation(summary = "Get user info", description = "Retrieves the current authenticated user's information.")
     @GetMapping("/user-info")
     public ResponseEntity<ApiResponse<UserInfoResponseDTO>> getUserInfo() {
+        log.info("GET /user/user-info called");
         return userService.getUserInfo();
     }
 
@@ -44,6 +47,7 @@ public class UserController {
     @Operation(summary = "Logout user", description = "Logs out the current user by blacklisting the JWT token.")
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout() {
+        log.info("POST /user/logout called");
         return userService.logout();
     }
 
@@ -56,6 +60,7 @@ public class UserController {
     @Operation(summary = "Change password", description = "Changes the current user's password.")
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<Boolean>> changePassword(@Valid @RequestBody ChangePasswordReqDTO data) {
+        log.info("PUT /user/change-password called for email: [from context]");
         return userService.changePassword(data);
     }
 

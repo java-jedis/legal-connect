@@ -49,17 +49,18 @@ public class UserService {
      * @return ResponseEntity containing the user's information or error status
      */
     public ResponseEntity<ApiResponse<UserInfoResponseDTO>> getUserInfo() {
+        log.debug("Attempting to retrieve current user info");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("User is not authenticated when requesting user info");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-
         Map<String, Object> userInfo = GetUserUtil.getCurrentUserInfo(userRepo);
-
         if (userInfo.isEmpty()) {
             log.error("User information not found in the context");
             return ApiResponse.error(USER_NOT_FOUND_MSG, HttpStatus.NOT_FOUND);
         }
+        log.info("User info retrieved for email: {}", userInfo.get("email"));
 
         UserInfoResponseDTO info = new UserInfoResponseDTO();
         info.setFirstName((String) userInfo.get("firstName"));
@@ -79,17 +80,17 @@ public class UserService {
      * @return ResponseEntity with logout status
      */
     public ResponseEntity<ApiResponse<String>> logout() {
+        log.debug("Attempting to logout current user");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("User is not authenticated when attempting logout");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-        
-        // Get the JWT token from the authentication context
         Object credentials = authentication.getCredentials();
         if (credentials == null) {
+            log.error("JWT token not found in authentication context during logout");
             return ApiResponse.error("JWT token not found in authentication context", HttpStatus.UNAUTHORIZED);
         }
-        
         String jwtToken = credentials.toString();
         
         // Blacklist the JWT token for the remaining validity period
@@ -101,6 +102,7 @@ public class UserService {
             String blacklistKey = "blacklist:jwt:" + jwtToken;
             redisTemplate.opsForValue().set(blacklistKey, "true", ttl, TimeUnit.MILLISECONDS);
         }
+        log.info("User logged out successfully. JWT token blacklisted.");
         return ApiResponse.success("Logout successful", HttpStatus.OK, "Logout successful");
     }
 
@@ -111,28 +113,33 @@ public class UserService {
      * @return ResponseEntity indicating whether the password was successfully changed
      */
     public ResponseEntity<ApiResponse<Boolean>> changePassword(ChangePasswordReqDTO data) {
+        log.debug("Attempting to change password for current user");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("User is not authenticated when attempting to change password");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-
         String email = authentication.getName();
         if (email == null) {
+            log.error("Email not found in authentication context during password change");
             return ApiResponse.error(INVALID_TOKEN_MSG, HttpStatus.UNAUTHORIZED);
         }
-
         User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+                .orElseThrow(() -> {
+                    log.error("User not found for email: {} during password change", email);
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
         if (!passwordEncoder.matches(data.getOldPassword(), user.getPassword())) {
+            log.warn("Incorrect old password for email: {}", email);
             return ApiResponse.error(OLD_PASSWORD_INCORRECT_MSG, HttpStatus.BAD_REQUEST);
         }
-
         if (data.getOldPassword().equals(data.getPassword())) {
+            log.warn("Old and new password are the same for email: {}", email);
             return ApiResponse.error(OLD_NEW_PASSWORD_SAME_MSG, HttpStatus.BAD_REQUEST);
         }
-
         user.setPassword(passwordEncoder.encode(data.getPassword()));
         userRepo.save(user);
+        log.info("Password changed successfully for email: {}", email);
         return ApiResponse.success(true, HttpStatus.OK, "Password changed successfully");
     }
 

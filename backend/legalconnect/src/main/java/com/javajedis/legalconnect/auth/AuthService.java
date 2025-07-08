@@ -1,12 +1,7 @@
 package com.javajedis.legalconnect.auth;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.EmailService;
-import com.javajedis.legalconnect.common.service.VerificationCodeService;
-import com.javajedis.legalconnect.common.utility.JWTUtil;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,7 +10,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.common.service.VerificationCodeService;
+import com.javajedis.legalconnect.common.utility.JWTUtil;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for handling user authentication and registration operations.
@@ -24,6 +26,7 @@ import java.util.Map;
 @Slf4j
 public class AuthService {
     private static final String USER_NOT_FOUND_MSG = "User not found";
+    private static final String USER_NOT_FOUND_LOG_MSG = "User not found for email: {}";
     private final AuthenticationManager authenticationManager;
     private final UserRepo userRepo;
     private final JWTUtil jwtUtil;
@@ -56,6 +59,7 @@ public class AuthService {
      * @return ResponseEntity with auth response (token + user details) or error
      */
     public ResponseEntity<ApiResponse<AuthResponseDTO>> registerUser(UserRegisterDTO userData) {
+        log.debug("Attempting to register user with email: {}", userData.getEmail());
         if (userRepo.findByEmail(userData.getEmail()).isPresent()) {
             log.warn("Registration attempt with existing email: {}", userData.getEmail());
             return ApiResponse.error("User with this email already exists", HttpStatus.CONFLICT);
@@ -98,12 +102,20 @@ public class AuthService {
      * @return ResponseEntity with auth response (token + user details) or error
      */
     public ResponseEntity<ApiResponse<AuthResponseDTO>> loginUser(String email, String password) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, password)
-        );
-
+        log.debug("Attempting login for email: {}", email);
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+        } catch (Exception ex) {
+            log.error("Authentication failed for email: {}", email, ex);
+            return ApiResponse.error("Invalid credentials", HttpStatus.UNAUTHORIZED);
+        }
         User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+                .orElseThrow(() -> {
+                    log.error(USER_NOT_FOUND_LOG_MSG, email);
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
 
         // Generate JWT token with enhanced claims
         String token = jwtUtil.generateToken(user);
@@ -131,8 +143,12 @@ public class AuthService {
      * @return ResponseEntity with a success message or error status
      */
     public ResponseEntity<ApiResponse<String>> sendVerificationCode(String email) {
+        log.debug("Sending verification code to email: {}", email);
         User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+                .orElseThrow(() -> {
+                    log.error(USER_NOT_FOUND_LOG_MSG, email);
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
 
         String otp = verificationCodeService.generateAndStoreOTP(user.getId(), user.getEmail());
         Map<String, Object> variables = Map.of(
@@ -145,6 +161,7 @@ public class AuthService {
                 "otp-verification",
                 variables
         );
+        log.info("Verification code sent to email: {}", user.getEmail());
         return ApiResponse.success("Verification code sent to your email", HttpStatus.OK, "Verification code sent successfully");
     }
 
@@ -155,21 +172,28 @@ public class AuthService {
      * @return ResponseEntity indicating whether the email was successfully verified
      */
     public ResponseEntity<ApiResponse<Boolean>> verifyEmail(EmailVerifyDTO verificationData) {
+        log.debug("Verifying email: {} with OTP", verificationData.getEmail());
         User user = userRepo.findByEmail(verificationData.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+                .orElseThrow(() -> {
+                    log.error(USER_NOT_FOUND_LOG_MSG, verificationData.getEmail());
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
 
         if (user.isEmailVerified()) {
+            log.info("Email already verified: {}", user.getEmail());
             return ApiResponse.error("Email is already verified", HttpStatus.BAD_REQUEST);
         }
 
         boolean valid = verificationCodeService.isVerificationCodeValid(user.getId(), user.getEmail(), verificationData.getOtp());
         if (!valid) {
+            log.warn("Invalid or expired verification code for email: {}", user.getEmail());
             return ApiResponse.error("Invalid or expired verification code", HttpStatus.BAD_REQUEST);
         }
 
         user.setEmailVerified(true);
         userRepo.save(user);
         verificationCodeService.removeVerificationCode(user.getId(), user.getEmail());
+        log.info("Email verified successfully: {}", user.getEmail());
         return ApiResponse.success(true, HttpStatus.OK, "Email verified successfully");
     }
 
@@ -180,16 +204,22 @@ public class AuthService {
      * @return ResponseEntity indicating whether the password was successfully reset
      */
     public ResponseEntity<ApiResponse<Boolean>> resetPassword(ResetPasswordDTO data) {
+        log.debug("Resetting password for email: {}", data.getEmail());
         User user = userRepo.findByEmail(data.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MSG));
+                .orElseThrow(() -> {
+                    log.error(USER_NOT_FOUND_LOG_MSG, data.getEmail());
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
 
         boolean valid = verificationCodeService.isVerificationCodeValid(user.getId(), user.getEmail(), data.getOtp());
         if (!valid) {
+            log.warn("Invalid or expired OTP for password reset for email: {}", user.getEmail());
             return ApiResponse.error("Otp is Invalid or expired", HttpStatus.BAD_REQUEST);
         }
         user.setPassword(passwordEncoder.encode(data.getPassword()));
         userRepo.save(user);
         verificationCodeService.removeVerificationCode(user.getId(), user.getEmail());
+        log.info("Password reset successful for email: {}", user.getEmail());
         return ApiResponse.success(true, HttpStatus.OK, "Password reset successful");
     }
 }
