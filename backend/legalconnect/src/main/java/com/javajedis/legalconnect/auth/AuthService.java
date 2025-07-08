@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AuthService {
     private static final String USER_NOT_FOUND_MSG = "User not found";
+    private static final String USER_NOT_FOUND_LOG_MSG = "User not found for email: {}";
     private final AuthenticationManager authenticationManager;
     private final UserRepo userRepo;
     private final JWTUtil jwtUtil;
@@ -112,7 +113,7 @@ public class AuthService {
         }
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", email);
+                    log.error(USER_NOT_FOUND_LOG_MSG, email);
                     return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
                 });
 
@@ -145,7 +146,7 @@ public class AuthService {
         log.debug("Sending verification code to email: {}", email);
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", email);
+                    log.error(USER_NOT_FOUND_LOG_MSG, email);
                     return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
                 });
 
@@ -174,7 +175,7 @@ public class AuthService {
         log.debug("Verifying email: {} with OTP", verificationData.getEmail());
         User user = userRepo.findByEmail(verificationData.getEmail())
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", verificationData.getEmail());
+                    log.error(USER_NOT_FOUND_LOG_MSG, verificationData.getEmail());
                     return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
                 });
 
@@ -206,7 +207,7 @@ public class AuthService {
         log.debug("Resetting password for email: {}", data.getEmail());
         User user = userRepo.findByEmail(data.getEmail())
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", data.getEmail());
+                    log.error(USER_NOT_FOUND_LOG_MSG, data.getEmail());
                     return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
                 });
 

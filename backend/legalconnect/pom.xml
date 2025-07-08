@@ -121,6 +121,11 @@
             <artifactId>vavr</artifactId>
             <version>0.10.6</version>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk</artifactId>
+            <version>1.12.787</version>
+        </dependency>
 
         <!-- WebSocket dependencies for WebRTC -->
         <dependency>
