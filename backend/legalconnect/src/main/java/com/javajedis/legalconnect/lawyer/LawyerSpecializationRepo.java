@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 import com.javajedis.legalconnect.user.User;
 
 @Repository

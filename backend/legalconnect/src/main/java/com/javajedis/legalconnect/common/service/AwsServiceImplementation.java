@@ -37,8 +37,12 @@ public class AwsServiceImplementation implements AwsService {
             final InputStream value
     ) throws AmazonClientException {
         ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(contentLength);
-        metadata.setContentType(contentType);
+        if (contentLength != null) {
+            metadata.setContentLength(contentLength);
+        }
+        if (contentType != null) {
+            metadata.setContentType(contentType);
+        }
 
         s3Client.putObject(bucketName, keyName, value, metadata);
         log.info("File uploaded to bucket({}): {}", bucketName, keyName);

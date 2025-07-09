@@ -1,11 +1,12 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.enums;
+
+import java.util.Arrays;
+
+import org.springframework.http.MediaType;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.val;
-import org.springframework.http.MediaType;
-
-import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor(access = lombok.AccessLevel.PACKAGE)

@@ -1,4 +1,4 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.dto;
 
 public class BarCertificateUploadResponseDTO {
     private String fileName;
