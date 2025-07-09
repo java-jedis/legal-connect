@@ -1,20 +1,47 @@
 <template>
   <div class="lawyer-dashboard">
-    <!-- Header Section -->
-    <section class="dashboard-header">
-      <div class="container">
-        <div class="header-content">
-          <div class="welcome-section">
-            <h1 class="welcome-title">Welcome back, {{ lawyerName }}!</h1>
-            <p class="welcome-subtitle">Manage your practice and serve your clients effectively</p>
-          </div>
-          <div class="header-actions">
-            <button class="btn btn-primary">New Client</button>
-            <button class="btn btn-secondary">Schedule Consultation</button>
+    <!-- Show verification status if not verified -->
+    <LawyerVerificationStatus v-if="!canAccessDashboard" />
+    
+    <!-- Show dashboard content if verified -->
+    <div v-else>
+      <!-- Success message for newly created profile -->
+      <div v-if="showSuccessMessage" class="success-message">
+        <div class="container">
+          <div class="success-content">
+            <svg class="success-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 11.08V12A10 10 0 1 1 5.68 3.57" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="success-text">
+              <h3>Profile Created Successfully!</h3>
+              <p>Your lawyer profile has been submitted for verification. You'll be notified once it's approved.</p>
+            </div>
+            <button @click="dismissSuccessMessage" class="dismiss-btn">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-    </section>
+
+      <!-- Header Section -->
+      <section class="dashboard-header">
+        <div class="container">
+          <div class="header-content">
+            <div class="welcome-section">
+              <h1 class="welcome-title">Welcome back, {{ lawyerName }}!</h1>
+              <p class="welcome-subtitle">Manage your practice and serve your clients effectively</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-primary">New Client</button>
+              <button class="btn btn-secondary">Schedule Consultation</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
     <!-- Stats Overview -->
     <section class="stats-section section">
@@ -159,7 +186,7 @@
             <p>Start a new legal case</p>
           </div>
 
-          <div class="quick-action-card" @click="scheduleMeeting">
+          <div class="quick-action-card" @click="manageAvailability">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect
@@ -183,8 +210,8 @@
                 <line x1="16" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
-            <h3>Schedule Meeting</h3>
-            <p>Book client consultation</p>
+            <h3>Manage Availability</h3>
+            <p>Set your consultation hours</p>
           </div>
 
           <div class="quick-action-card" @click="generateDocument">
@@ -213,6 +240,13 @@
             <p>Create legal documents</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Availability Slots Section -->
+    <section class="availability-section section">
+      <div class="container">
+        <LawyerAvailabilitySlots />
       </div>
     </section>
 
@@ -372,20 +406,48 @@
         </div>
       </div>
     </section>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import LawyerAvailabilitySlots from '../components/LawyerAvailabilitySlots.vue'
+import LawyerVerificationStatus from '../components/LawyerVerificationStatus.vue'
 import { useAuthStore } from '../stores/auth'
+import { useLawyerStore } from '../stores/lawyer'
 
+const route = useRoute()
 const authStore = useAuthStore()
+const lawyerStore = useLawyerStore()
+
 const lawyerName = computed(() => {
   if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
     return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`
   }
   return authStore.userInfo?.firstName || authStore.userInfo?.email || 'Lawyer'
 })
+
+// Computed properties for verification status
+const canAccessDashboard = computed(() => lawyerStore.canAccessDashboard)
+const showSuccessMessage = ref(false)
+
+// Check if profile was just created and fetch lawyer info
+onMounted(async () => {
+  if (route.query.profileCreated === 'true') {
+    showSuccessMessage.value = true
+    // Remove the query parameter
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
+  
+  // Fetch lawyer info to check verification status
+  await lawyerStore.fetchLawyerInfo()
+})
+
+const dismissSuccessMessage = () => {
+  showSuccessMessage.value = false
+}
 
 const stats = ref({
   activeClients: 24,
@@ -504,8 +566,12 @@ const createCase = () => {
   alert('Opening case creation form...')
 }
 
-const scheduleMeeting = () => {
-  alert('Opening appointment scheduler...')
+const manageAvailability = () => {
+  // Scroll to availability section
+  const availabilitySection = document.querySelector('.availability-section')
+  if (availabilitySection) {
+    availabilitySection.scrollIntoView({ behavior: 'smooth' })
+  }
 }
 
 const generateDocument = () => {
@@ -517,6 +583,61 @@ const generateDocument = () => {
 .lawyer-dashboard {
   min-height: 100vh;
   background: var(--color-background);
+}
+
+.success-message {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+
+.success-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.success-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.success-text h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.success-text p {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.dismiss-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dismiss-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .dashboard-header {

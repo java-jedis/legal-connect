@@ -58,6 +58,9 @@
             </div>
           </div>
         </div>
+        <!-- Lawyer Profile Section -->
+        <LawyerProfileSection v-if="authStore.isLawyer()" />
+
         <div class="section-divider">
           <span class="divider-text">Security</span>
         </div>
@@ -146,6 +149,7 @@
 
 <script setup>
 import { computed, reactive, ref } from 'vue'
+import LawyerProfileSection from '../components/LawyerProfileSection.vue'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()

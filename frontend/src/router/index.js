@@ -67,6 +67,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
+      path: "/lawyer/profile/create",
+      name: "lawyer-profile-creation",
+      component: () => import("../views/LawyerProfileCreationView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
       path: "/profile",
       name: "view-profile",
       component: () => import("../views/ProfileView.vue"),
@@ -76,7 +82,7 @@ const router = createRouter({
 });
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // Get auth store
   const authStore = JSON.parse(
     localStorage.getItem("auth_isLoggedIn") || "false"
@@ -106,6 +112,18 @@ router.beforeEach((to, from, next) => {
     } else {
       next("/dashboard/user");
     }
+    return;
+  }
+
+  // For lawyer dashboard, let the component handle verification status
+  // The LawyerDashboard component will show appropriate content based on verification status
+  if (
+    to.name === "lawyer-dashboard" &&
+    userInfo &&
+    userInfo.role === "LAWYER"
+  ) {
+    // Allow access to lawyer dashboard - the component will handle the verification logic
+    next();
     return;
   }
 
