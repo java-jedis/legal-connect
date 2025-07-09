@@ -226,7 +226,7 @@ const validatePassword = () => {
     errors.push('At least one number')
   }
   
-  if (!/[@#$%^&+=!*()_\-[]{}|;:,.<>?]/.test(form.newPassword)) {
+  if (!/[@#$%^&+=!*()_\-[\]{}|;:,.<>?]/.test(form.newPassword)) {
     errors.push('At least one special character (@ # $ % ^ & + = ! * ( ) _ - [ ] { } | ; : , . < > ?)')
   }
   

@@ -102,4 +102,73 @@ export const authAPI = {
   },
 };
 
+// Lawyer API methods
+export const lawyerAPI = {
+  // Get lawyer info
+  getLawyerInfo: async () => {
+    const response = await api.get("/lawyer/profile");
+    return response.data;
+  },
+
+  // Create lawyer profile
+  createLawyerProfile: async (profileData) => {
+    const response = await api.post("/lawyer/profile", profileData);
+    return response.data;
+  },
+
+  // Update lawyer profile
+  updateLawyerProfile: async (profileData) => {
+    const response = await api.put("/lawyer/profile", profileData);
+    return response.data;
+  },
+
+  // Upload bar certificate
+  uploadCredentials: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post("/lawyer/upload-credentials", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // View bar certificate
+  viewCredentials: async () => {
+    const response = await api.get("/lawyer/view-credentials", {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
+  // Get availability slots
+  getAvailabilitySlots: async (email = null) => {
+    const params = email ? { email } : {};
+    const response = await api.get("/lawyer/availability-slots", { params });
+    return response.data;
+  },
+
+  // Create availability slot
+  createAvailabilitySlot: async (slotData) => {
+    const response = await api.post("/lawyer/availability-slots", slotData);
+    return response.data;
+  },
+
+  // Update availability slot
+  updateAvailabilitySlot: async (slotId, slotData) => {
+    const response = await api.put(
+      `/lawyer/availability-slots/${slotId}`,
+      slotData
+    );
+    return response.data;
+  },
+
+  // Delete availability slot
+  deleteAvailabilitySlot: async (slotId) => {
+    const response = await api.delete(`/lawyer/availability-slots/${slotId}`);
+    return response.data;
+  },
+};
+
 export default api;
