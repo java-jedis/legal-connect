@@ -1,6 +1,11 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.dto;
 
 import java.util.List;
+
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

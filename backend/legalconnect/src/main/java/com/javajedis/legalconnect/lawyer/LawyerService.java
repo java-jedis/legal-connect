@@ -2,20 +2,22 @@ package com.javajedis.legalconnect.lawyer;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.AwsService;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
+import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
+import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -35,7 +37,10 @@ public class LawyerService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
-    public LawyerService(LawyerRepo lawyerRepo, UserRepo userRepo, LawyerSpecializationRepo lawyerSpecializationRepo, AwsService awsService) {
+    public LawyerService(LawyerRepo lawyerRepo, 
+                        UserRepo userRepo, 
+                        LawyerSpecializationRepo lawyerSpecializationRepo, 
+                        AwsService awsService) {
         this.lawyerRepo = lawyerRepo;
         this.userRepo = userRepo;
         this.lawyerSpecializationRepo = lawyerSpecializationRepo;
@@ -47,7 +52,7 @@ public class LawyerService {
      */
     public ResponseEntity<ApiResponse<LawyerInfoDTO>> createLawyerProfile(LawyerProfileDTO lawyerProfileDTO) {
         log.debug("Creating lawyer profile");
-        User user = getAuthenticatedLawyerUser();
+        User user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
         if (user == null) {
             log.warn("Unauthorized profile creation attempt");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
@@ -73,7 +78,7 @@ public class LawyerService {
         Lawyer savedLawyer = lawyerRepo.save(lawyer);
         log.info("Profile created for user: {}", user.getEmail());
         saveLawyerSpecializations(savedLawyer, lawyerProfileDTO.getSpecializations());
-        LawyerInfoDTO lawyerInfoDTO = mapLawyerToLawyerInfoDTO(savedLawyer, lawyerProfileDTO.getSpecializations());
+        LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(savedLawyer, lawyerProfileDTO.getSpecializations());
         return ApiResponse.success(lawyerInfoDTO, HttpStatus.CREATED, "Lawyer profile created successfully");
     }
 
@@ -94,7 +99,7 @@ public class LawyerService {
                 return ApiResponse.error("User is not a lawyer", HttpStatus.BAD_REQUEST);
             }
         } else {
-            user = getAuthenticatedLawyerUser();
+            user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
             if (user == null) {
                 log.warn("Unauthorized info request");
                 return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
@@ -107,9 +112,47 @@ public class LawyerService {
             return ApiResponse.success(emptyLawyerInfoDTO, HttpStatus.OK, "Lawyer profile has not been created yet");
         }
         List<SpecializationType> specializations = loadLawyerSpecializations(lawyer);
-        LawyerInfoDTO lawyerInfoDTO = mapLawyerToLawyerInfoDTO(lawyer, specializations);
+        LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(lawyer, specializations);
         log.info("Profile info returned for user: {}", user.getEmail());
         return ApiResponse.success(lawyerInfoDTO, HttpStatus.OK, "Lawyer info retrieved successfully");
+    }
+
+    /**
+     * Updates the profile information of the authenticated lawyer.
+     *
+     * This method updates the lawyer's firm, years of experience, practicing court,
+     * division, district, and bio. It also updates the lawyer's specializations by
+     * removing all existing specializations and saving the new ones provided.
+     *
+     * @param lawyerProfileDTO the DTO containing the updated profile information and specializations
+     * @return a ResponseEntity containing an ApiResponse with the updated LawyerInfoDTO,
+     *         or an error message if the user is not authenticated or the profile does not exist
+     */
+    public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateLawyerProfile(LawyerProfileDTO lawyerProfileDTO) {
+        log.debug("Updating lawyer profile");
+        User user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
+        if (user == null) {
+            log.warn("Unauthorized profile creation attempt");
+            return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
+        }
+        Optional<Lawyer> lawyerOpt = lawyerRepo.findByUser(user);
+        if (lawyerOpt.isEmpty()) {
+            log.warn("Attempt to update profile before profile creation");
+            return ApiResponse.error("Lawyer profile does not exists", HttpStatus.NOT_FOUND);
+        }
+        Lawyer lawyer = lawyerOpt.get();
+        lawyer.setFirm(lawyerProfileDTO.getFirm());
+        lawyer.setYearsOfExperience(lawyerProfileDTO.getYearsOfExperience());
+        lawyer.setPracticingCourt(lawyerProfileDTO.getPracticingCourt());
+        lawyer.setDivision(lawyerProfileDTO.getDivision());
+        lawyer.setDistrict(lawyerProfileDTO.getDistrict());
+        lawyer.setBio(lawyerProfileDTO.getBio());
+        Lawyer updatedLawyer = lawyerRepo.save(lawyer);
+        log.info("Profile updated for lawyer: {}", user.getEmail());
+        updateLawyerSpecilizations(updatedLawyer, lawyerProfileDTO.getSpecializations());
+        List<SpecializationType> specializations = loadLawyerSpecializations(updatedLawyer);
+        LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(updatedLawyer, specializations);
+        return ApiResponse.success(lawyerInfoDTO, HttpStatus.OK, "Lawyer profile updated successfully");
     }
 
     /**
@@ -121,7 +164,7 @@ public class LawyerService {
             log.warn("File too large: {} ({} bytes)", file.getOriginalFilename(), file.getSize());
             return ApiResponse.error("File size exceeds 1MB limit", HttpStatus.BAD_REQUEST);
         }
-        User user = getAuthenticatedLawyerUser();
+        User user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
         if (user == null) {
             log.warn("Unauthorized credentials upload attempt");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
@@ -134,11 +177,11 @@ public class LawyerService {
         String keyName = "lawyer-credentials/" + user.getId() + "/" + file.getOriginalFilename();
         try {
             String storedFileName = awsService.uploadFile(
-                bucketName,
-                keyName,
-                file.getSize(),
-                file.getContentType(),
-                file.getInputStream()
+                    bucketName,
+                    keyName,
+                    file.getSize(),
+                    file.getContentType(),
+                    file.getInputStream()
             );
             lawyer.setBarCertificateFileUrl(storedFileName);
             lawyerRepo.save(lawyer);
@@ -167,7 +210,7 @@ public class LawyerService {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
         } else {
-            user = getAuthenticatedLawyerUser();
+            user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
             if (user == null) {
                 log.warn("Unauthorized credentials download attempt");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -191,38 +234,6 @@ public class LawyerService {
     }
 
     /**
-     * Validates and retrieves the authenticated lawyer user.
-     *
-     * @return the authenticated lawyer user, or null if validation fails
-     */
-    private User getAuthenticatedLawyerUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-
-        Map<String, Object> userInfo = GetUserUtil.getCurrentUserInfo(userRepo);
-        if (userInfo.isEmpty()) {
-            log.error("User information not found in the context");
-            return null;
-        }
-
-        String email = (String) userInfo.get("email");
-        User user = userRepo.findByEmail(email)
-                .orElse(null);
-
-        if (user == null) {
-            return null;
-        }
-
-        if (user.getRole() != com.javajedis.legalconnect.user.Role.LAWYER) {
-            return null;
-        }
-
-        return user;
-    }
-
-    /**
      * Saves specializations for a lawyer.
      *
      * @param lawyer          the lawyer entity
@@ -241,6 +252,24 @@ public class LawyerService {
     }
 
     /**
+     * Updates the specializations for a lawyer by removing all existing specializations
+     * and saving the new ones provided.
+     *
+     * @param lawyer the lawyer entity whose specializations are to be updated
+     * @param specializations the new list of specializations to set for the lawyer
+     */
+    private void updateLawyerSpecilizations(Lawyer lawyer, List<SpecializationType> specializations) {
+        List<LawyerSpecialization> existingSpecs = lawyerSpecializationRepo.findByLawyer(lawyer);
+        if (existingSpecs != null && !existingSpecs.isEmpty()) {
+            for (LawyerSpecialization spec : existingSpecs) {
+                lawyerSpecializationRepo.delete(spec);
+            }
+        }
+        saveLawyerSpecializations(lawyer, specializations);
+        log.info("Specializations updated successfully for lawyer: {}", lawyer.getId());
+    }
+
+    /**
      * Loads specializations for a lawyer.
      *
      * @param lawyer the lawyer entity
@@ -251,29 +280,6 @@ public class LawyerService {
         return lawyerSpecializations.stream()
                 .map(LawyerSpecialization::getSpecializationType)
                 .toList();
-    }
-
-    /**
-     * Maps a Lawyer entity to LawyerInfoDTO.
-     *
-     * @param lawyer          the lawyer entity to map
-     * @param specializations the list of specializations for the lawyer
-     * @return the mapped LawyerInfoDTO
-     */
-    private LawyerInfoDTO mapLawyerToLawyerInfoDTO(Lawyer lawyer, List<SpecializationType> specializations) {
-        LawyerInfoDTO lawyerInfoDTO = new LawyerInfoDTO();
-        lawyerInfoDTO.setFirm(lawyer.getFirm());
-        lawyerInfoDTO.setYearsOfExperience(lawyer.getYearsOfExperience());
-        lawyerInfoDTO.setBarCertificateNumber(lawyer.getBarCertificateNumber());
-        lawyerInfoDTO.setPracticingCourt(lawyer.getPracticingCourt());
-        lawyerInfoDTO.setDivision(lawyer.getDivision());
-        lawyerInfoDTO.setDistrict(lawyer.getDistrict());
-        lawyerInfoDTO.setBio(lawyer.getBio());
-        lawyerInfoDTO.setVerificationStatus(lawyer.getVerificationStatus());
-        lawyerInfoDTO.setLawyerCreatedAt(lawyer.getCreatedAt());
-        lawyerInfoDTO.setLawyerUpdatedAt(lawyer.getUpdatedAt());
-        lawyerInfoDTO.setSpecializations(specializations != null ? specializations : List.of());
-        return lawyerInfoDTO;
     }
 
 } 

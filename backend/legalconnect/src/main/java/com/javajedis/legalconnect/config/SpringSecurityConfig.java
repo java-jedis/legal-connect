@@ -36,7 +36,7 @@ public class SpringSecurityConfig {
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/lawyer/profile", "/lawyer/profile/**").authenticated()
+                        .requestMatchers("/lawyer/profile", "/lawyer/profile/**","/lawyer/availability-slots","/lawyer/availability-slots/**").authenticated()
                         .requestMatchers("/lawyer/view-credentials", "/lawyer/view-credentials/**").hasAnyRole("LAWYER", "ADMIN")
                         .requestMatchers("/lawyer/**").hasRole("LAWYER")
                         .requestMatchers(

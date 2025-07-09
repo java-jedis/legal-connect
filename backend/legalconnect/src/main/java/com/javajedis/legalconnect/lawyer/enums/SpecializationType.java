@@ -1,4 +1,4 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.enums;
 
 public enum SpecializationType {
     CRIMINAL_LAW("Criminal Law"),

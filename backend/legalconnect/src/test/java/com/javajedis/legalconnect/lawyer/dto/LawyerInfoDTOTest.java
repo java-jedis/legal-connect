@@ -1,4 +1,4 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.dto;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -12,6 +12,12 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 
 class LawyerInfoDTOTest {
 

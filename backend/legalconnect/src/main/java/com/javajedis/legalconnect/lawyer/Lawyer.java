@@ -6,6 +6,10 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 import com.javajedis.legalconnect.user.User;
 
 import jakarta.persistence.Column;

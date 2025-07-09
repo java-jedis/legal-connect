@@ -1,7 +1,13 @@
-package com.javajedis.legalconnect.lawyer;
+package com.javajedis.legalconnect.lawyer.dto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
