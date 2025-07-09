@@ -95,11 +95,12 @@ class UserServiceTest {
     @Test
     void logout_authenticated_blacklistsToken() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = "jwt.token";
         Date expiration = new Date(System.currentTimeMillis() + 10000);
         when(jwtUtil.extractExpiration(jwt)).thenReturn(expiration);
-        ResponseEntity<ApiResponse<String>> result = userService.logout(jwt);
+        ResponseEntity<ApiResponse<String>> result = userService.logout();
         assertEquals(HttpStatus.OK, result.getStatusCode());
         verify(redisTemplate.opsForValue(), atLeastOnce()).set(startsWith("blacklist:jwt:"), eq("true"), anyLong(), eq(TimeUnit.MILLISECONDS));
     }
@@ -108,17 +109,26 @@ class UserServiceTest {
     void logout_notAuthenticated_returnsUnauthorized() {
         when(authentication.isAuthenticated()).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        ResponseEntity<ApiResponse<String>> result = userService.logout("jwt.token");
+        ResponseEntity<ApiResponse<String>> result = userService.logout();
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+    }
+
+    @Test
+    void logout_nullCredentials_returnsUnauthorized() {
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        ResponseEntity<ApiResponse<String>> result = userService.logout();
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     }
 
     @Test
     void changePassword_success() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
+        when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = "jwt.token";
         String email = "john@example.com";
-        when(jwtUtil.extractUsername(jwt)).thenReturn(email);
         User user = new User();
         user.setPassword("oldHash");
         when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
@@ -127,7 +137,7 @@ class UserServiceTest {
         req.setPassword("new");
         when(passwordEncoder.matches("old", "oldHash")).thenReturn(true);
         when(passwordEncoder.encode("new")).thenReturn("newHash");
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req, jwt);
+        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertTrue(result.getBody().getData());
         verify(userRepo).save(user);
@@ -136,10 +146,10 @@ class UserServiceTest {
     @Test
     void changePassword_wrongOldPassword_returnsError() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
+        when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = "jwt.token";
         String email = "john@example.com";
-        when(jwtUtil.extractUsername(jwt)).thenReturn(email);
         User user = new User();
         user.setPassword("oldHash");
         when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
@@ -147,7 +157,7 @@ class UserServiceTest {
         req.setOldPassword("wrong");
         req.setPassword("new");
         when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req, jwt);
+        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertNotNull(result.getBody().getError());
     }
@@ -155,10 +165,10 @@ class UserServiceTest {
     @Test
     void changePassword_sameOldAndNewPassword_returnsError() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
+        when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = "jwt.token";
         String email = "john@example.com";
-        when(jwtUtil.extractUsername(jwt)).thenReturn(email);
         User user = new User();
         user.setPassword("oldHash");
         when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
@@ -166,7 +176,7 @@ class UserServiceTest {
         req.setOldPassword("same");
         req.setPassword("same");
         when(passwordEncoder.matches("same", "oldHash")).thenReturn(true);
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req, jwt);
+        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertNotNull(result.getBody().getError());
     }
@@ -176,17 +186,18 @@ class UserServiceTest {
         when(authentication.isAuthenticated()).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req, "jwt.token");
+        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     }
 
     @Test
     void changePassword_invalidToken_returnsUnauthorized() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
+        when(authentication.getName()).thenReturn(null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        when(jwtUtil.extractUsername(anyString())).thenReturn(null);
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req, "jwt.token");
+        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
     }
 
@@ -204,11 +215,12 @@ class UserServiceTest {
     @Test
     void logout_authenticated_tokenExpired_doesNotBlacklist() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = "jwt.token";
         Date expiration = new Date(System.currentTimeMillis() - 10000); // already expired
         when(jwtUtil.extractExpiration(jwt)).thenReturn(expiration);
-        ResponseEntity<ApiResponse<String>> result = userService.logout(jwt);
+        ResponseEntity<ApiResponse<String>> result = userService.logout();
         assertEquals(HttpStatus.OK, result.getStatusCode());
         // No call to valueOperations.set should be made
         verify(valueOperations, never()).set(anyString(), anyString(), anyLong(), eq(TimeUnit.MILLISECONDS));
@@ -217,16 +229,16 @@ class UserServiceTest {
     @Test
     void changePassword_userNotFound_throwsException() {
         when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getCredentials()).thenReturn("jwt.token");
+        when(authentication.getName()).thenReturn("notfound@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = "jwt.token";
         String email = "notfound@example.com";
-        when(jwtUtil.extractUsername(jwt)).thenReturn(email);
         when(userRepo.findByEmail(email)).thenReturn(Optional.empty());
         ChangePasswordReqDTO req = new ChangePasswordReqDTO();
         req.setOldPassword("old");
         req.setPassword("new");
         assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class, () -> {
-            userService.changePassword(req, jwt);
+            userService.changePassword(req);
         });
     }
 } 

@@ -30,6 +30,7 @@ class UserDetailsServiceImplTest {
         User user = new User();
         user.setEmail("test@example.com");
         user.setPassword("password");
+        user.setRole(Role.LAWYER);
         when(userRepo.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         assertNotNull(userDetailsService.loadUserByUsername("test@example.com"));
     }
