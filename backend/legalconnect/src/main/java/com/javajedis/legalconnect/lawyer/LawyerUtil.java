@@ -44,6 +44,10 @@ public class LawyerUtil {
     }
 
     public static LawyerInfoDTO mapLawyerToLawyerInfoDTO(Lawyer lawyer, List<SpecializationType> specializations) {
+        if (lawyer == null) {
+            return null;
+        }
+        
         LawyerInfoDTO lawyerInfoDTO = new LawyerInfoDTO();
         lawyerInfoDTO.setFirm(lawyer.getFirm());
         lawyerInfoDTO.setYearsOfExperience(lawyer.getYearsOfExperience());
