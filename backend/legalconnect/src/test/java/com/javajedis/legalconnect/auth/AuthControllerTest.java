@@ -27,6 +27,12 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
+import com.javajedis.legalconnect.auth.dto.EmailVerifyDTO;
+import com.javajedis.legalconnect.auth.dto.LoginDTO;
+import com.javajedis.legalconnect.auth.dto.RequestOTPDTO;
+import com.javajedis.legalconnect.auth.dto.ResetPasswordDTO;
+import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.utility.EmailVerificationFilter;
 import com.javajedis.legalconnect.common.utility.JWTFilter;

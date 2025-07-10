@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
+import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
 import com.javajedis.legalconnect.user.Role;
 
 class UserRegisterDTOTest {

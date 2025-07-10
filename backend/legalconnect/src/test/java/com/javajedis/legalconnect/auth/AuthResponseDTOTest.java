@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
 import com.javajedis.legalconnect.user.Role;
 
 class AuthResponseDTOTest {

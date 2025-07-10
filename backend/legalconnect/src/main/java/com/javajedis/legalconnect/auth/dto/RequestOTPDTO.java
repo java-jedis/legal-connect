@@ -1,4 +1,4 @@
-package com.javajedis.legalconnect.auth;
+package com.javajedis.legalconnect.auth.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

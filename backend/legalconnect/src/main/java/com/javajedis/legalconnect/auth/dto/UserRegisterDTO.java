@@ -1,7 +1,8 @@
-package com.javajedis.legalconnect.auth;
+package com.javajedis.legalconnect.auth.dto;
 
 import com.javajedis.legalconnect.common.validation.ValidPassword;
 import com.javajedis.legalconnect.user.Role;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

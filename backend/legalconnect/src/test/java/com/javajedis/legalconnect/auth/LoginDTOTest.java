@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
+import com.javajedis.legalconnect.auth.dto.LoginDTO;
+
 class LoginDTOTest {
     @Test
     void testGettersSetters() {
