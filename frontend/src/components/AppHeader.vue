@@ -60,6 +60,14 @@
             <router-link to="/client-cases" class="nav-link">Client Cases</router-link>
             <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
+
+          <!-- Admin navigation -->
+          <template v-else-if="authStore.isAdmin()">
+            <router-link to="/dashboard/admin" class="nav-link">Admin Dashboard</router-link>
+            <router-link to="/admin/lawyers" class="nav-link">Manage Lawyers</router-link>
+            <router-link to="/admin/feedback" class="nav-link">Feedback</router-link>
+            <router-link to="/admin/complaints" class="nav-link">Complaints</router-link>
+          </template>
         </div>
 
         <div class="nav-actions">

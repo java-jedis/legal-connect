@@ -135,8 +135,10 @@ export const lawyerAPI = {
   },
 
   // View bar certificate
-  viewCredentials: async () => {
+  viewCredentials: async (email = null) => {
+    const params = email ? { email } : {};
     const response = await api.get("/lawyer/view-credentials", {
+      params,
       responseType: "blob",
     });
     return response.data;
@@ -167,6 +169,37 @@ export const lawyerAPI = {
   // Delete availability slot
   deleteAvailabilitySlot: async (slotId) => {
     const response = await api.delete(`/lawyer/availability-slots/${slotId}`);
+    return response.data;
+  },
+};
+
+// Admin API methods
+export const adminAPI = {
+  // Get pending lawyers with pagination
+  getPendingLawyers: async (page = 0, size = 10) => {
+    const response = await api.get("/admin/lawyers/pending", {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  // Get lawyers by verification status with pagination
+  getLawyersByStatus: async (status = null, page = 0, size = 10) => {
+    const params = { page, size };
+    if (status) params.status = status;
+    const response = await api.get("/admin/lawyers", { params });
+    return response.data;
+  },
+
+  // Approve lawyer verification
+  approveLawyer: async (lawyerId) => {
+    const response = await api.put(`/admin/lawyers/${lawyerId}/approve`);
+    return response.data;
+  },
+
+  // Reject lawyer verification
+  rejectLawyer: async (lawyerId) => {
+    const response = await api.put(`/admin/lawyers/${lawyerId}/reject`);
     return response.data;
   },
 };
