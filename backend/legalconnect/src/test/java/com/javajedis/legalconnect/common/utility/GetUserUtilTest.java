@@ -86,4 +86,69 @@ class GetUserUtilTest {
         Map<String, Object> result = GetUserUtil.getCurrentUserInfo(userRepo);
         assertTrue(result.isEmpty());
     }
+
+    @Test
+    void getAuthenticatedUser_authenticatedUser_returnsUser() {
+        // Given
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("test@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        User user = new User();
+        user.setId(java.util.UUID.randomUUID());
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("test@example.com");
+        user.setEmailVerified(true);
+        
+        when(userRepo.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        // When
+        User result = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        // Then
+        assertEquals(user, result);
+        assertEquals("John", result.getFirstName());
+        assertEquals("test@example.com", result.getEmail());
+    }
+
+    @Test
+    void getAuthenticatedUser_notAuthenticated_returnsNull() {
+        // Given
+        when(authentication.isAuthenticated()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        // When
+        User result = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        // Then
+        assertEquals(null, result);
+    }
+
+    @Test
+    void getAuthenticatedUser_noAuthentication_returnsNull() {
+        // Given
+        SecurityContextHolder.getContext().setAuthentication(null);
+
+        // When
+        User result = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        // Then
+        assertEquals(null, result);
+    }
+
+    @Test
+    void getAuthenticatedUser_userNotFound_returnsNull() {
+        // Given
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("notfound@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(userRepo.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
+
+        // When
+        User result = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        // Then
+        assertEquals(null, result);
+    }
 } 

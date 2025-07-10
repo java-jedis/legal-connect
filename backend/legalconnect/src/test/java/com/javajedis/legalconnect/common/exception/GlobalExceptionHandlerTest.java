@@ -138,6 +138,38 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("Should handle LawyerNotVerifiedException")
+    void shouldHandleLawyerNotVerifiedException() {
+        // Given
+        LawyerNotVerifiedException exception = new LawyerNotVerifiedException("Lawyer not verified");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleLawyerNotVerified(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Lawyer not verified", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle UserNotFoundException")
+    void shouldHandleUserNotFoundException() {
+        // Given
+        UserNotFoundException exception = new UserNotFoundException("User not found with ID: 123");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleGenericException(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("An unexpected error occurred. Please try again later.", response.getBody().getError().getMessage());
+    }
+
+    @Test
     @DisplayName("Should handle ServletException")
     void shouldHandleServletException() {
         // Given

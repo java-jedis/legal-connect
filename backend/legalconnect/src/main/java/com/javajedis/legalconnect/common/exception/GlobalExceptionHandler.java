@@ -83,6 +83,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles lawyer verification requirement errors.
+     */
+    @ExceptionHandler(LawyerNotVerifiedException.class)
+    public ResponseEntity<ApiResponse<String>> handleLawyerNotVerified(LawyerNotVerifiedException ex) {
+        log.warn("Lawyer not verified: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
+    /**
      * Handles servlet operation errors.
      */
     @ExceptionHandler(ServletException.class)
