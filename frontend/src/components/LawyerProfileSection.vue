@@ -326,53 +326,20 @@
       </div>
     </div>
 
-    <!-- Bar Certificate Modal -->
-    <div v-if="showCertificateModal" class="modal-overlay" @click="closeCertificateModal">
-      <div class="certificate-modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Bar Certificate</h3>
-          <div class="modal-actions">
-            <button @click="downloadCertificate" class="btn btn-outline btn-sm">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Download
-            </button>
-            <button @click="closeCertificateModal" class="modal-close">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <div class="certificate-viewer">
-          <div v-if="isLoadingCertificate" class="certificate-loading">
-            <div class="loading-spinner"></div>
-            <p>Loading certificate...</p>
-          </div>
-          <div v-else-if="certificateError" class="certificate-error">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
-              <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <h4>Unable to load certificate</h4>
-            <p>{{ certificateError }}</p>
-            <button @click="viewCredentials" class="btn btn-primary">Try Again</button>
-          </div>
-          <iframe 
-            v-else-if="certificateUrl" 
-            :src="certificateUrl" 
-            class="certificate-iframe"
-            title="Bar Certificate"
-          ></iframe>
-        </div>
-      </div>
-    </div>
+    <!-- Document Viewer for Certificate -->
+    <DocumentViewer
+      :show="showCertificateModal"
+      title="Bar Certificate"
+      :document-data="certificateData"
+      document-type="application/pdf"
+      :file-name="`bar-certificate-${lawyerInfo?.lastName || 'lawyer'}`"
+      :auto-load="true"
+      :show-load-button="true"
+      load-button-text="Load Certificate"
+      @close="closeCertificateModal"
+      @load="loadCertificate"
+      @download="downloadCertificate"
+    />
   </div>
 </template>
 
@@ -381,6 +348,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { lawyerAPI } from '../services/api'
 import { useLawyerStore } from '../stores/lawyer'
+import DocumentViewer from './DocumentViewer.vue'
 
 const router = useRouter()
 const lawyerStore = useLawyerStore()
@@ -391,9 +359,7 @@ const showEditModal = ref(false)
 const isUpdating = ref(false)
 const editErrors = reactive({})
 const showCertificateModal = ref(false)
-const isLoadingCertificate = ref(false)
-const certificateError = ref('')
-const certificateUrl = ref('')
+const certificateData = ref(null)
 
 // Computed properties
 const hasProfile = computed(() => lawyerStore.hasProfile)
@@ -640,42 +606,46 @@ const submitUpdate = async () => {
 
 const viewCredentials = async () => {
   showCertificateModal.value = true
-  isLoadingCertificate.value = true
-  certificateError.value = ''
-  certificateUrl.value = ''
+  certificateData.value = null // Clear previous data
   
   try {
     const response = await lawyerAPI.viewCredentials()
-    // Create a blob URL for viewing in the browser
-    const blob = new Blob([response], { type: 'application/pdf' })
-    certificateUrl.value = window.URL.createObjectURL(blob)
+    certificateData.value = response
   } catch (error) {
     console.error('Error viewing credentials:', error)
-    certificateError.value = 'Unable to load bar certificate. Please try again.'
-  } finally {
-    isLoadingCertificate.value = false
+    // Set error in certificateData to trigger error display
+    certificateData.value = { error: 'Unable to load bar certificate. Please try again.' }
   }
 }
 
 const closeCertificateModal = () => {
   showCertificateModal.value = false
-  // Clean up the blob URL to prevent memory leaks
-  if (certificateUrl.value) {
-    window.URL.revokeObjectURL(certificateUrl.value)
-    certificateUrl.value = ''
-  }
-  certificateError.value = ''
+  certificateData.value = null // Clear data on close
+}
+
+const loadCertificate = (data) => {
+  // This method is called by DocumentViewer when the document is loaded
+  // You can perform any specific actions here if needed
+  console.log('Certificate loaded:', data);
 }
 
 const downloadCertificate = async () => {
   try {
-    const response = await lawyerAPI.viewCredentials()
+    let response
+    if (certificateData.value) {
+      // Use existing certificate data if available
+      response = certificateData.value
+    } else {
+      // Fetch certificate data if not available
+      response = await lawyerAPI.viewCredentials()
+    }
+    
     // Create a blob URL and download the file
     const blob = new Blob([response], { type: 'application/pdf' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'bar-certificate.pdf'
+    a.download = `bar-certificate-${lawyerInfo.value?.lastName || 'lawyer'}.pdf`
     document.body.appendChild(a)
     a.click()
     window.URL.revokeObjectURL(url)

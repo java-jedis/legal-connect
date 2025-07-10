@@ -67,6 +67,12 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
+      path: "/dashboard/admin",
+      name: "admin-dashboard",
+      component: () => import("../views/AdminDashboard.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/lawyer/profile/create",
       name: "lawyer-profile-creation",
       component: () => import("../views/LawyerProfileCreationView.vue"),

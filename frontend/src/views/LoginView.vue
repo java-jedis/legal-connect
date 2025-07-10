@@ -133,7 +133,9 @@ const submitLogin = async () => {
       if (!userInfo.emailVerified) {
         router.push('/email-verification')
       } else {
-        if (authStore.isLawyer()) {
+        if (authStore.isAdmin()) {
+          router.push('/dashboard/admin')
+        } else if (authStore.isLawyer()) {
           router.push('/dashboard/lawyer')
         } else {
           router.push('/dashboard/user')
