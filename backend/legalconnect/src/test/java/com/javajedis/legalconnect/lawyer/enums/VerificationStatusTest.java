@@ -55,7 +55,7 @@ class VerificationStatusTest {
             String displayName = status.getDisplayName();
             assertNotNull(displayName, "Display name should not be null for " + status);
             assertFalse(displayName.trim().isEmpty(), "Display name should not be empty for " + status);
-            assertTrue(displayName.length() > 0, "Display name should have content for " + status);
+            assertFalse(displayName.isEmpty(), "Display name should have content for " + status);
         }
     }
 

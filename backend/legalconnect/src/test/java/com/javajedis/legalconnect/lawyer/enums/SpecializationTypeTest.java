@@ -77,7 +77,7 @@ class SpecializationTypeTest {
             String displayName = type.getDisplayName();
             assertNotNull(displayName, "Display name should not be null for " + type);
             assertFalse(displayName.trim().isEmpty(), "Display name should not be empty for " + type);
-            assertTrue(displayName.length() > 0, "Display name should have content for " + type);
+            assertFalse(displayName.isEmpty(), "Display name should have content for " + type);
         }
     }
 

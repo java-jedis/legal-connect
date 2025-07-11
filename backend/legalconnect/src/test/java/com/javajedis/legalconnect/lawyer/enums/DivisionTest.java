@@ -63,7 +63,7 @@ class DivisionTest {
             String displayName = division.getDisplayName();
             assertNotNull(displayName, "Display name should not be null for " + division);
             assertFalse(displayName.trim().isEmpty(), "Display name should not be empty for " + division);
-            assertTrue(displayName.length() > 0, "Display name should have content for " + division);
+            assertFalse(displayName.isEmpty(), "Display name should have content for " + division);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.javajedis.legalconnect.common.utility;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -67,7 +68,7 @@ class JWTUtilTest {
 
         // Then
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
         
         // Verify token can be parsed and contains expected claims
         String extractedUsername = jwtUtil.extractUsername(token);
@@ -101,7 +102,7 @@ class JWTUtilTest {
 
         // Then
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
         
         String extractedUsername = jwtUtil.extractUsername(token);
         assertEquals(TEST_EMAIL, extractedUsername);
@@ -377,8 +378,8 @@ class JWTUtilTest {
         // Then
         assertNotNull(token1);
         assertNotNull(token2);
-        assertTrue(token1.length() > 0);
-        assertTrue(token2.length() > 0);
+        assertFalse(token1.isEmpty());
+        assertFalse(token2.isEmpty());
         
         // Both tokens should be valid
         assertTrue(jwtUtil.validateToken(token1));
