@@ -73,6 +73,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: "/admin/lawyers",
+      name: "lawyer-management",
+      component: () => import("../views/LawyerManagementView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/lawyer/profile/create",
       name: "lawyer-profile-creation",
       component: () => import("../views/LawyerProfileCreationView.vue"),

@@ -69,20 +69,20 @@
             </div>
             <div class="detail-item">
               <span class="label">Practicing Court:</span>
-              <span class="value">{{ lawyer.lawyer.practicingCourt || 'N/A' }}</span>
+              <span class="value">{{ lawyer.lawyer.practicingCourtDisplayName || lawyer.lawyer.practicingCourt || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <span class="label">Division:</span>
-              <span class="value">{{ lawyer.lawyer.division || 'N/A' }}</span>
+              <span class="value">{{ lawyer.lawyer.divisionDisplayName || lawyer.lawyer.division || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <span class="label">District:</span>
-              <span class="value">{{ lawyer.lawyer.district || 'N/A' }}</span>
+              <span class="value">{{ lawyer.lawyer.districtDisplayName || lawyer.lawyer.district || 'N/A' }}</span>
             </div>
             <div class="detail-item">
               <span class="label">Verification Status:</span>
-              <span :class="['status-badge', `status-${lawyer.lawyer.verificationStatus.toLowerCase()}`]">
-                {{ lawyer.lawyer.verificationStatus }}
+              <span :class="['status-badge', `status-${lawyer.lawyer.verificationStatus?.toLowerCase()}`]">
+                {{ lawyer.lawyer.verificationStatusDisplayName || lawyer.lawyer.verificationStatus || 'N/A' }}
               </span>
             </div>
           </div>
