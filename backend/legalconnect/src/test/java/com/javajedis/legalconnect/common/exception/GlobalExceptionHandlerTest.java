@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -39,6 +40,22 @@ class GlobalExceptionHandlerTest {
     @BeforeEach
     void setUp() {
         exceptionHandler = new GlobalExceptionHandler();
+    }
+
+    @Test
+    @DisplayName("Should handle AccessDeniedException")
+    void shouldHandleAccessDeniedException() {
+        // Given
+        AccessDeniedException exception = new AccessDeniedException("Access denied");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleAccessDeniedException(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Access denied. You don't have permission to access this resource.", response.getBody().getError().getMessage());
     }
 
     @Test

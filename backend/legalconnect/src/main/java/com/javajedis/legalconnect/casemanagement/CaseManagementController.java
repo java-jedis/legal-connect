@@ -3,7 +3,6 @@ package com.javajedis.legalconnect.casemanagement;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +18,8 @@ import com.javajedis.legalconnect.casemanagement.dto.CreateCaseDTO;
 import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseDTO;
 import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseStatusDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
+import com.javajedis.legalconnect.common.security.RequireVerifiedLawyer;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,7 +41,7 @@ public class CaseManagementController {
      * Create a new case for the authenticated verified lawyer.
      */
     @Operation(summary = "Create new case", description = "Creates a new case for the authenticated verified lawyer.")
-    @PreAuthorize("hasRole('LAWYER') and @lawyerVerificationChecker.isVerifiedLawyer()")
+    @RequireVerifiedLawyer
     @PostMapping("/")
     public ResponseEntity<ApiResponse<CaseResponseDTO>> createCase(@Valid @RequestBody CreateCaseDTO caseData) {
         log.info("POST /case/ called");
@@ -51,7 +52,7 @@ public class CaseManagementController {
      * Get a single case by ID for authenticated user (lawyer or client).
      */
     @Operation(summary = "Get case by ID", description = "Retrieves a case by ID for the authenticated user (lawyer or client).")
-    @PreAuthorize("isAuthenticated()")
+    @RequireUserOrVerifiedLawyer
     @GetMapping("/{caseId}")
     public ResponseEntity<ApiResponse<CaseResponseDTO>> getCaseById(@PathVariable UUID caseId) {
         log.info("GET /case/{} called", caseId);
@@ -62,7 +63,7 @@ public class CaseManagementController {
      * Get all cases for authenticated user with pagination, filtering, and sorting.
      */
     @Operation(summary = "Get all user cases", description = "Retrieves all cases for the authenticated user with pagination, filtering by status, and sorting by updated date.")
-    @PreAuthorize("isAuthenticated()")
+    @RequireUserOrVerifiedLawyer
     @GetMapping("/")
     public ResponseEntity<ApiResponse<CaseListResponseDTO>> getAllUserCases(
             @RequestParam(defaultValue = "0") int page,
@@ -77,7 +78,7 @@ public class CaseManagementController {
      * Update case title and description for the authenticated verified lawyer.
      */
     @Operation(summary = "Update case", description = "Updates the title and description of an existing case for the authenticated verified lawyer.")
-    @PreAuthorize("hasRole('LAWYER') and @lawyerVerificationChecker.isVerifiedLawyer()")
+    @RequireVerifiedLawyer
     @PutMapping("/{caseId}")
     public ResponseEntity<ApiResponse<CaseResponseDTO>> updateCase(
             @PathVariable UUID caseId,
@@ -90,7 +91,7 @@ public class CaseManagementController {
      * Update case status for the authenticated verified lawyer.
      */
     @Operation(summary = "Update case status", description = "Updates the status of an existing case for the authenticated verified lawyer.")
-    @PreAuthorize("hasRole('LAWYER') and @lawyerVerificationChecker.isVerifiedLawyer()")
+    @RequireVerifiedLawyer
     @PutMapping("/{caseId}/status")
     public ResponseEntity<ApiResponse<CaseResponseDTO>> updateCaseStatus(
             @PathVariable UUID caseId,
