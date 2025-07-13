@@ -32,7 +32,8 @@ import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
 
 /**
  * Comprehensive unit tests for SchedulingController.
- * Tests all endpoints with various scenarios including success cases and error handling.
+ * Tests all endpoints with various scenarios including success cases, error handling,
+ * and Google Calendar integration error responses.
  */
 @DisplayName("SchedulingController Tests")
 class SchedulingControllerTest {
@@ -173,6 +174,30 @@ class SchedulingControllerTest {
     }
 
     @Test
+    @DisplayName("Should handle Google Calendar integration error during create")
+    void createSchedule_GoogleCalendarError_ReturnsInternalServerError() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<ScheduleResponseDTO> apiResponse = (ApiResponse<ScheduleResponseDTO>) (ApiResponse<?>) ApiResponse.error(
+                "Failed to create Google Calendar event for schedule",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        ).getBody();
+        
+        when(schedulingService.createSchedule(any(CreateScheduleDTO.class)))
+                .thenReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingController.createSchedule(createScheduleDTO);
+
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Failed to create Google Calendar event for schedule", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).createSchedule(createScheduleDTO);
+    }
+
+    @Test
     @DisplayName("Should get schedule by ID successfully")
     void getScheduleById_Success_ReturnsSchedule() {
         // Arrange
@@ -280,6 +305,30 @@ class SchedulingControllerTest {
     }
 
     @Test
+    @DisplayName("Should handle Google Calendar integration error during update")
+    void updateSchedule_GoogleCalendarError_ReturnsInternalServerError() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<ScheduleResponseDTO> apiResponse = (ApiResponse<ScheduleResponseDTO>) (ApiResponse<?>) ApiResponse.error(
+                "Failed to update Google Calendar event for schedule",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        ).getBody();
+        
+        when(schedulingService.updateSchedule(eq(scheduleId), any(UpdateScheduleDTO.class)))
+                .thenReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingController.updateSchedule(scheduleId, updateScheduleDTO);
+
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Failed to update Google Calendar event for schedule", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).updateSchedule(scheduleId, updateScheduleDTO);
+    }
+
+    @Test
     @DisplayName("Should delete schedule successfully")
     void deleteSchedule_Success_ReturnsSuccessMessage() {
         // Arrange
@@ -324,6 +373,30 @@ class SchedulingControllerTest {
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals("Schedule not found", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).deleteSchedule(scheduleId);
+    }
+
+    @Test
+    @DisplayName("Should handle Google Calendar integration error during delete")
+    void deleteSchedule_GoogleCalendarError_ReturnsInternalServerError() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<String> apiResponse = (ApiResponse<String>) (ApiResponse<?>) ApiResponse.error(
+                "Failed to delete Google Calendar event for schedule",
+                HttpStatus.INTERNAL_SERVER_ERROR
+        ).getBody();
+        
+        when(schedulingService.deleteSchedule(scheduleId))
+                .thenReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<String>> result = schedulingController.deleteSchedule(scheduleId);
+
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Failed to delete Google Calendar event for schedule", result.getBody().getError().getMessage());
         
         verify(schedulingService).deleteSchedule(scheduleId);
     }
@@ -526,5 +599,191 @@ class SchedulingControllerTest {
         assertEquals(5, result.getBody().getMetadata().get("totalPages"));
         
         verify(schedulingService).getAllUserSchedules(2, 5, "ASC");
+    }
+
+    @Test
+    @DisplayName("Should handle validation errors for create schedule")
+    void createSchedule_ValidationError_ReturnsBadRequest() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<ScheduleResponseDTO> apiResponse = (ApiResponse<ScheduleResponseDTO>) (ApiResponse<?>) ApiResponse.error(
+                "Validation failed: Title is required",
+                HttpStatus.BAD_REQUEST
+        ).getBody();
+        
+        when(schedulingService.createSchedule(any(CreateScheduleDTO.class)))
+                .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingController.createSchedule(createScheduleDTO);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Validation failed: Title is required", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).createSchedule(createScheduleDTO);
+    }
+
+    @Test
+    @DisplayName("Should handle validation errors for update schedule")
+    void updateSchedule_ValidationError_ReturnsBadRequest() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<ScheduleResponseDTO> apiResponse = (ApiResponse<ScheduleResponseDTO>) (ApiResponse<?>) ApiResponse.error(
+                "Validation failed: End time must be after start time",
+                HttpStatus.BAD_REQUEST
+        ).getBody();
+        
+        when(schedulingService.updateSchedule(eq(scheduleId), any(UpdateScheduleDTO.class)))
+                .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingController.updateSchedule(scheduleId, updateScheduleDTO);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Validation failed: End time must be after start time", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).updateSchedule(scheduleId, updateScheduleDTO);
+    }
+
+    @Test
+    @DisplayName("Should handle access denied error")
+    void getAllSchedulesForCase_AccessDenied_ReturnsForbidden() {
+        // Arrange
+        @SuppressWarnings("unchecked")
+        ApiResponse<ScheduleListResponseDTO> apiResponse = (ApiResponse<ScheduleListResponseDTO>) (ApiResponse<?>) ApiResponse.error(
+                "Access denied: You don't have permission to view this case",
+                HttpStatus.FORBIDDEN
+        ).getBody();
+        
+        when(schedulingService.getAllSchedulesForCase(caseId, 0, 10, "DESC"))
+                .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleListResponseDTO>> result = schedulingController.getAllSchedulesForCase(caseId, 0, 10, "DESC");
+
+        // Assert
+        assertEquals(HttpStatus.FORBIDDEN, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Access denied: You don't have permission to view this case", result.getBody().getError().getMessage());
+        
+        verify(schedulingService).getAllSchedulesForCase(caseId, 0, 10, "DESC");
+    }
+
+    @Test
+    @DisplayName("Should handle empty results for user schedules")
+    void getAllUserSchedules_EmptyResults_ReturnsEmptyList() {
+        // Arrange
+        ScheduleListResponseDTO emptyListResponse = new ScheduleListResponseDTO(Arrays.asList());
+        
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("totalCount", 0L);
+        metadata.put("pageNumber", 0);
+        metadata.put("pageSize", 10);
+        metadata.put("totalPages", 0);
+        metadata.put("hasNext", false);
+        metadata.put("hasPrevious", false);
+        metadata.put("isFirst", true);
+        metadata.put("isLast", true);
+        metadata.put("sortDirection", "DESC");
+        metadata.put("sortField", "createdAt");
+        metadata.put("appliedFilters", Map.of());
+        
+        ApiResponse<ScheduleListResponseDTO> apiResponse = ApiResponse.success(
+                emptyListResponse, 
+                HttpStatus.OK, 
+                "Schedules retrieved successfully",
+                metadata
+        ).getBody();
+        
+        when(schedulingService.getAllUserSchedules(0, 10, "DESC"))
+                .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleListResponseDTO>> result = schedulingController.getAllUserSchedules(0, 10, "DESC");
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Schedules retrieved successfully", result.getBody().getMessage());
+        assertEquals(0, result.getBody().getData().getSchedules().size());
+        assertEquals(0L, result.getBody().getMetadata().get("totalCount"));
+        
+        verify(schedulingService).getAllUserSchedules(0, 10, "DESC");
+    }
+
+    @Test
+    @DisplayName("Should handle different sort directions")
+    void getAllUserSchedules_DifferentSortDirections_ReturnsCorrectOrder() {
+        // Arrange
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("totalCount", 1L);
+        metadata.put("pageNumber", 0);
+        metadata.put("pageSize", 10);
+        metadata.put("totalPages", 1);
+        metadata.put("sortDirection", "ASC");
+        metadata.put("sortField", "createdAt");
+        
+        ApiResponse<ScheduleListResponseDTO> apiResponse = ApiResponse.success(
+                scheduleListResponseDTO, 
+                HttpStatus.OK, 
+                "Schedules retrieved successfully",
+                metadata
+        ).getBody();
+        
+        when(schedulingService.getAllUserSchedules(0, 10, "ASC"))
+                .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleListResponseDTO>> result = schedulingController.getAllUserSchedules(0, 10, "ASC");
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Schedules retrieved successfully", result.getBody().getMessage());
+        assertEquals("ASC", result.getBody().getMetadata().get("sortDirection"));
+        
+        verify(schedulingService).getAllUserSchedules(0, 10, "ASC");
+    }
+
+    @Test
+    @DisplayName("Should handle case-specific schedule filtering")
+    void getAllSchedulesForCase_WithFilters_ReturnsFilteredResults() {
+        // Arrange
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("totalCount", 1L);
+        metadata.put("pageNumber", 0);
+        metadata.put("pageSize", 10);
+        metadata.put("totalPages", 1);
+        metadata.put("sortDirection", "DESC");
+        metadata.put("sortField", "createdAt");
+        metadata.put("appliedFilters", Map.of("caseId", caseId.toString()));
+        
+        ApiResponse<ScheduleListResponseDTO> apiResponse = ApiResponse.success(
+                scheduleListResponseDTO, 
+                HttpStatus.OK, 
+                "Schedules retrieved successfully",
+                metadata
+        ).getBody();
+        
+        when(schedulingService.getAllSchedulesForCase(caseId, 0, 10, "DESC"))
+                .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<ScheduleListResponseDTO>> result = schedulingController.getAllSchedulesForCase(caseId, 0, 10, "DESC");
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Schedules retrieved successfully", result.getBody().getMessage());
+        
+        @SuppressWarnings("unchecked")
+        Map<String, String> appliedFilters = (Map<String, String>) result.getBody().getMetadata().get("appliedFilters");
+        assertEquals(caseId.toString(), appliedFilters.get("caseId"));
+        
+        verify(schedulingService).getAllSchedulesForCase(caseId, 0, 10, "DESC");
     }
 } 

@@ -3,6 +3,7 @@ package com.javajedis.legalconnect.scheduling;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -12,10 +13,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.javajedis.legalconnect.caseassets.CaseAssetUtility;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
@@ -25,6 +28,10 @@ import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
 import lombok.extern.slf4j.Slf4j;
+import com.google.api.services.calendar.model.Event;
+import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
+import java.util.ArrayList;
 
 @Slf4j
 @Service
@@ -34,17 +41,27 @@ public class SchedulingService {
     private static final String SCHEDULE_NOT_FOUND_LOG = "Schedule not found with ID: {}";
     private static final String SCHEDULE_NOT_FOUND_MSG = "Schedule not found";
     private static final String CREATED_AT_FIELD = "createdAt";
+    private static final String NO_VALID_ACCESS_TOKEN_LOG = "No valid access token found for user: {}";
 
     private final ScheduleRepo scheduleRepo;
     private final UserRepo userRepo;
     private final CaseRepo caseRepo;
+    private final GoogleCalendarService googleCalendarService;
+    private final OAuthService oAuthService;
+    private final ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo;
 
     public SchedulingService(ScheduleRepo scheduleRepo,
                              UserRepo userRepo,
-                             CaseRepo caseRepo) {
+                             CaseRepo caseRepo,
+                             GoogleCalendarService googleCalendarService,
+                             OAuthService oAuthService,
+                             ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo) {
         this.scheduleRepo = scheduleRepo;
         this.userRepo = userRepo;
         this.caseRepo = caseRepo;
+        this.googleCalendarService = googleCalendarService;
+        this.oAuthService = oAuthService;
+        this.scheduleGoogleCalendarEventRepo = scheduleGoogleCalendarEventRepo;
     }
 
     /**
@@ -67,6 +84,7 @@ public class SchedulingService {
 
         User client = validation.caseEntity().getClient();
         User lawyer = validation.caseEntity().getLawyer().getUser();
+        User currentUser = validation.user();
 
         Schedule schedule = new Schedule();
         schedule.setCaseEntity(validation.caseEntity());
@@ -80,7 +98,10 @@ public class SchedulingService {
         schedule.setEndTime(eventData.getEndTime());
 
         Schedule savedSchedule = scheduleRepo.save(schedule);
-        log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), validation.user().getEmail());
+
+        createGoogleCalendarEvent(savedSchedule, currentUser, client, lawyer);
+
+        log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), currentUser.getEmail());
 
         ScheduleResponseDTO scheduleResponse = mapToScheduleResponseDTO(savedSchedule);
         return ApiResponse.success(scheduleResponse, HttpStatus.CREATED, "Schedule created successfully");
@@ -105,12 +126,17 @@ public class SchedulingService {
             return validation.errorResponse();
         }
 
+        User client = validation.caseEntity().getClient();
+        User lawyer = validation.caseEntity().getLawyer().getUser();
+
         existingSchedule.setTitle(updateData.getTitle());
         existingSchedule.setType(updateData.getType());
         existingSchedule.setDescription(updateData.getDescription());
         existingSchedule.setDate(updateData.getDate());
         existingSchedule.setStartTime(updateData.getStartTime());
         existingSchedule.setEndTime(updateData.getEndTime());
+
+        updateGoogleCalendarEvent(existingSchedule, validation.user(), client, lawyer);
 
         Schedule updatedSchedule = scheduleRepo.save(existingSchedule);
         log.info("Schedule {} updated by user: {}", scheduleId, validation.user().getEmail());
@@ -137,6 +163,8 @@ public class SchedulingService {
         if (validation.hasError()) {
             return validation.errorResponse();
         }
+
+        deleteGoogleCalendarEvent(existingSchedule, validation.user());
 
         scheduleRepo.delete(existingSchedule);
         log.info("Schedule {} deleted by user: {}", scheduleId, validation.user().getEmail());
@@ -326,5 +354,208 @@ public class SchedulingService {
         metadata.put("sortField", CREATED_AT_FIELD);
         metadata.put("appliedFilters", additionalFilters != null ? additionalFilters : Map.of());
         return metadata;
+    }
+
+    /**
+     * Creates Google Calendar event for a schedule.
+     */
+    private void createGoogleCalendarEvent(Schedule schedule, User currentUser, User client, User lawyer) {
+        log.debug("Attempting to create Google Calendar event for schedule: {}", schedule.getId());
+        
+        if (!oAuthService.checkAndRefreshAccessToken()) {
+            log.info("User {} does not have Google Calendar integration, skipping calendar event creation", 
+                    currentUser.getEmail());
+            return;
+        }
+
+        try {
+            Optional<String> accessTokenOpt = validateAndGetAccessToken(currentUser);
+            if (accessTokenOpt.isEmpty()) {
+                return;
+            }
+
+            String accessToken = accessTokenOpt.get();
+            String hostEmail = currentUser.getEmail();
+            List<String> attendeeEmails = determineAndValidateAttendees(currentUser, client, lawyer, "");
+
+            CreateCalendarEventDTO eventData = new CreateCalendarEventDTO(
+                    accessToken,
+                    schedule.getTitle(),
+                    buildEventDescription(schedule, client, lawyer),
+                    schedule.getDate(),
+                    schedule.getStartTime().toLocalTime(),
+                    schedule.getEndTime().toLocalTime(),
+                    hostEmail,
+                    attendeeEmails
+            );
+            
+            Event googleEvent = googleCalendarService.createEvent(eventData);
+
+            ScheduleGoogleCalendarEvent calendarEvent = new ScheduleGoogleCalendarEvent();
+            calendarEvent.setSchedule(schedule);
+            calendarEvent.setGoogleCalendarEventId(googleEvent.getId());
+            scheduleGoogleCalendarEventRepo.save(calendarEvent);
+
+            log.info("Successfully created Google Calendar event {} for schedule {}", 
+                    googleEvent.getId(), schedule.getId());
+
+        } catch (Exception e) {
+            log.error("Failed to create Google Calendar event for schedule {}: {}", 
+                    schedule.getId(), e.getMessage(), e);
+            throw new GoogleCalendarException("Failed to create Google Calendar event for schedule " + schedule.getId(), e);
+        }
+    }
+
+    /**
+     * Updates Google Calendar event for a schedule.
+     */
+    private void updateGoogleCalendarEvent(Schedule schedule, User currentUser, User client, User lawyer) {
+        log.debug("Attempting to update Google Calendar event for schedule: {}", schedule.getId());
+        
+        executeGoogleCalendarOperation(schedule, currentUser, "update", (accessToken, googleCalendarEventId) -> {
+            try {
+                List<String> attendeeEmails = determineAndValidateAttendees(currentUser, client, lawyer, " update");
+
+                UpdateCalendarEventDTO eventData = new UpdateCalendarEventDTO(
+                        accessToken,
+                        googleCalendarEventId,
+                        schedule.getTitle(),
+                        buildEventDescription(schedule, client, lawyer),
+                        schedule.getDate(),
+                        schedule.getStartTime().toLocalTime(),
+                        schedule.getEndTime().toLocalTime(),
+                        attendeeEmails
+                );
+                
+                googleCalendarService.updateEvent(eventData);
+
+                log.info("Successfully updated Google Calendar event {} for schedule {}", 
+                        googleCalendarEventId, schedule.getId());
+            } catch (Exception e) {
+                throw new GoogleCalendarException("Failed to update Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
+            }
+        });
+    }
+
+    /**
+     * Deletes Google Calendar event for a schedule.
+     */
+    private void deleteGoogleCalendarEvent(Schedule schedule, User currentUser) {
+        log.debug("Attempting to delete Google Calendar event for schedule: {}", schedule.getId());
+        
+        executeGoogleCalendarOperation(schedule, currentUser, "delete", (accessToken, googleCalendarEventId) -> {
+            try {
+                googleCalendarService.deleteEvent(accessToken, googleCalendarEventId);
+                
+                scheduleGoogleCalendarEventRepo.deleteByScheduleId(schedule.getId());
+
+                log.info("Successfully deleted Google Calendar event {} for schedule {}", 
+                        googleCalendarEventId, schedule.getId());
+            } catch (Exception e) {
+                throw new GoogleCalendarException("Failed to delete Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
+            }
+        });
+    }
+
+    /**
+     * Functional interface for Google Calendar operations.
+     */
+    @FunctionalInterface
+    private interface GoogleCalendarOperation {
+        void execute(String accessToken, String googleCalendarEventId) throws GoogleCalendarException;
+    }
+
+    /**
+     * Executes a Google Calendar operation with common validation and error handling.
+     */
+    private void executeGoogleCalendarOperation(Schedule schedule, User currentUser, String operationType, GoogleCalendarOperation operation) {
+        Optional<String> googleCalendarEventIdOpt = scheduleGoogleCalendarEventRepo
+                .findGoogleCalendarEventIdByScheduleId(schedule.getId());
+                
+        if (googleCalendarEventIdOpt.isEmpty()) {
+            log.debug("No Google Calendar event ID found for schedule: {}", schedule.getId());
+            return;
+        }
+
+        if (!oAuthService.checkAndRefreshAccessToken()) {
+            log.info("User {} does not have Google Calendar integration, skipping calendar event {}", 
+                    currentUser.getEmail(), operationType);
+            return;
+        }
+
+        try {
+            Optional<String> accessTokenOpt = validateAndGetAccessToken(currentUser);
+            if (accessTokenOpt.isEmpty()) {
+                return;
+            }
+
+            String accessToken = accessTokenOpt.get();
+            String googleCalendarEventId = googleCalendarEventIdOpt.get();
+
+            operation.execute(accessToken, googleCalendarEventId);
+
+        } catch (GoogleCalendarException e) {
+            log.error("Failed to {} Google Calendar event for schedule {}: {}", 
+                    operationType, schedule.getId(), e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Validates current user access token and returns it if valid.
+     */
+    private Optional<String> validateAndGetAccessToken(User currentUser) {
+        Optional<String> accessTokenOpt = googleCalendarService.getValidAccessToken(currentUser.getId());
+        if (accessTokenOpt.isEmpty()) {
+            log.warn(NO_VALID_ACCESS_TOKEN_LOG, currentUser.getEmail());
+        }
+        return accessTokenOpt;
+    }
+
+    /**
+     * Determines attendee based on current user role and validates their Google Calendar integration.
+     */
+    private List<String> determineAndValidateAttendees(User currentUser, User client, User lawyer, String operationSuffix) {
+        List<String> attendeeEmails = new ArrayList<>();
+        
+        User attendeeUser;
+        if (currentUser.getId().equals(client.getId())) {
+            attendeeUser = lawyer;
+        } else {
+            attendeeUser = client;
+        }
+        
+        Optional<String> attendeeAccessToken = googleCalendarService.getValidAccessToken(attendeeUser.getId());
+        if (attendeeAccessToken.isPresent()) {
+            attendeeEmails.add(attendeeUser.getEmail());
+            log.debug("Adding attendee {} to Google Calendar event{} (has integration)", attendeeUser.getEmail(), operationSuffix);
+        } else {
+            log.debug("Skipping attendee {} - no Google Calendar integration", attendeeUser.getEmail());
+        }
+        
+        return attendeeEmails;
+    }
+
+    /**
+     * Builds event description for Google Calendar.
+     */
+    private String buildEventDescription(Schedule schedule, User client, User lawyer) {
+        StringBuilder description = new StringBuilder();
+        description.append("LegalConnect Meeting\n\n");
+        description.append("Case: ").append(schedule.getCaseEntity().getTitle()).append("\n");
+        description.append("Type: ").append(schedule.getType()).append("\n\n");
+        
+        if (schedule.getDescription() != null && !schedule.getDescription().trim().isEmpty()) {
+            description.append("Description: ").append(schedule.getDescription()).append("\n\n");
+        }
+        
+        description.append("Participants:\n");
+        description.append("Client: ").append(client.getFirstName()).append(" ").append(client.getLastName())
+                  .append(" (").append(client.getEmail()).append(")\n");
+        description.append("Lawyer: ").append(lawyer.getFirstName()).append(" ").append(lawyer.getLastName())
+                  .append(" (").append(lawyer.getEmail()).append(")\n\n");
+        description.append("Generated by LegalConnect");
+        
+        return description.toString();
     }
 }

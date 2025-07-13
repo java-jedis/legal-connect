@@ -3,9 +3,13 @@ package com.javajedis.legalconnect.scheduling;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,20 +35,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import com.google.api.services.calendar.model.Event;
 import com.javajedis.legalconnect.caseassets.CaseAssetUtility;
 import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleResponseDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
 import com.javajedis.legalconnect.user.Role;
 import com.javajedis.legalconnect.user.User;
@@ -52,7 +60,8 @@ import com.javajedis.legalconnect.user.UserRepo;
 
 /**
  * Comprehensive unit tests for SchedulingService.
- * Tests all service methods with various scenarios including success cases and error handling.
+ * Tests all service methods with various scenarios including success cases, error handling,
+ * and Google Calendar integration.
  */
 @DisplayName("SchedulingService Tests")
 class SchedulingServiceTest {
@@ -65,6 +74,15 @@ class SchedulingServiceTest {
 
     @Mock
     private CaseRepo caseRepo;
+
+    @Mock
+    private GoogleCalendarService googleCalendarService;
+
+    @Mock
+    private OAuthService oAuthService;
+
+    @Mock
+    private ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo;
 
     @InjectMocks
     private SchedulingService schedulingService;
@@ -81,6 +99,8 @@ class SchedulingServiceTest {
     private UUID caseId;
     private UUID lawyerId;
     private UUID clientUserId;
+    private Event mockGoogleEvent;
+    private ScheduleGoogleCalendarEvent mockScheduleGoogleCalendarEvent;
 
     @BeforeEach
     void setUp() {
@@ -92,6 +112,14 @@ class SchedulingServiceTest {
         setupTestCase();
         setupTestSchedule();
         setupTestDTOs();
+        setupGoogleCalendarMocks();
+        
+        // Default Google Calendar integration mocks (simulate no integration)
+        when(oAuthService.checkAndRefreshAccessToken()).thenReturn(false);
+        when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(any(UUID.class)))
+                .thenReturn(Optional.empty());
+        when(googleCalendarService.getValidAccessToken(any(UUID.class)))
+                .thenReturn(Optional.empty());
     }
 
     private void setupTestUsers() {
@@ -185,6 +213,17 @@ class SchedulingServiceTest {
         updateScheduleDTO.setEndTime(OffsetDateTime.now().withHour(15).withMinute(0).withSecond(0).withNano(0));
     }
 
+    private void setupGoogleCalendarMocks() {
+        mockGoogleEvent = new Event();
+        mockGoogleEvent.setId("google-event-id-123");
+        mockGoogleEvent.setSummary("Test Event");
+
+        mockScheduleGoogleCalendarEvent = new ScheduleGoogleCalendarEvent();
+        mockScheduleGoogleCalendarEvent.setId(UUID.randomUUID());
+        mockScheduleGoogleCalendarEvent.setSchedule(testSchedule);
+        mockScheduleGoogleCalendarEvent.setGoogleCalendarEventId("google-event-id-123");
+    }
+
     @Test
     @DisplayName("Should create schedule successfully")
     void createSchedule_Success_ReturnsCreatedResponse() {
@@ -218,6 +257,77 @@ class SchedulingServiceTest {
             assertEquals(testSchedule.getEndTime(), result.getBody().getData().getEndTime());
             
             verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+        }
+    }
+
+    @Test
+    @DisplayName("Should create schedule with Google Calendar integration successfully")
+    void createSchedule_WithGoogleCalendar_Success_ReturnsCreatedResponse() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(googleCalendarService.createEvent(any(CreateCalendarEventDTO.class))).thenReturn(mockGoogleEvent);
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.createSchedule(createScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule created successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(googleCalendarService).createEvent(any(CreateCalendarEventDTO.class));
+            verify(scheduleGoogleCalendarEventRepo).save(any(ScheduleGoogleCalendarEvent.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle Google Calendar creation failure gracefully")
+    void createSchedule_GoogleCalendarFails_ThrowsGoogleCalendarException() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(googleCalendarService.createEvent(any(CreateCalendarEventDTO.class)))
+                    .thenThrow(new GoogleCalendarException("Google Calendar API error"));
+
+            // Act & Assert
+            assertThrows(GoogleCalendarException.class, () -> {
+                schedulingService.createSchedule(createScheduleDTO);
+            });
+            
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(googleCalendarService).createEvent(any(CreateCalendarEventDTO.class));
+            verify(scheduleGoogleCalendarEventRepo, never()).save(any(ScheduleGoogleCalendarEvent.class));
         }
     }
 
@@ -247,6 +357,9 @@ class SchedulingServiceTest {
             assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
             assertNotNull(result.getBody());
             assertEquals("Case not found", result.getBody().getError().getMessage());
+            
+            verify(scheduleRepo, never()).save(any(Schedule.class));
+            verify(oAuthService, never()).checkAndRefreshAccessToken();
         }
     }
 
@@ -301,6 +414,83 @@ class SchedulingServiceTest {
     }
 
     @Test
+    @DisplayName("Should update schedule with Google Calendar integration successfully")
+    void updateSchedule_WithGoogleCalendar_Success_ReturnsUpdatedResponse() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("update schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.findById(scheduleId)).thenReturn(Optional.of(testSchedule));
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(scheduleId))
+                    .thenReturn(Optional.of("google-event-id-123"));
+            when(googleCalendarService.updateEvent(any(UpdateCalendarEventDTO.class))).thenReturn(mockGoogleEvent);
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.updateSchedule(scheduleId, updateScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule updated successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(scheduleGoogleCalendarEventRepo).findGoogleCalendarEventIdByScheduleId(scheduleId);
+            verify(googleCalendarService).updateEvent(any(UpdateCalendarEventDTO.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle Google Calendar update failure gracefully")
+    void updateSchedule_GoogleCalendarFails_ThrowsGoogleCalendarException() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("update schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.findById(scheduleId)).thenReturn(Optional.of(testSchedule));
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(scheduleId))
+                    .thenReturn(Optional.of("google-event-id-123"));
+            when(googleCalendarService.updateEvent(any(UpdateCalendarEventDTO.class)))
+                    .thenThrow(new GoogleCalendarException("Google Calendar API error"));
+
+            // Act & Assert
+            assertThrows(GoogleCalendarException.class, () -> {
+                schedulingService.updateSchedule(scheduleId, updateScheduleDTO);
+            });
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(scheduleGoogleCalendarEventRepo).findGoogleCalendarEventIdByScheduleId(scheduleId);
+            verify(googleCalendarService).updateEvent(any(UpdateCalendarEventDTO.class));
+            verify(scheduleRepo, never()).save(any(Schedule.class));
+        }
+    }
+
+    @Test
     @DisplayName("Should handle update schedule not found")
     void updateSchedule_NotFound_ReturnsNotFoundResponse() {
         // Arrange
@@ -315,6 +505,7 @@ class SchedulingServiceTest {
         assertEquals("Schedule not found", result.getBody().getError().getMessage());
         
         verify(scheduleRepo).findById(scheduleId);
+        verify(oAuthService, never()).checkAndRefreshAccessToken();
     }
 
     @Test
@@ -345,6 +536,9 @@ class SchedulingServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, result.getStatusCode());
             assertNotNull(result.getBody());
             assertEquals("Access denied", result.getBody().getError().getMessage());
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(oAuthService, never()).checkAndRefreshAccessToken();
         }
     }
 
@@ -380,6 +574,84 @@ class SchedulingServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete schedule with Google Calendar integration successfully")
+    void deleteSchedule_WithGoogleCalendar_Success_ReturnsSuccessResponse() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            when(scheduleRepo.findById(scheduleId)).thenReturn(Optional.of(testSchedule));
+            
+            CaseAssetUtility.CaseAssetValidationResult<String> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("delete schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(scheduleId))
+                    .thenReturn(Optional.of("google-event-id-123"));
+            doNothing().when(googleCalendarService).deleteEvent("valid-access-token", "google-event-id-123");
+
+            // Act
+            ResponseEntity<ApiResponse<String>> result = schedulingService.deleteSchedule(scheduleId);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule deleted successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(scheduleRepo).delete(testSchedule);
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(scheduleGoogleCalendarEventRepo).findGoogleCalendarEventIdByScheduleId(scheduleId);
+            verify(googleCalendarService).deleteEvent("valid-access-token", "google-event-id-123");
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle Google Calendar delete failure gracefully")
+    void deleteSchedule_GoogleCalendarFails_ThrowsGoogleCalendarException() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            when(scheduleRepo.findById(scheduleId)).thenReturn(Optional.of(testSchedule));
+            
+            CaseAssetUtility.CaseAssetValidationResult<String> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("delete schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(scheduleId))
+                    .thenReturn(Optional.of("google-event-id-123"));
+            doThrow(new GoogleCalendarException("Google Calendar API error"))
+                    .when(googleCalendarService).deleteEvent("valid-access-token", "google-event-id-123");
+
+            // Act & Assert
+            assertThrows(GoogleCalendarException.class, () -> {
+                schedulingService.deleteSchedule(scheduleId);
+            });
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(scheduleGoogleCalendarEventRepo).findGoogleCalendarEventIdByScheduleId(scheduleId);
+            verify(googleCalendarService).deleteEvent("valid-access-token", "google-event-id-123");
+            verify(scheduleRepo, never()).delete(any(Schedule.class));
+        }
+    }
+
+    @Test
     @DisplayName("Should handle delete schedule not found")
     void deleteSchedule_NotFound_ReturnsNotFoundResponse() {
         // Arrange
@@ -394,6 +666,113 @@ class SchedulingServiceTest {
         assertEquals("Schedule not found", result.getBody().getError().getMessage());
         
         verify(scheduleRepo).findById(scheduleId);
+        verify(oAuthService, never()).checkAndRefreshAccessToken();
+    }
+
+    @Test
+    @DisplayName("Should handle OAuth token refresh failure gracefully")
+    void createSchedule_OAuthTokenRefreshFails_SkipsGoogleCalendar() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(false);
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.createSchedule(createScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule created successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService, never()).getValidAccessToken(any(UUID.class));
+            verify(googleCalendarService, never()).createEvent(any(CreateCalendarEventDTO.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle missing access token gracefully")
+    void createSchedule_MissingAccessToken_SkipsGoogleCalendar() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.empty());
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.createSchedule(createScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule created successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService).checkAndRefreshAccessToken();
+            verify(googleCalendarService).getValidAccessToken(lawyerId);
+            verify(googleCalendarService, never()).createEvent(any(CreateCalendarEventDTO.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should handle missing Google Calendar event ID for update")
+    void updateSchedule_MissingGoogleCalendarEventId_SkipsGoogleCalendar() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("update schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.findById(scheduleId)).thenReturn(Optional.of(testSchedule));
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(scheduleGoogleCalendarEventRepo.findGoogleCalendarEventIdByScheduleId(scheduleId))
+                    .thenReturn(Optional.empty());
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.updateSchedule(scheduleId, updateScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Schedule updated successfully", result.getBody().getMessage());
+            
+            verify(scheduleRepo).findById(scheduleId);
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(oAuthService, never()).checkAndRefreshAccessToken();
+            verify(googleCalendarService, never()).getValidAccessToken(lawyerId);
+            verify(scheduleGoogleCalendarEventRepo).findGoogleCalendarEventIdByScheduleId(scheduleId);
+            verify(googleCalendarService, never()).updateEvent(any(UpdateCalendarEventDTO.class));
+        }
     }
 
     @Test
@@ -726,6 +1105,101 @@ class SchedulingServiceTest {
             assertEquals(caseId.toString(), appliedFilters.get("caseId"));
             
             verify(scheduleRepo).findByCaseEntityId(eq(caseId), any(Pageable.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should test Google Calendar attendee management for lawyer as current user")
+    void testGoogleCalendarAttendeeManagement_LawyerAsCurrentUser() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(googleCalendarService.createEvent(any(CreateCalendarEventDTO.class))).thenReturn(mockGoogleEvent);
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.createSchedule(createScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            
+            verify(googleCalendarService).createEvent(any(CreateCalendarEventDTO.class));
+            verify(scheduleGoogleCalendarEventRepo).save(any(ScheduleGoogleCalendarEvent.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should test Google Calendar attendee management for client as current user")
+    void testGoogleCalendarAttendeeManagement_ClientAsCurrentUser() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(clientUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(clientUserId)).thenReturn(Optional.of("valid-access-token"));
+            when(googleCalendarService.createEvent(any(CreateCalendarEventDTO.class))).thenReturn(mockGoogleEvent);
+
+            // Act
+            ResponseEntity<ApiResponse<ScheduleResponseDTO>> result = schedulingService.createSchedule(createScheduleDTO);
+
+            // Assert
+            assertEquals(HttpStatus.CREATED, result.getStatusCode());
+            
+            verify(googleCalendarService).createEvent(any(CreateCalendarEventDTO.class));
+            verify(scheduleGoogleCalendarEventRepo).save(any(ScheduleGoogleCalendarEvent.class));
+        }
+    }
+
+    @Test
+    @DisplayName("Should test Google Calendar integration with transactional behavior")
+    void testGoogleCalendarIntegrationTransactional() throws Exception {
+        // Arrange
+        try (MockedStatic<CaseAssetUtility> mockedCaseAssetUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
+            CaseAssetUtility.CaseAssetValidationResult<ScheduleResponseDTO> validationResult = 
+                    new CaseAssetUtility.CaseAssetValidationResult<>(lawyerUser, testCase, null);
+            
+            mockedCaseAssetUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
+                    eq(caseId), 
+                    eq("create schedule"), 
+                    eq(userRepo), 
+                    eq(caseRepo)
+            )).thenReturn(validationResult);
+
+            when(scheduleRepo.save(any(Schedule.class))).thenReturn(testSchedule);
+            when(oAuthService.checkAndRefreshAccessToken()).thenReturn(true);
+            when(googleCalendarService.getValidAccessToken(lawyerId)).thenReturn(Optional.of("valid-access-token"));
+            when(googleCalendarService.createEvent(any(CreateCalendarEventDTO.class)))
+                    .thenThrow(new RuntimeException("Network error")); // Simulate network error
+
+            // Act & Assert
+            assertThrows(GoogleCalendarException.class, () -> {
+                schedulingService.createSchedule(createScheduleDTO);
+            });
+            
+            // Verify that schedule was saved before Google Calendar error
+            verify(scheduleRepo).save(any(Schedule.class));
+            verify(googleCalendarService).createEvent(any(CreateCalendarEventDTO.class));
+            verify(scheduleGoogleCalendarEventRepo, never()).save(any(ScheduleGoogleCalendarEvent.class));
         }
     }
 } 
