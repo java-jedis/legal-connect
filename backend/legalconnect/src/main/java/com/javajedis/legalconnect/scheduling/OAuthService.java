@@ -45,8 +45,11 @@ public class OAuthService {
         this.userRepo = userRepo;
     }
 
+    /**
+     * Generates the Google OAuth2 authorization URL for the authenticated user.
+     *
+     */
     public ResponseEntity<ApiResponse<String>> oAuthAuthorize() {
-        // Get current user to pass their ID in state parameter
         User user = GetUserUtil.getAuthenticatedUser(userRepo);
         if (user == null) {
             log.warn("Unauthorized OAuth authorize attempt");
@@ -60,17 +63,21 @@ public class OAuthService {
                 .queryParam("scope", scope)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
-                .queryParam("state", user.getId().toString()) // Pass user ID in state
+                .queryParam("state", user.getId().toString())
                 .build().toUriString();
-
-        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
+            
+        return ApiResponse.success(url,HttpStatus.OK,"OAuth Redirect Url Sent ");
     }
 
+
+    /**
+     * Handles the OAuth2 callback from Google, exchanges the authorization code for tokens,
+     * and stores them for the user.
+     */
     public ResponseEntity<ApiResponse<String>> callback(@RequestParam("code") String code, @RequestParam("state") String state) {
         log.debug("Processing OAuth callback with authorization code for user ID: {}", state);
         
         try {
-            // Get user from state parameter
             UUID userId = parseUserIdFromState(state);
             if (userId == null) {
                 return ApiResponse.error("Invalid state parameter", HttpStatus.BAD_REQUEST);
@@ -134,8 +141,11 @@ public class OAuthService {
 
             oAuthCalendarTokenRepo.save(oAuthCalendarToken);
 
-            return ApiResponse.success("OAuth authentication successful", HttpStatus.OK, 
-                    "Google Calendar integration completed successfully");
+            String userType = user.getRole().toString().toLowerCase();
+            String redirectUrl = "http://localhost:5173/dashboard/" + userType;
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(redirectUrl))
+                    .build();
 
         } catch (Exception e) {
             log.error("Error processing OAuth callback", e);

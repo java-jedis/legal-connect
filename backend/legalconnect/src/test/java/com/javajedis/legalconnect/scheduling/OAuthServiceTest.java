@@ -122,7 +122,7 @@ class OAuthServiceTest {
 
     @Test
     @DisplayName("Should create OAuth authorization URL successfully")
-    void oAuthAuthorize_Success_ReturnsRedirectResponse() {
+    void oAuthAuthorize_Success_ReturnsUrlInJsonResponse() {
         try (MockedStatic<GetUserUtil> mockedGetUserUtil = mockStatic(GetUserUtil.class)) {
             // Arrange
             mockedGetUserUtil.when(() -> GetUserUtil.getAuthenticatedUser(userRepo)).thenReturn(testUser);
@@ -132,18 +132,19 @@ class OAuthServiceTest {
 
             // Assert
             assertNotNull(result);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
-            assertNotNull(result.getHeaders().getLocation());
-            
-            String location = result.getHeaders().getLocation().toString();
-            assertTrue(location.contains("https://accounts.google.com/o/oauth2/v2/auth"));
-            assertTrue(location.contains("client_id=test_client_id"));
-            assertTrue(location.contains("redirect_uri=http://localhost:8080/schedule/oauth/callback"));
-            assertTrue(location.contains("response_type=code"));
-            assertTrue(location.contains("scope=https://www.googleapis.com/auth/calendar"));
-            assertTrue(location.contains("access_type=offline"));
-            assertTrue(location.contains("prompt=consent"));
-            assertTrue(location.contains("state=" + testUserId.toString()));
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            String url = result.getBody().getData();
+            assertNotNull(url);
+            assertTrue(url.contains("https://accounts.google.com/o/oauth2/v2/auth"));
+            assertTrue(url.contains("client_id=test_client_id"));
+            assertTrue(url.contains("redirect_uri=http://localhost:8080/schedule/oauth/callback"));
+            assertTrue(url.contains("response_type=code"));
+            assertTrue(url.contains("scope=https://www.googleapis.com/auth/calendar"));
+            assertTrue(url.contains("access_type=offline"));
+            assertTrue(url.contains("prompt=consent"));
+            assertTrue(url.contains("state=" + testUserId.toString()));
+            assertEquals("OAuth Redirect Url Sent ", result.getBody().getMessage());
         }
     }
 
@@ -157,10 +158,11 @@ class OAuthServiceTest {
             // Act
             ResponseEntity<ApiResponse<String>> result = oAuthService.oAuthAuthorize();
 
-                    // Assert
-        assertNotNull(result);
-        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-        assertEquals("User is not authenticated", result.getBody().getError().getMessage());
+            // Assert
+            assertNotNull(result);
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("User is not authenticated", result.getBody().getError().getMessage());
         }
     }
 
@@ -192,8 +194,11 @@ class OAuthServiceTest {
             ResponseEntity<ApiResponse<String>> result = oAuthService.callback(testAuthorizationCode, testStateParameter);
 
             // Assert
-            assertEquals(HttpStatus.OK, result.getStatusCode());
-            assertEquals("Google Calendar integration completed successfully", result.getBody().getMessage());
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertNotNull(result.getHeaders().getLocation());
+            String location = result.getHeaders().getLocation().toString();
+            String expectedUrl = "http://localhost:5173/dashboard/" + testUser.getRole().toString().toLowerCase();
+            assertEquals(expectedUrl, location);
 
             ArgumentCaptor<OAuthCalendarToken> tokenCaptor = ArgumentCaptor.forClass(OAuthCalendarToken.class);
             verify(oAuthCalendarTokenRepo).save(tokenCaptor.capture());
@@ -234,8 +239,11 @@ class OAuthServiceTest {
             ResponseEntity<ApiResponse<String>> result = oAuthService.callback(testAuthorizationCode, testStateParameter);
 
             // Assert
-            assertEquals(HttpStatus.OK, result.getStatusCode());
-            assertEquals("Google Calendar integration completed successfully", result.getBody().getMessage());
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertNotNull(result.getHeaders().getLocation());
+            String location = result.getHeaders().getLocation().toString();
+            String expectedUrl = "http://localhost:5173/dashboard/" + testUser.getRole().toString().toLowerCase();
+            assertEquals(expectedUrl, location);
 
             ArgumentCaptor<OAuthCalendarToken> tokenCaptor = ArgumentCaptor.forClass(OAuthCalendarToken.class);
             verify(oAuthCalendarTokenRepo).save(tokenCaptor.capture());
@@ -535,13 +543,13 @@ class OAuthServiceTest {
 
             // Assert
             assertNotNull(result);
-            String location = result.getHeaders().getLocation().toString();
-            
+            assertNotNull(result.getBody());
+            String url = result.getBody().getData();
             // Verify all configuration properties are present in the URL
-            assertTrue(location.contains("client_id=test_client_id"));
-            assertTrue(location.contains("redirect_uri=http://localhost:8080/schedule/oauth/callback"));
-            assertTrue(location.contains("scope=https://www.googleapis.com/auth/calendar"));
-            assertTrue(location.contains("state=" + testUserId.toString()));
+            assertTrue(url.contains("client_id=test_client_id"));
+            assertTrue(url.contains("redirect_uri=http://localhost:8080/schedule/oauth/callback"));
+            assertTrue(url.contains("scope=https://www.googleapis.com/auth/calendar"));
+            assertTrue(url.contains("state=" + testUserId.toString()));
         }
     }
 } 
