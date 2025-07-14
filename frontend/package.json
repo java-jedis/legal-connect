@@ -11,6 +11,11 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.18",
+    "@fullcalendar/daygrid": "^6.1.18",
+    "@fullcalendar/interaction": "^6.1.18",
+    "@fullcalendar/timegrid": "^6.1.18",
+    "@fullcalendar/vue3": "^6.1.18",
     "axios": "^1.10.0",
     "pinia": "^3.0.1",
     "vue": "^3.5.13",

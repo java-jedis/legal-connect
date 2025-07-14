@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTOTest
--------------------------------------------------------------------------------
-Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s -- in com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTOTest

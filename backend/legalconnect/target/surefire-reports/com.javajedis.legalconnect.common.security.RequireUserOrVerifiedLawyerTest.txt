@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyerTest
--------------------------------------------------------------------------------
-Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyerTest

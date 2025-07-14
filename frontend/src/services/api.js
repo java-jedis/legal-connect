@@ -100,6 +100,18 @@ export const authAPI = {
     const response = await api.post("/user/logout");
     return response.data;
   },
+
+  // Initiate Google Calendar OAuth2 flow
+  authorizeGoogleCalendar: async () => {
+    const response = await api.get("/schedule/oauth/authorize");
+    return response.data;
+  },
+
+  // Check Google Calendar integration status
+  checkGoogleCalendarStatus: async () => {
+    const response = await api.get("/schedule/oauth/status");
+    return response.data;
+  },
 };
 
 // Lawyer API methods
@@ -200,6 +212,196 @@ export const adminAPI = {
   // Reject lawyer verification
   rejectLawyer: async (lawyerId) => {
     const response = await api.put(`/admin/lawyers/${lawyerId}/reject`);
+    return response.data;
+  },
+};
+
+// Case Management API methods
+export const caseAPI = {
+  // Get all cases for authenticated user with pagination and filtering
+  getAllUserCases: async (
+    page = 0,
+    size = 10,
+    status = null,
+    sortDirection = "DESC"
+  ) => {
+    const params = { page, size, sortDirection };
+    if (status) params.status = status;
+    const response = await api.get("/case/", { params });
+    return response.data;
+  },
+
+  // Get single case by ID
+  getCaseById: async (caseId) => {
+    const response = await api.get(`/case/${caseId}`);
+    return response.data;
+  },
+
+  // Create new case (lawyer only)
+  createCase: async (caseData) => {
+    const response = await api.post("/case/", caseData);
+    return response.data;
+  },
+
+  // Update case title and description (lawyer only)
+  updateCase: async (caseId, updateData) => {
+    const response = await api.put(`/case/${caseId}`, updateData);
+    return response.data;
+  },
+
+  // Update case status (lawyer only)
+  updateCaseStatus: async (caseId, statusData) => {
+    const response = await api.put(`/case/${caseId}/status`, statusData);
+    return response.data;
+  },
+};
+
+// Scheduling API methods
+export const scheduleAPI = {
+  // Get all schedules for a specific case
+  getAllSchedulesForCase: async (
+    caseId,
+    page = 0,
+    size = 10,
+    sortDirection = "DESC"
+  ) => {
+    const params = { page, size, sortDirection };
+    const response = await api.get(`/schedule/case/${caseId}`, { params });
+    return response.data;
+  },
+
+  // Get all user schedules
+  getAllUserSchedules: async (page = 0, size = 10, sortDirection = "DESC") => {
+    const params = { page, size, sortDirection };
+    const response = await api.get("/schedule/", { params });
+    return response.data;
+  },
+
+  // Get single schedule by ID
+  getScheduleById: async (scheduleId) => {
+    const response = await api.get(`/schedule/${scheduleId}`);
+    return response.data;
+  },
+
+  // Create new schedule
+  createSchedule: async (scheduleData) => {
+    const response = await api.post("/schedule/", scheduleData);
+    return response.data;
+  },
+
+  // Update schedule
+  updateSchedule: async (scheduleId, updateData) => {
+    const response = await api.put(`/schedule/${scheduleId}`, updateData);
+    return response.data;
+  },
+
+  // Delete schedule
+  deleteSchedule: async (scheduleId) => {
+    const response = await api.delete(`/schedule/${scheduleId}`);
+    return response.data;
+  },
+};
+
+// Case Assets API methods
+export const caseAssetsAPI = {
+  // Get all notes for a case
+  getAllNotesForCase: async (
+    caseId,
+    page = 0,
+    size = 10,
+    sortDirection = "DESC"
+  ) => {
+    const params = { page, size, sortDirection };
+    const response = await api.get(`/case-assets/cases/${caseId}/notes`, {
+      params,
+    });
+    return response.data;
+  },
+
+  // Get all documents for a case
+  getAllDocumentsForCase: async (
+    caseId,
+    page = 0,
+    size = 10,
+    sortDirection = "DESC"
+  ) => {
+    const params = { page, size, sortDirection };
+    const response = await api.get(`/case-assets/cases/${caseId}/documents`, {
+      params,
+    });
+    return response.data;
+  },
+
+  // Get single note by ID
+  getNoteById: async (noteId) => {
+    const response = await api.get(`/case-assets/notes/${noteId}`);
+    return response.data;
+  },
+
+  // Get single document by ID
+  getDocumentById: async (documentId) => {
+    const response = await api.get(`/case-assets/documents/${documentId}`);
+    return response.data;
+  },
+
+  // Create new note
+  createNote: async (noteData) => {
+    const response = await api.post("/case-assets/notes", noteData);
+    return response.data;
+  },
+
+  // Update note
+  updateNote: async (noteId, updateData) => {
+    const response = await api.put(`/case-assets/notes/${noteId}`, updateData);
+    return response.data;
+  },
+
+  // Delete note
+  deleteNote: async (noteId) => {
+    const response = await api.delete(`/case-assets/notes/${noteId}`);
+    return response.data;
+  },
+
+  // Upload document
+  uploadDocument: async (documentData, file) => {
+    const formData = new FormData();
+    formData.append("caseId", documentData.caseId);
+    formData.append("title", documentData.title);
+    formData.append("description", documentData.description);
+    formData.append("privacy", documentData.privacy);
+    formData.append("file", file);
+
+    const response = await api.post("/case-assets/documents", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // Update document
+  updateDocument: async (documentId, updateData) => {
+    const response = await api.put(
+      `/case-assets/documents/${documentId}`,
+      updateData
+    );
+    return response.data;
+  },
+
+  // Delete document
+  deleteDocument: async (documentId) => {
+    const response = await api.delete(`/case-assets/documents/${documentId}`);
+    return response.data;
+  },
+
+  // View/Download document
+  viewDocument: async (documentId) => {
+    const response = await api.get(
+      `/case-assets/documents/${documentId}/view`,
+      {
+        responseType: "blob",
+      }
+    );
     return response.data;
   },
 };
