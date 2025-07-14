@@ -6,6 +6,14 @@
         <div class="modal-header">
           <h3>{{ title || 'Document Viewer' }}</h3>
           <div class="modal-actions">
+            <button v-if="internalDocumentUrl || documentData" @click="openInNewTab" class="btn btn-outline btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="15,3 21,3 21,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Open in New Tab
+            </button>
             <button v-if="internalDocumentUrl || documentData" @click="downloadDocument" class="btn btn-outline btn-sm">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -172,6 +180,29 @@ const loadDocument = async () => {
   }
 }
 
+const openInNewTab = async () => {
+  try {
+    let urlToOpen = internalDocumentUrl.value
+
+    // If we have document data but no URL yet, create one
+    if (!urlToOpen && props.documentData) {
+      const blob = new Blob([props.documentData], { type: props.documentType })
+      urlToOpen = window.URL.createObjectURL(blob)
+    }
+
+    if (urlToOpen) {
+      // Open the document in a new tab using the browser's native viewer
+      window.open(urlToOpen, '_blank', 'noopener,noreferrer')
+    } else {
+      console.error('No document URL available to open in new tab')
+      alert('Unable to open document in new tab. Please try again.')
+    }
+  } catch (error) {
+    console.error('Error opening document in new tab:', error)
+    alert('Unable to open document in new tab. Please try again.')
+  }
+}
+
 const downloadDocument = async () => {
   if (props.documentData) {
     try {
@@ -252,9 +283,9 @@ watch(() => props.documentUrl, (newVal) => {
 .modal-content {
   background: var(--color-background);
   border-radius: 12px;
-  max-width: 900px;
+  max-width: 95vw;
   width: 100%;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow: hidden;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
@@ -263,13 +294,13 @@ watch(() => props.documentUrl, (newVal) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
@@ -343,8 +374,8 @@ watch(() => props.documentUrl, (newVal) => {
 }
 
 .document-content {
-  padding: 1.5rem;
-  max-height: calc(90vh - 80px);
+  padding: 1rem;
+  max-height: calc(95vh - 70px);
   overflow-y: auto;
 }
 
@@ -352,7 +383,7 @@ watch(() => props.documentUrl, (newVal) => {
 .document-error,
 .document-placeholder {
   text-align: center;
-  padding: 3rem 1.5rem;
+  padding: 2rem 1rem;
 }
 
 .loading-spinner {
@@ -385,7 +416,8 @@ watch(() => props.documentUrl, (newVal) => {
 
 .document-iframe {
   width: 100%;
-  height: 500px;
+  height: calc(95vh - 140px);
+  min-height: 600px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
 }
@@ -398,19 +430,22 @@ watch(() => props.documentUrl, (newVal) => {
 @media (max-width: 768px) {
   .modal-content {
     margin: 0.5rem;
-    max-height: 95vh;
+    max-height: 98vh;
+    max-width: 98vw;
   }
   
   .document-iframe {
-    height: 400px;
+    height: calc(98vh - 120px);
+    min-height: 400px;
   }
   
   .modal-header {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
   
   .document-content {
-    padding: 1rem;
+    padding: 0.75rem;
+    max-height: calc(98vh - 65px);
   }
 }
 </style> 

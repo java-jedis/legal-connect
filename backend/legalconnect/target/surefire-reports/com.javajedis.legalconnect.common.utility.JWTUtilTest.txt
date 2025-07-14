@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.javajedis.legalconnect.common.utility.JWTUtilTest
+-------------------------------------------------------------------------------
+Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.110 s -- in com.javajedis.legalconnect.common.utility.JWTUtilTest
