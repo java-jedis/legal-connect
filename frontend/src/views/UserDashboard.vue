@@ -9,7 +9,7 @@
             <p class="welcome-subtitle">How can we help with your legal matters today?</p>
           </div>
           <div class="header-actions">
-            <button class="btn btn-primary">New Case</button>
+            <button @click="router.push('/cases')" class="btn btn-primary">My Cases</button>
             <button class="btn btn-secondary">Schedule Consultation</button>
           </div>
         </div>
@@ -166,7 +166,7 @@
           <div class="dashboard-card">
             <div class="card-header">
               <h3>Active Cases</h3>
-              <button class="btn btn-outline btn-sm">View All</button>
+              <button @click="router.push('/cases')" class="btn btn-outline btn-sm">View All</button>
             </div>
             <div class="cases-list">
               <div v-for="legalCase in activeCases" :key="legalCase.id" class="case-item">
@@ -253,6 +253,9 @@
               </div>
             </div>
           </div>
+
+          <!-- My Calendar -->
+          <MyCalendarSection />
         </div>
       </div>
     </section>
@@ -261,9 +264,12 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import MyCalendarSection from '../components/MyCalendarSection.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const userName = computed(() => {
   if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
     return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`

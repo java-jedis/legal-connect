@@ -90,6 +90,18 @@ const router = createRouter({
       component: () => import("../views/ProfileView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
+    {
+      path: "/cases",
+      name: "cases",
+      component: () => import("../views/CasesView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
+      path: "/case/:id",
+      name: "case-detail",
+      component: () => import("../views/CaseDetailView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
   ],
 });
 

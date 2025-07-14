@@ -36,7 +36,7 @@
               <p class="welcome-subtitle">Manage your practice and serve your clients effectively</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-primary">New Client</button>
+              <button @click="router.push('/cases')" class="btn btn-primary">View Cases</button>
               <button class="btn btn-secondary">Schedule Consultation</button>
             </div>
           </div>
@@ -285,7 +285,7 @@
           <div class="dashboard-card">
             <div class="card-header">
               <h3>Active Cases</h3>
-              <button class="btn btn-outline btn-sm">View All</button>
+              <button @click="router.push('/cases')" class="btn btn-outline btn-sm">View All</button>
             </div>
             <div class="cases-list">
               <div v-for="legalCase in activeCases" :key="legalCase.id" class="case-item">
@@ -374,6 +374,9 @@
             </div>
           </div>
 
+          <!-- My Calendar -->
+          <MyCalendarSection />
+
           <!-- Earnings Overview -->
           <div class="dashboard-card earnings-card">
             <div class="card-header">
@@ -383,7 +386,7 @@
             <div class="earnings-content">
               <div class="earnings-chart">
                 <div class="chart-bar" v-for="(earning, month) in monthlyEarnings" :key="month">
-                  <div class="bar" :style="{ height: (earning / maxEarning) * 100 + '%' }"></div>
+                  <div class="bar" :style="{ height: (earning / maxEarning) * 100 + '%'} "></div>
                   <span class="month">{{ month }}</span>
                 </div>
               </div>
@@ -412,13 +415,15 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import LawyerAvailabilitySlots from '../components/LawyerAvailabilitySlots.vue'
 import LawyerVerificationStatus from '../components/LawyerVerificationStatus.vue'
+import MyCalendarSection from '../components/MyCalendarSection.vue'
 import { useAuthStore } from '../stores/auth'
 import { useLawyerStore } from '../stores/lawyer'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const lawyerStore = useLawyerStore()
 
@@ -563,7 +568,7 @@ const addNewClient = () => {
 }
 
 const createCase = () => {
-  alert('Opening case creation form...')
+  router.push('/cases')
 }
 
 const manageAvailability = () => {
