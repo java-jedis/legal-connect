@@ -1,11 +1,12 @@
-package com.javajedis.legalconnect.auth;
-
-import com.javajedis.legalconnect.user.Role;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+package com.javajedis.legalconnect.auth.dto;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import com.javajedis.legalconnect.user.Role;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @Data
 @AllArgsConstructor

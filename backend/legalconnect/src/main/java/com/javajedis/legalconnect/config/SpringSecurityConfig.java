@@ -35,6 +35,7 @@ public class SpringSecurityConfig {
         JWTFilter filterWithRedis = new JWTFilter(jwtFilter.getUserDetailsService(), jwtFilter.getJwtUtil(), redisTemplate);
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/schedule/oauth/callback").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/lawyer/profile", "/lawyer/profile/**","/lawyer/availability-slots","/lawyer/availability-slots/**").authenticated()
                         .requestMatchers("/lawyer/view-credentials", "/lawyer/view-credentials/**").hasAnyRole("LAWYER", "ADMIN")

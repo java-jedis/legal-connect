@@ -1,12 +1,13 @@
 package com.javajedis.legalconnect.common.utility;
 
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
 
 /**
  * Utility class for extracting user information from JWT tokens or authentication context.
@@ -54,5 +55,20 @@ public class GetUserUtil {
         userInfo.put("createdAt", user.getCreatedAt());
         userInfo.put("updatedAt", user.getUpdatedAt());
         return userInfo;
+    }
+
+    /**
+     * Gets the currently authenticated user entity from the security context.
+     *
+     * @param userRepo the user repository
+     * @return the authenticated user entity or null if not authenticated
+     */
+    public static User getAuthenticatedUser(UserRepo userRepo) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        String email = authentication.getName();
+        return userRepo.findByEmail(email).orElse(null);
     }
 }

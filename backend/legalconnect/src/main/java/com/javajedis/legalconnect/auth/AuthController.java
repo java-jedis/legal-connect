@@ -6,6 +6,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
+import com.javajedis.legalconnect.auth.dto.EmailVerifyDTO;
+import com.javajedis.legalconnect.auth.dto.LoginDTO;
+import com.javajedis.legalconnect.auth.dto.RequestOTPDTO;
+import com.javajedis.legalconnect.auth.dto.ResetPasswordDTO;
+import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -26,6 +27,16 @@ import lombok.extern.slf4j.Slf4j;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /**
+     * Handles authorization errors (access denied).
+     * This ensures proper 403 Forbidden responses when users don't have required permissions.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<String>> handleAccessDeniedException(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ApiResponse.error("Access denied. You don't have permission to access this resource.", HttpStatus.FORBIDDEN);
+    }
 
     /**
      * Handles authentication errors (invalid credentials).
@@ -79,6 +90,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailNotVerifiedException.class)
     public ResponseEntity<ApiResponse<String>> handleEmailNotVerified(EmailNotVerifiedException ex) {
         log.warn("Email not verified: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * Handles lawyer verification requirement errors.
+     */
+    @ExceptionHandler(LawyerNotVerifiedException.class)
+    public ResponseEntity<ApiResponse<String>> handleLawyerNotVerified(LawyerNotVerifiedException ex) {
+        log.warn("Lawyer not verified: {}", ex.getMessage());
         return ApiResponse.error(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 

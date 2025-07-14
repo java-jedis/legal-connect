@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -39,6 +40,22 @@ class GlobalExceptionHandlerTest {
     @BeforeEach
     void setUp() {
         exceptionHandler = new GlobalExceptionHandler();
+    }
+
+    @Test
+    @DisplayName("Should handle AccessDeniedException")
+    void shouldHandleAccessDeniedException() {
+        // Given
+        AccessDeniedException exception = new AccessDeniedException("Access denied");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleAccessDeniedException(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Access denied. You don't have permission to access this resource.", response.getBody().getError().getMessage());
     }
 
     @Test
@@ -135,6 +152,38 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("Email not verified", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle LawyerNotVerifiedException")
+    void shouldHandleLawyerNotVerifiedException() {
+        // Given
+        LawyerNotVerifiedException exception = new LawyerNotVerifiedException("Lawyer not verified");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleLawyerNotVerified(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Lawyer not verified", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle UserNotFoundException")
+    void shouldHandleUserNotFoundException() {
+        // Given
+        UserNotFoundException exception = new UserNotFoundException("User not found with ID: 123");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleGenericException(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("An unexpected error occurred. Please try again later.", response.getBody().getError().getMessage());
     }
 
     @Test

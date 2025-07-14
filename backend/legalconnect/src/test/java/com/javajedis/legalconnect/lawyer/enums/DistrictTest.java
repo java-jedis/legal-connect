@@ -65,7 +65,7 @@ class DistrictTest {
             String displayName = district.getDisplayName();
             assertNotNull(displayName, "Display name should not be null for " + district);
             assertFalse(displayName.trim().isEmpty(), "Display name should not be empty for " + district);
-            assertTrue(displayName.length() > 0, "Display name should have content for " + district);
+            assertFalse(displayName.isEmpty(), "Display name should have content for " + district);
         }
     }
 

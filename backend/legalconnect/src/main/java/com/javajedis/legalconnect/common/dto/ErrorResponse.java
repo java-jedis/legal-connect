@@ -5,13 +5,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponse {
     @JsonProperty("code")
-    private int code; // HTTP status code
+    private int code;
 
     @JsonProperty("message")
     private String message;

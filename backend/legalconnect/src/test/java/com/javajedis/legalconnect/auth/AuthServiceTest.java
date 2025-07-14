@@ -23,6 +23,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
+import com.javajedis.legalconnect.auth.dto.EmailVerifyDTO;
+import com.javajedis.legalconnect.auth.dto.LoginDTO;
+import com.javajedis.legalconnect.auth.dto.ResetPasswordDTO;
+import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.service.VerificationCodeService;

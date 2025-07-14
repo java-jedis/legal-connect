@@ -177,7 +177,7 @@ class EmailVerificationFilterTest {
         when(userRepo.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
         SecurityContextHolder.setContext(securityContext);
         // Act & Assert
-        assertThrows(EmailNotVerifiedException.class, () -> runDoFilterInternal());
+        assertThrows(EmailNotVerifiedException.class, this::runDoFilterInternal);
     }
 
     @Test
@@ -227,7 +227,7 @@ class EmailVerificationFilterTest {
         when(userRepo.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
         SecurityContextHolder.setContext(securityContext);
         // Act & Assert
-        EmailNotVerifiedException exception = assertThrows(EmailNotVerifiedException.class, () -> runDoFilterInternal());
+        EmailNotVerifiedException exception = assertThrows(EmailNotVerifiedException.class, this::runDoFilterInternal);
         assertEquals("Please verify your email before accessing this resource", exception.getMessage());
     }
 
