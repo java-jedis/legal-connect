@@ -1,8 +1,19 @@
 <template>
-  <div class="availability-slots-section">
+  <div class="availability-slots-section redesigned">
     <div class="section-header">
       <h3>Availability Slots</h3>
       <p class="section-description">Manage your available time slots for client consultations</p>
+    </div>
+
+    <!-- Add New Slot Button -->
+    <div class="add-slot-section redesigned">
+      <button @click="showAddModal = true" class="btn btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+          <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Add Availability Slot
+      </button>
     </div>
 
     <!-- Loading State -->
@@ -26,20 +37,9 @@
     </div>
 
     <!-- Content -->
-    <div v-else class="slots-content">
-      <!-- Add New Slot Button -->
-      <div class="add-slot-section">
-        <button @click="showAddModal = true" class="btn btn-primary">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-            <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Add Availability Slot
-        </button>
-      </div>
-
+    <div v-else class="slots-content redesigned">
       <!-- Slots List -->
-      <div v-if="slots.length === 0" class="no-slots">
+      <div v-if="slots.length === 0" class="no-slots redesigned">
         <div class="no-slots-icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -50,10 +50,11 @@
         <p>You haven't added any availability slots yet. Add your first slot to start receiving consultation requests.</p>
       </div>
 
-      <div v-else class="slots-grid">
-        <div v-for="slot in slots" :key="slot.id" class="slot-card">
-          <div class="slot-header">
+      <div v-else class="slots-grid redesigned">
+        <div v-for="slot in slots" :key="slot.id" class="slot-card redesigned">
+          <div class="slot-header redesigned">
             <div class="slot-day">
+              <span class="day-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
               <span class="day-name">{{ getDayDisplayName(slot.day) }}</span>
             </div>
             <div class="slot-actions">
@@ -71,8 +72,9 @@
               </button>
             </div>
           </div>
-          <div class="slot-time">
+          <div class="slot-time redesigned">
             <div class="time-range">
+              <span class="time-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
               <span class="time-label">Time:</span>
               <span class="time-value">{{ formatTime(slot.startTime) }} - {{ formatTime(slot.endTime) }}</span>
             </div>
@@ -82,6 +84,8 @@
             </div>
           </div>
         </div>
+        <!-- Ghost cards for grid balance -->
+        <div v-for="n in ghostCards" :key="'ghost-'+n" class="slot-card ghost"></div>
       </div>
     </div>
 
@@ -315,6 +319,19 @@ const timeConflict = computed(() => {
   return slotForm.startTime >= slotForm.endTime
 })
 
+// Responsive ghost cards for grid balance
+const gridColumns = computed(() => {
+  if (window.innerWidth < 600) return 1
+  if (window.innerWidth < 900) return 2
+  return 3
+})
+const ghostCards = computed(() => {
+  const count = slots.value.length
+  const cols = gridColumns.value
+  return count > 0 && count < cols ? cols - count : 0
+})
+window.addEventListener('resize', () => { gridColumns.value })
+
 // Methods
 const fetchSlots = async () => {
   isLoading.value = true
@@ -490,106 +507,104 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.availability-slots-section {
-  margin-top: 2rem;
+.availability-slots-section.redesigned {
+  width: 100%;
+  max-width: 900px;
+  margin: 2rem auto 0 auto;
+  background: var(--color-background-soft);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem 1.5rem 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Remove vertical centering from body and #app */
+body, #app {
+  min-height: 100vh;
 }
 
 .section-header {
-  margin-bottom: 1.5rem;
-}
-
-.section-header h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  margin-bottom: 0.5rem;
-}
-
-.section-description {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-}
-
-.loading-state,
-.error-state {
+  margin-bottom: 2rem;
   text-align: center;
-  padding: 2rem;
 }
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--color-border);
-  border-top: 4px solid var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
+.add-slot-section.redesigned {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
 }
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.slots-content.redesigned {
+  width: 100%;
 }
-
-.error-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 1rem;
-  color: var(--color-error);
+.slots-grid.redesigned {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
 }
-
-.error-state h4 {
-  margin: 0 0 0.5rem 0;
-  color: var(--color-heading);
+@media (max-width: 900px) {
+  .slots-grid.redesigned {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
-
-.error-state p {
-  margin: 0 0 1rem 0;
-  color: var(--color-text-muted);
+@media (max-width: 600px) {
+  .slots-grid.redesigned {
+    grid-template-columns: 1fr;
+  }
 }
-
-.add-slot-section {
-  margin-bottom: 1.5rem;
+.slot-card.redesigned {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 1.5rem 1.25rem;
+  border: 1px solid var(--color-border);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: box-shadow 0.2s;
 }
-
-.add-slot-section button {
+.slot-card.redesigned:hover {
+  box-shadow: 0 4px 24px rgba(var(--color-primary-rgb), 0.12);
+  border-color: var(--color-primary);
+}
+.slot-card.ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+.slot-header.redesigned {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
-
-.no-slots {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: var(--color-background-soft);
-  border-radius: var(--border-radius);
+/* Replace the day icon with a calendar icon */
+.slot-day .day-icon {
+  margin-right: 0.5rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
 }
-
-.no-slots-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1rem;
-  color: var(--color-text-muted);
-}
-
-.no-slots h4 {
-  margin: 0 0 0.5rem 0;
-  color: var(--color-heading);
-}
-
-.no-slots p {
-  margin: 0;
-  color: var(--color-text-muted);
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.slots-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+.slot-time.redesigned {
+  display: flex;
+  align-items: center;
   gap: 1rem;
+  margin-top: 0.5rem;
 }
-
+.time-range .time-icon {
+  margin-right: 0.25rem;
+  color: var(--color-primary);
+}
+.no-slots.redesigned {
+  text-align: center;
+  padding: 4rem 2rem 3rem 2rem;
+  background: var(--color-background);
+  border-radius: var(--border-radius-lg);
+  margin: 2rem 0;
+}
 .slot-card {
   background: var(--color-background-soft);
   border-radius: var(--border-radius);
@@ -681,7 +696,7 @@ onMounted(() => {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: center; 
   justify-content: center;
   z-index: 1000;
   padding: 1rem;

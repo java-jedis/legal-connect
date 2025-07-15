@@ -68,27 +68,26 @@
             <p>Connect with legal experts</p>
           </div>
 
-          <div class="quick-action-card stagger-item" @click="uploadDocument">
+          <div class="quick-action-card stagger-item" @click="goToCalendar">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  ry="2"
                   stroke="currentColor"
                   stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
                 />
-                <polyline
-                  points="14,2 14,8 20,8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
               </svg>
             </div>
-            <h3>Upload Documents</h3>
-            <p>Share legal documents</p>
+            <h3>My Calendar</h3>
+            <p>View your schedule</p>
           </div>
 
           <div class="quick-action-card stagger-item" @click="scheduleAppointment">
@@ -225,37 +224,8 @@
             </div>
           </div>
 
-          <!-- Upcoming Appointments -->
-          <div class="dashboard-card">
-            <div class="card-header">
-              <h3>Upcoming Appointments</h3>
-              <button class="btn btn-outline btn-sm">Schedule New</button>
-            </div>
-            <div class="appointments-list">
-              <div
-                v-for="appointment in upcomingAppointments"
-                :key="appointment.id"
-                class="appointment-item"
-              >
-                <div class="appointment-time">
-                  <div class="time">{{ appointment.time }}</div>
-                  <div class="date">{{ appointment.date }}</div>
-                </div>
-                <div class="appointment-info">
-                  <h4 class="appointment-title">{{ appointment.title }}</h4>
-                  <p class="appointment-lawyer">with {{ appointment.lawyer }}</p>
-                </div>
-                <button class="btn btn-outline btn-sm">Join</button>
-              </div>
-              <div v-if="upcomingAppointments.length === 0" class="empty-state">
-                <p>No upcoming appointments</p>
-                <button class="btn btn-primary btn-sm">Schedule Meeting</button>
-              </div>
-            </div>
-          </div>
-
           <!-- My Calendar -->
-          <MyCalendarSection />
+          <MyCalendarSection class="my-calendar-section" />
         </div>
       </div>
     </section>
@@ -313,22 +283,11 @@ const recentDocuments = ref([
   },
 ])
 
-const upcomingAppointments = ref([
-  {
-    id: 1,
-    title: 'Contract Review Consultation',
-    lawyer: 'Sarah Johnson',
-    date: 'Tomorrow',
-    time: '2:00 PM',
-  },
-  {
-    id: 2,
-    title: 'Employment Law Discussion',
-    lawyer: 'Michael Chen',
-    date: 'Dec 15',
-    time: '10:00 AM',
-  },
-])
+const upcomingAppointments = ref([])
+
+onMounted(() => {
+  // No longer need to scroll to bottom on mount as chat is not the primary focus
+})
 
 const sendMessage = async () => {
   if (!newMessage.value.trim()) return
@@ -356,12 +315,6 @@ const sendMessage = async () => {
   scrollToBottom()
 }
 
-const scrollToBottom = () => {
-  if (chatMessages.value) {
-    chatMessages.value.scrollTop = chatMessages.value.scrollHeight
-  }
-}
-
 const openAIChat = () => {
   // Focus on chat input
   const chatInput = document.querySelector('.chat-input input')
@@ -372,17 +325,16 @@ const findLawyer = () => {
   alert('Redirecting to lawyer search...')
 }
 
-const uploadDocument = () => {
-  alert('Opening document upload...')
-}
-
 const scheduleAppointment = () => {
   alert('Opening appointment scheduler...')
 }
 
-onMounted(() => {
-  scrollToBottom()
-})
+const goToCalendar = () => {
+  const calendarSection = document.querySelector('.my-calendar-section');
+  if (calendarSection) {
+    calendarSection.scrollIntoView({ behavior: 'smooth' });
+  }
+};
 </script>
 
 <style scoped>

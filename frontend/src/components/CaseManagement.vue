@@ -234,6 +234,12 @@ const onCaseCreated = () => {
 
 // Lifecycle
 onMounted(async () => {
+  if (router.currentRoute.value.query.openCreateModal === 'true') {
+    showCreateCaseModal.value = true;
+    // Remove the query parameter
+    const { query, ...rest } = router.currentRoute.value;
+    router.replace({ ...rest });
+  }
   await caseStore.getAllUserCases()
 })
 </script>

@@ -2,7 +2,7 @@
   <div class="document-list">
     <div class="list-header">
       <h3>Documents</h3>
-      <button @click="showUploadModal = true" class="btn btn-primary btn-sm">
+      <button @click="showUploadModal = true; scrollToModal();" class="btn btn-primary btn-sm">
         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
           <path d="M9.25 13.25a.75.75 0 001.5 0V4.79l2.97 2.97a.75.75 0 001.06-1.06l-4.25-4.25a.75.75 0 00-1.06 0L5.22 6.72a.75.75 0 001.06 1.06l2.97-2.97v8.46z" />
           <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
