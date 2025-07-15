@@ -43,99 +43,6 @@
         </div>
       </section>
 
-    <!-- Stats Overview -->
-    <section class="stats-section section">
-      <div class="container">
-        <div class="stats-grid grid grid-4">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M16 21V19A4 4 0 0 0 12 15H8A4 4 0 0 0 4 19V21"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" />
-              </svg>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ stats.activeClients }}</h3>
-              <p class="stat-label">Active Clients</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <polyline
-                  points="14,2 14,8 20,8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ stats.activeCases }}</h3>
-              <p class="stat-label">Active Cases</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  ry="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
-              </svg>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">{{ stats.appointmentsToday }}</h3>
-              <p class="stat-label">Today's Appointments</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M12 1V23M17 5H9.5A3.5 3.5 0 0 0 6 8.5V17A3.5 3.5 0 0 0 9.5 20.5H14.5A3.5 3.5 0 0 0 18 17V8.5A3.5 3.5 0 0 0 14.5 5H17Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-            <div class="stat-content">
-              <h3 class="stat-number">${{ stats.monthlyEarnings }}</h3>
-              <p class="stat-label">Monthly Earnings</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Quick Actions -->
     <section class="quick-actions-section section">
       <div class="container">
@@ -186,6 +93,28 @@
             <p>Start a new legal case</p>
           </div>
 
+          <div class="quick-action-card" @click="goToCalendar">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  ry="2"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
+                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
+                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
+              </svg>
+            </div>
+            <h3>My Calendar</h3>
+            <p>View your schedule</p>
+          </div>
+
           <div class="quick-action-card" @click="manageAvailability">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -213,47 +142,14 @@
             <h3>Manage Availability</h3>
             <p>Set your consultation hours</p>
           </div>
-
-          <div class="quick-action-card" @click="generateDocument">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <polyline
-                  points="14,2 14,8 20,8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" />
-                <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" />
-                <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" />
-              </svg>
-            </div>
-            <h3>Generate Document</h3>
-            <p>Create legal documents</p>
-          </div>
         </div>
-      </div>
-    </section>
-
-    <!-- Availability Slots Section -->
-    <section class="availability-section section">
-      <div class="container">
-        <LawyerAvailabilitySlots />
       </div>
     </section>
 
     <!-- Main Dashboard Content -->
     <section class="dashboard-content section">
       <div class="container">
-        <div class="dashboard-grid">
+        <div class="dashboard-row">
           <!-- Recent Clients -->
           <div class="dashboard-card">
             <div class="card-header">
@@ -305,35 +201,6 @@
             </div>
           </div>
 
-          <!-- Today's Appointments -->
-          <div class="dashboard-card">
-            <div class="card-header">
-              <h3>Today's Appointments</h3>
-              <button class="btn btn-outline btn-sm">Schedule New</button>
-            </div>
-            <div class="appointments-list">
-              <div
-                v-for="appointment in todaysAppointments"
-                :key="appointment.id"
-                class="appointment-item"
-              >
-                <div class="appointment-time">
-                  <div class="time">{{ appointment.time }}</div>
-                  <div class="duration">{{ appointment.duration }}</div>
-                </div>
-                <div class="appointment-info">
-                  <h4 class="appointment-title">{{ appointment.title }}</h4>
-                  <p class="appointment-client">with {{ appointment.client }}</p>
-                </div>
-                <button class="btn btn-outline btn-sm">Join</button>
-              </div>
-              <div v-if="todaysAppointments.length === 0" class="empty-state">
-                <p>No appointments today</p>
-                <button class="btn btn-primary btn-sm">Schedule Meeting</button>
-              </div>
-            </div>
-          </div>
-
           <!-- Recent Documents -->
           <div class="dashboard-card">
             <div class="card-header">
@@ -373,11 +240,7 @@
               </div>
             </div>
           </div>
-
-          <!-- My Calendar -->
-          <MyCalendarSection />
-
-          <!-- Earnings Overview -->
+          <!-- Earnings Overview (side by side) -->
           <div class="dashboard-card earnings-card">
             <div class="card-header">
               <h3>Earnings Overview</h3>
@@ -407,6 +270,14 @@
             </div>
           </div>
         </div>
+        <!-- My Calendar -->
+        <MyCalendarSection class="my-calendar-section" />
+        <!-- Availability Slots Section -->
+        <section class="availability-section section">
+          <div class="container">
+            <LawyerAvailabilitySlots />
+          </div>
+        </section>
       </div>
     </section>
     </div>
@@ -505,30 +376,6 @@ const activeCases = ref([
   },
 ])
 
-const todaysAppointments = ref([
-  {
-    id: 1,
-    title: 'Contract Review Consultation',
-    client: 'John Smith',
-    time: '10:00 AM',
-    duration: '1 hour',
-  },
-  {
-    id: 2,
-    title: 'Employment Law Discussion',
-    client: 'Emily Davis',
-    time: '2:00 PM',
-    duration: '45 min',
-  },
-  {
-    id: 3,
-    title: 'Property Closing Review',
-    client: 'Michael Brown',
-    time: '4:30 PM',
-    duration: '1.5 hours',
-  },
-])
-
 const recentDocuments = ref([
   {
     id: 1,
@@ -568,7 +415,7 @@ const addNewClient = () => {
 }
 
 const createCase = () => {
-  router.push('/cases')
+  router.push({ path: '/cases', query: { openCreateModal: 'true' } })
 }
 
 const manageAvailability = () => {
@@ -579,9 +426,12 @@ const manageAvailability = () => {
   }
 }
 
-const generateDocument = () => {
-  alert('Opening document generator...')
-}
+const goToCalendar = () => {
+  const calendarSection = document.querySelector('.my-calendar-section');
+  if (calendarSection) {
+    calendarSection.scrollIntoView({ behavior: 'smooth' });
+  }
+};
 </script>
 
 <style scoped>
@@ -797,7 +647,8 @@ const generateDocument = () => {
 }
 
 .earnings-card {
-  grid-column: span 2;
+  /* Remove grid-column: span 2; or any width settings */
+  /* Inherit default dashboard-card styles */
 }
 
 .card-header {
@@ -1025,16 +876,14 @@ const generateDocument = () => {
   font-weight: 600;
 }
 
+.dashboard-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
 @media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .earnings-card {
-    grid-column: span 1;
-  }
-
-  .earnings-summary {
+  .dashboard-row {
     grid-template-columns: 1fr;
   }
 }

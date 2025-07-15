@@ -1,70 +1,78 @@
 <template>
-  <div class="profile-page">
-    <div class="profile-container">
-      <div class="profile-card">
-        <div class="profile-header">
-          <h1 class="profile-title">My Profile</h1>
-          <p class="profile-subtitle">Manage your account and change your password.</p>
-        </div>
-        <div class="user-info-section">
-          <div class="user-avatar-section">
-            <div class="user-avatar">
-              <span>{{ userInitial }}</span>
+  <div>
+    <!-- Main Navbar should be here (not shown in this file) -->
+    <ProfileTopBar :is-lawyer="authStore.isLawyer()" />
+    <div class="profile-page">
+      <div class="profile-container">
+        <div class="profile-card">
+          <div id="profile" class="profile-header">
+            <h1 class="profile-title">My Profile</h1>
+            <p class="profile-subtitle">Manage your account and change your password.</p>
+          </div>
+          <div class="user-info-section">
+            <div class="user-avatar-section">
+              <div class="user-avatar">
+                <span>{{ userInitial }}</span>
+              </div>
+              <div class="user-name-display">
+                <h2>{{ userFullName }}</h2>
+                <p class="user-email">{{ authStore.userInfo?.email }}</p>
+              </div>
             </div>
-            <div class="user-name-display">
-              <h2>{{ userFullName }}</h2>
-              <p class="user-email">{{ authStore.userInfo?.email }}</p>
+            <div class="user-stats">
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                  </svg>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-label">Email Status</span>
+                  <span class="stat-value" :class="{ 'verified': authStore.userInfo?.emailVerified, 'unverified': !authStore.userInfo?.emailVerified }">
+                    {{ authStore.userInfo?.emailVerified ? 'Verified' : 'Unverified' }}
+                  </span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-label">Member Since</span>
+                  <span class="stat-value">{{ formattedCreatedAt }}</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </div>
+                <div class="stat-content">
+                  <span class="stat-label">Account Type</span>
+                  <span class="stat-value">{{ userTypeDisplay }}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="user-stats">
-            <div class="stat-item">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">Email Status</span>
-                <span class="stat-value" :class="{ 'verified': authStore.userInfo?.emailVerified, 'unverified': !authStore.userInfo?.emailVerified }">
-                  {{ authStore.userInfo?.emailVerified ? 'Verified' : 'Unverified' }}
-                </span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">Member Since</span>
-                <span class="stat-value">{{ formattedCreatedAt }}</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-              </div>
-              <div class="stat-content">
-                <span class="stat-label">Account Type</span>
-                <span class="stat-value">{{ userTypeDisplay }}</span>
-              </div>
-            </div>
+          <!-- Lawyer Profile Section -->
+        <div id="lawyer-profile">
+          <div class="section-divider" v-if="authStore.isLawyer()">
+            <span class="divider-text">Lawyer Profile</span>
           </div>
+          <LawyerProfileSection v-if="authStore.isLawyer()" />
         </div>
-        <!-- Lawyer Profile Section -->
-        <LawyerProfileSection v-if="authStore.isLawyer()" />
 
         <div class="section-divider">
           <span class="divider-text">Security</span>
         </div>
-        <div class="security-section">
+          <div id="security" class="security-section">
           <form class="change-password-form" @submit.prevent="submitChangePassword">
             <div class="form-group">
               <label for="oldPassword">Current Password</label>
@@ -142,15 +150,23 @@
             </div>
           </form>
         </div>
+        <div class="section-divider">
+          <span class="divider-text">Notification Preferences</span>
+        </div>
+        <div id="notifications" class="notification-section">
+          <p>Notification settings will be available here in a future update.</p>
+        </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import LawyerProfileSection from '../components/LawyerProfileSection.vue'
-import { useAuthStore } from '../stores/auth'
+import { computed, reactive, ref } from 'vue';
+import LawyerProfileSection from '../components/LawyerProfileSection.vue';
+import ProfileTopBar from '../components/ProfileTopBar.vue';
+import { useAuthStore } from '../stores/auth';
 
 const authStore = useAuthStore()
 const isSubmitting = ref(false)
@@ -273,6 +289,7 @@ const submitChangePassword = async () => {
 </script>
 
 <style scoped>
+/* Remove any overflow: hidden/auto from .profile-page or parent containers */
 .profile-page {
   display: flex;
   justify-content: center;
@@ -281,9 +298,16 @@ const submitChangePassword = async () => {
   background-color: var(--color-background-soft);
   padding: 2rem;
 }
+
+/* No overflow property here! */
+
+/* Optionally, you can add a margin-top to .profile-page if your sticky bars overlap content */
 .profile-container {
   width: 100%;
   max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  padding-top: 1rem;
 }
 .profile-card {
   background: var(--color-background);
@@ -295,6 +319,7 @@ const submitChangePassword = async () => {
 .profile-header {
   text-align: center;
   margin-bottom: 2rem;
+  padding-top: 1rem;
 }
 .profile-title {
   font-size: 2rem;
@@ -549,5 +574,9 @@ const submitChangePassword = async () => {
 .security-section {
   max-width: 420px;
   margin: 0 auto;
+  padding-top: 2rem;
+}
+#lawyer-profile {
+  padding-top: 2rem;
 }
 </style> 

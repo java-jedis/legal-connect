@@ -164,7 +164,7 @@
                 <h3 class="section-title">Upcoming Dates</h3>
               </div>
               <div class="expandable-header-right">
-                <button v-if="isLawyer" @click.stop="openCreateEventModal" class="btn btn-sm btn-primary">
+                <button @click.stop="openCreateEventModal" class="btn btn-sm btn-primary">
                   <svg viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
                     <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
                   </svg>
