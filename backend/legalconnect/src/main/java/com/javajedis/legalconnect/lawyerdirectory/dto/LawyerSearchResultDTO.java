@@ -1,0 +1,47 @@
+package com.javajedis.legalconnect.lawyerdirectory.dto;
+
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class LawyerSearchResultDTO {
+    private UUID lawyerId;
+    private UUID userId;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String firm;
+    private Integer yearsOfExperience;
+    private PracticingCourt practicingCourt;
+    private Division division;
+    private District district;
+    private String bio;
+    private List<SpecializationType> specializations;
+    private Double averageRating;
+
+
+    // Utility method to convert specialization CSV to List<SpecializationType>
+    public static List<SpecializationType> parseSpecializations(String specializationCsv) {
+        if (specializationCsv != null && !specializationCsv.isEmpty()) {
+            return Arrays.stream(specializationCsv.split(","))
+                    .map(String::trim)
+                    .map(SpecializationType::valueOf)
+                    .toList();
+        }
+        return Collections.emptyList();
+    }
+}
