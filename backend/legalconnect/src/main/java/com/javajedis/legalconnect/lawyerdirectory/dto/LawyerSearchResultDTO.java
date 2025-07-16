@@ -1,18 +1,19 @@
 package com.javajedis.legalconnect.lawyerdirectory.dto;
 
-import com.javajedis.legalconnect.lawyer.enums.District;
-import com.javajedis.legalconnect.lawyer.enums.Division;
-import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
-import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -43,5 +44,26 @@ public class LawyerSearchResultDTO {
                     .toList();
         }
         return Collections.emptyList();
+    }
+
+    public String getPracticingCourtDisplayName() {
+        return practicingCourt != null ? practicingCourt.getDisplayName() : null;
+    }
+
+    public String getDivisionDisplayName() {
+        return division != null ? division.getDisplayName() : null;
+    }
+
+    public String getDistrictDisplayName() {
+        return district != null ? district.getDisplayName() : null;
+    }
+
+    public List<String> getSpecializationDisplayNames() {
+        if (specializations == null) {
+            return List.of();
+        }
+        return specializations.stream()
+                .map(SpecializationType::getDisplayName)
+                .toList();
     }
 }

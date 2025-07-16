@@ -1,16 +1,19 @@
 package com.javajedis.legalconnect.lawyerdirectory.dto;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
 
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
-import org.junit.jupiter.api.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 
 class LawyerSearchResultDTOTest {
     @Test
@@ -46,6 +49,11 @@ class LawyerSearchResultDTOTest {
         assertEquals("Bio", dto.getBio());
         assertEquals(specs, dto.getSpecializations());
         assertEquals(4.5, dto.getAverageRating());
+        // Display name assertions
+        assertEquals(PracticingCourt.SUPREME_COURT.getDisplayName(), dto.getPracticingCourtDisplayName());
+        assertEquals(Division.DHAKA.getDisplayName(), dto.getDivisionDisplayName());
+        assertEquals(District.DHAKA.getDisplayName(), dto.getDistrictDisplayName());
+        assertEquals(Arrays.asList(SpecializationType.CIVIL_LAW.getDisplayName(), SpecializationType.CRIMINAL_LAW.getDisplayName()), dto.getSpecializationDisplayNames());
     }
 
     @Test
@@ -93,4 +101,4 @@ class LawyerSearchResultDTOTest {
         assertNotNull(str);
         assertTrue(str.contains("Test"));
     }
-} 
+}

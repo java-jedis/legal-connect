@@ -1,5 +1,18 @@
 package com.javajedis.legalconnect.lawyerdirectory;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
@@ -9,22 +22,16 @@ import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
-import com.javajedis.legalconnect.lawyerdirectory.dto.*;
+import com.javajedis.legalconnect.lawyerdirectory.dto.CreateLawyerReviewDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.FindLawyersDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewListResponseDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -55,7 +62,7 @@ public class LawyerDirectoryService {
             int page, int size, String sortDirection) {
         log.info("Finding lawyers with filters: {}, page: {}, size: {}, sort: {}", dto, page, size, sortDirection);
         Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, CREATED_AT_FIELD);
+        Sort sort = Sort.by(direction, "created_at");
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Object[]> rawResults = lawyerRepo.findVerifiedLawyerRawResultsByCriteria(
                 dto.getMinExperience(),
