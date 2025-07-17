@@ -36,10 +36,19 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Only redirect if this is not a login request and user was previously authenticated
       const isLoginRequest = error.config?.url?.includes("/auth/login");
+      const isAuthRequest = error.config?.url?.includes("/auth/");
       const wasAuthenticated = localStorage.getItem("auth_token");
 
-      if (!isLoginRequest && wasAuthenticated) {
+      console.log("401 Error detected:", {
+        url: error.config?.url,
+        isLoginRequest,
+        isAuthRequest,
+        wasAuthenticated,
+      });
+
+      if (!isLoginRequest && !isAuthRequest && wasAuthenticated) {
         // Token expired or invalid for authenticated requests, clear auth data and redirect
+        console.log("Logging out user due to 401 error");
         localStorage.removeItem("auth_token");
         localStorage.removeItem("auth_isLoggedIn");
         localStorage.removeItem("auth_userType");
@@ -117,8 +126,11 @@ export const authAPI = {
 // Lawyer API methods
 export const lawyerAPI = {
   // Get lawyer info
-  getLawyerInfo: async () => {
-    const response = await api.get("/lawyer/profile");
+  getLawyerInfo: async (email = null) => {
+    const params = email ? { email } : {};
+    console.log("API call: getLawyerInfo with params:", params);
+    const response = await api.get("/lawyer/profile", { params });
+    console.log("API response:", response);
     return response.data;
   },
 
@@ -181,6 +193,39 @@ export const lawyerAPI = {
   // Delete availability slot
   deleteAvailabilitySlot: async (slotId) => {
     const response = await api.delete(`/lawyer/availability-slots/${slotId}`);
+    return response.data;
+  },
+
+  // Find lawyers based on criteria
+  findLawyers: async (payload, page = 0, size = 10) => {
+    const response = await api.post(
+      API_CONFIG.ENDPOINTS.LAWYER_DIRECTORY_FIND_LAWYERS ||
+        "/lawyer-directory/find-lawyers",
+      payload,
+      {
+        params: {
+          page,
+          size,
+          sortDirection: "DESC", // Default sort direction, as per requirement to remove sort direction field
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Get reviews for a lawyer
+  getLawyerReviews: async (
+    lawyerId,
+    page = 0,
+    size = 10,
+    sortDirection = "DESC"
+  ) => {
+    const response = await api.get(
+      `/lawyer-directory/lawyers/${lawyerId}/reviews`,
+      {
+        params: { page, size, sortDirection },
+      }
+    );
     return response.data;
   },
 };

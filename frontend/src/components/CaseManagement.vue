@@ -130,8 +130,43 @@
           </div>
           <div class="case-actions">
             <button @click.stop="viewCase(caseItem.caseId)" class="btn btn-sm btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+              </svg>
               View Details
             </button>
+            <template v-if="isClient && caseItem.status === 'RESOLVED'">
+              <button v-if="loadingReviews[caseItem.caseId]" class="btn btn-sm btn-secondary" disabled>
+                Loading Review...
+              </button>
+              <button v-else-if="!reviewStore.reviewsByCaseId[caseItem.caseId]" @click.stop="openAddReviewModal(caseItem.caseId)" class="btn btn-sm btn-success">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                  <path d="M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Add Review
+              </button>
+              <button v-else @click.stop="openEditReviewModal(caseItem.caseId, reviewStore.reviewsByCaseId[caseItem.caseId])" class="btn btn-sm btn-outline">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Edit Review
+              </button>
+            </template>
+            <template v-if="isLawyer && caseItem.status === 'RESOLVED'">
+              <button v-if="loadingReviews[caseItem.caseId]" class="btn btn-sm btn-secondary" disabled>
+                Loading Review...
+              </button>
+              <button v-else @click.stop="fetchAndOpenViewReview(caseItem.caseId)" class="btn btn-sm btn-outline">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                View Client Review
+              </button>
+            </template>
           </div>
         </div>
       </div>
@@ -150,6 +185,9 @@
       @close="showCreateCaseModal = false"
       @case-created="onCaseCreated"
     />
+
+    <!-- Review Modal -->
+    <ReviewModal v-if="showReviewModal" :case-id="reviewModalCaseId" :review="reviewModalReview" :mode="reviewModalMode" @close="closeReviewModal" @review-added="handleReviewAdded" @review-updated="handleReviewUpdated" @review-deleted="handleReviewDeleted" />
   </div>
 </template>
 
@@ -158,16 +196,24 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCaseStore } from '../stores/case'
+import { useReviewStore } from '../stores/review'
 import CreateCaseModal from './CreateCaseModal.vue'
+import ReviewModal from './ReviewModal.vue'
 
 // Stores
 const caseStore = useCaseStore()
 const authStore = useAuthStore()
+const reviewStore = useReviewStore()
 const router = useRouter()
 
 // Reactive data
 const showCreateCaseModal = ref(false)
 const currentFilter = ref(null)
+const showReviewModal = ref(false)
+const reviewModalMode = ref('add') // 'add' or 'edit'
+const reviewModalCaseId = ref(null)
+const reviewModalReview = ref(null)
+const loadingReviews = ref({})
 
 // Computed properties
 const cases = computed(() => caseStore.cases)
@@ -176,6 +222,7 @@ const error = computed(() => caseStore.error)
 const totalCases = computed(() => caseStore.totalCases)
 const hasMorePages = computed(() => caseStore.hasMorePages)
 const isLawyer = computed(() => authStore.isLawyer())
+const isClient = computed(() => !authStore.isLawyer())
 
 const inProgressCount = computed(() => 
   cases.value.filter(c => c.status === 'IN_PROGRESS').length
@@ -185,10 +232,21 @@ const resolvedCount = computed(() =>
   cases.value.filter(c => c.status === 'RESOLVED').length
 )
 
-// Watch for cases changes
-watch(cases, () => {
-  // Cases updated
-}, { deep: true })
+// Fetch reviews for resolved cases on mount or when cases change
+watch(cases, (newCases) => {
+  if (!newCases) return
+  newCases.forEach(caseItem => {
+    if (caseItem.status === 'RESOLVED') { // Fetch for both client and lawyer
+      if (typeof reviewStore.reviewsByCaseId[caseItem.caseId] === 'undefined' && !loadingReviews.value[caseItem.caseId]) {
+        loadingReviews.value[caseItem.caseId] = true
+        reviewStore.fetchReview(caseItem.caseId)
+          .finally(() => {
+            loadingReviews.value[caseItem.caseId] = false
+          })
+      }
+    }
+  })
+}, { immediate: true, deep: true })
 
 // Methods
 const formatDate = (dateString) => {
@@ -232,12 +290,60 @@ const onCaseCreated = () => {
   // The store will automatically update the cases list
 }
 
+// Review modal handlers
+function openAddReviewModal(caseId) {
+  reviewModalCaseId.value = caseId
+  reviewModalReview.value = null
+  reviewModalMode.value = 'add'
+  showReviewModal.value = true
+}
+function openEditReviewModal(caseId, review) {
+  reviewModalCaseId.value = caseId
+  reviewModalReview.value = { ...review, reviewId: review.id }
+  reviewModalMode.value = 'edit'
+  showReviewModal.value = true
+}
+function openViewReviewModal(caseId, review) {
+  reviewModalCaseId.value = caseId
+  reviewModalReview.value = { ...review, reviewId: review.id }
+  reviewModalMode.value = 'view'
+  showReviewModal.value = true
+}
+function closeReviewModal() {
+  showReviewModal.value = false
+}
+function handleReviewAdded() {
+  if (reviewModalCaseId.value) {
+    reviewStore.fetchReview(reviewModalCaseId.value)
+  }
+}
+function handleReviewUpdated() {
+  if (reviewModalCaseId.value) {
+    reviewStore.fetchReview(reviewModalCaseId.value)
+  }
+}
+function handleReviewDeleted() {
+  if (reviewModalCaseId.value) {
+    reviewStore.fetchReview(reviewModalCaseId.value)
+  }
+}
+function fetchAndOpenViewReview(caseId) {
+  loadingReviews.value[caseId] = true
+  reviewStore.fetchReview(caseId).then(() => {
+    reviewModalCaseId.value = caseId
+    reviewModalReview.value = reviewStore.reviewsByCaseId[caseId]
+    reviewModalMode.value = 'view'
+    showReviewModal.value = true
+  }).finally(() => {
+    loadingReviews.value[caseId] = false
+  })
+}
+
 // Lifecycle
 onMounted(async () => {
   if (router.currentRoute.value.query.openCreateModal === 'true') {
     showCreateCaseModal.value = true;
-    // Remove the query parameter
-    const { query, ...rest } = router.currentRoute.value;
+    const {...rest } = router.currentRoute.value;
     router.replace({ ...rest });
   }
   await caseStore.getAllUserCases()
@@ -506,6 +612,17 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
+.btn-warning {
+  background-color: #f59e0b;
+  color: white;
+  border: 1px solid #f59e0b;
+}
+
+.btn-warning:hover {
+  background-color: #d97706;
+  border-color: #d97706;
+}
+
 /* Load More */
 .load-more-section {
   text-align: center;
@@ -546,4 +663,4 @@ onMounted(async () => {
     font-size: 0.8rem;
   }
 }
-</style> 
+</style>

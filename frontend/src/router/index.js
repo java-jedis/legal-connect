@@ -102,6 +102,19 @@ const router = createRouter({
       component: () => import("../views/CaseDetailView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
+    {
+      path: "/find-lawyer",
+      name: "find-lawyer",
+      component: () => import("../views/FindLawyersView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/lawyers/:email/details",
+      name: "lawyer-details",
+      component: () => import("../views/LawyerDetailsView.vue"),
+      meta: { requiresAuth: true },
+      props: true,
+    },
   ],
 });
 

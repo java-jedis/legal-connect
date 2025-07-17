@@ -50,7 +50,7 @@
           <template v-else-if="authStore.isUser()">
             <router-link to="/dashboard/user" class="nav-link">Dashboard</router-link>
             <router-link to="/cases" class="nav-link">My Cases</router-link>
-            <router-link to="/find-lawyer" class="nav-link">Find a Lawyer</router-link>
+            <router-link to="/find-lawyer" class="nav-link">Find Lawyers</router-link>
             <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
 
