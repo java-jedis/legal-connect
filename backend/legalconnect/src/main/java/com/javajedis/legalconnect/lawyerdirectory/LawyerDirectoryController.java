@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,7 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 @Tag(name = "6. Lawyer Directory", description = "Lawyer directory and review management endpoints")
 @RestController
 @RequestMapping("/lawyer-directory")
-@RequireUserOrVerifiedLawyer
 public class LawyerDirectoryController {
     private final LawyerDirectoryService lawyerDirectoryService;
 
@@ -43,6 +43,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Find lawyers", description = "Finds lawyers based on the provided criteria.")
     @PostMapping("/find-lawyers")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<List<LawyerSearchResultDTO>>> findLawyers(
             @Valid @RequestBody FindLawyersDTO findLawyersDTO,
             @RequestParam(defaultValue = "0") int page,
@@ -54,6 +55,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Add a review for a lawyer", description = "Adds a review for a lawyer.")
     @PostMapping("/reviews")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> addReview(
             @Valid @RequestBody CreateLawyerReviewDTO createLawyerReviewDTO) {
         log.info("POST /lawyer-directory/reviews called for case: {}", createLawyerReviewDTO.getCaseId());
@@ -62,6 +64,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Update a review", description = "Updates a review.")
     @PutMapping("/reviews/{reviewId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> updateReview(
             @PathVariable UUID reviewId,
             @Valid @RequestBody UpdateLawyerReviewDTO updateLawyerReviewDTO) {
@@ -71,6 +74,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Delete a review", description = "Deletes a review.")
     @DeleteMapping("/reviews/{reviewId}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<String>> deleteReview(@PathVariable UUID reviewId) {
         log.info("DELETE /lawyer-directory/reviews/{} called", reviewId);
         return lawyerDirectoryService.deleteReview(reviewId);
@@ -78,6 +82,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Get a review by case ID", description = "Gets a review by caseID.")
     @GetMapping("/reviews/{caseId}")
+    @RequireUserOrVerifiedLawyer
     public ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> getReview(@PathVariable UUID caseId) {
         log.info("GET /lawyer-directory/reviews/{} called", caseId);
         return lawyerDirectoryService.getReview(caseId);
@@ -85,6 +90,7 @@ public class LawyerDirectoryController {
 
     @Operation(summary = "Get all reviews for a lawyer", description = "Gets all reviews for a lawyer.")
     @GetMapping("/lawyers/{lawyerId}/reviews")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<LawyerReviewListResponseDTO>> getReviews(
             @PathVariable UUID lawyerId,
             @RequestParam(defaultValue = "0") int page,
