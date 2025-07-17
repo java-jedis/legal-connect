@@ -40,7 +40,6 @@ public class SpringSecurityConfig {
                         .requestMatchers("/lawyer/profile", "/lawyer/profile/**","/lawyer/availability-slots","/lawyer/availability-slots/**").authenticated()
                         .requestMatchers("/lawyer/view-credentials", "/lawyer/view-credentials/**").hasAnyRole("LAWYER", "ADMIN")
                         .requestMatchers("/lawyer/**").hasRole("LAWYER")
-                        .requestMatchers("/lawyer-directory/**").hasRole("USER")
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
