@@ -14,6 +14,7 @@ export const API_CONFIG = {
       SEND_VERIFICATION_CODE: "/auth/send-verification-code",
       VERIFY_EMAIL: "/auth/verify-email",
     },
+    LAWYER_DIRECTORY_FIND_LAWYERS: "/lawyer-directory/find-lawyers",
   },
 
   // Request timeout in milliseconds

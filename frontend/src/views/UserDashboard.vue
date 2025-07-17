@@ -51,7 +51,7 @@
             <p>Get instant legal guidance</p>
           </div>
 
-          <div class="quick-action-card stagger-item" @click="findLawyer">
+          <div class="quick-action-card stagger-item" @click="toggleFindLawyerSection">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -161,6 +161,97 @@
             </div>
           </div>
 
+          <!-- Find a Lawyer Search Section -->
+          <div class="dashboard-card find-lawyer-search-section" v-if="showFindLawyerSection">
+            <div class="card-header">
+              <h3>Find a Lawyer</h3>
+              <button @click="toggleFindLawyerSection" class="btn btn-outline btn-sm">Close</button>
+            </div>
+            <div class="card-content">
+              <form @submit.prevent="searchLawyersFromDashboard" class="filters-form">
+                <div class="filters-grid">
+                  <div class="form-group">
+                    <label for="dashboardMinExperience">Min Experience (Years)</label>
+                    <input
+                      id="dashboardMinExperience"
+                      type="number"
+                      v-model.number="findLawyerFilters.minExperience"
+                      min="0"
+                      max="50"
+                      class="form-input"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="dashboardMaxExperience">Max Experience (Years)</label>
+                    <input
+                      id="dashboardMaxExperience"
+                      type="number"
+                      v-model.number="findLawyerFilters.maxExperience"
+                      min="0"
+                      max="50"
+                      class="form-input"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="dashboardPracticingCourt">Practicing Court</label>
+                    <select
+                      id="dashboardPracticingCourt"
+                      v-model="findLawyerFilters.practicingCourt"
+                      class="form-select"
+                    >
+                      <option value="">Any</option>
+                      <option v-for="court in practicingCourts" :key="court.value" :value="court.value">
+                        {{ court.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="dashboardDivision">Division</label>
+                    <select
+                      id="dashboardDivision"
+                      v-model="findLawyerFilters.division"
+                      class="form-select"
+                    >
+                      <option value="">Any</option>
+                      <option v-for="division in divisions" :key="division.value" :value="division.value">
+                        {{ division.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="dashboardDistrict">District</label>
+                    <select
+                      id="dashboardDistrict"
+                      v-model="findLawyerFilters.district"
+                      class="form-select"
+                    >
+                      <option value="">Any</option>
+                      <option v-for="district in districts" :key="district.value" :value="district.value">
+                        {{ district.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="dashboardSpecialization">Specialization</label>
+                    <select
+                      id="dashboardSpecialization"
+                      v-model="findLawyerFilters.specialization"
+                      class="form-select"
+                    >
+                      <option value="">Any</option>
+                      <option v-for="spec in specializations" :key="spec.value" :value="spec.value">
+                        {{ spec.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary search-button">
+                  Search Lawyers
+                </button>
+              </form>
+            </div>
+          </div>
+
           <!-- Active Cases -->
           <div class="dashboard-card">
             <div class="card-header">
@@ -233,10 +324,10 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
 import MyCalendarSection from '../components/MyCalendarSection.vue'
+import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -283,47 +374,145 @@ const recentDocuments = ref([
   },
 ])
 
-const upcomingAppointments = ref([])
 
-onMounted(() => {
-  // No longer need to scroll to bottom on mount as chat is not the primary focus
-})
+const showFindLawyerSection = ref(false);
+const findLawyerFilters = ref({
+  minExperience: null,
+  maxExperience: null,
+  practicingCourt: '',
+  division: '',
+  district: '',
+  specialization: '',
+});
 
-const sendMessage = async () => {
-  if (!newMessage.value.trim()) return
+const practicingCourts = [
+  { value: 'SUPREME_COURT', label: 'Supreme Court' },
+  { value: 'HIGH_COURT_DIVISION', label: 'High Court Division' },
+  { value: 'APPELLATE_DIVISION', label: 'Appellate Division' },
+  { value: 'DISTRICT_COURT', label: 'District Court' },
+  { value: 'SESSIONS_COURT', label: 'Sessions Court' },
+  { value: 'ADMINISTRATIVE_TRIBUNAL', label: 'Administrative Tribunal' },
+  { value: 'LABOUR_COURT', label: 'Labour Court' },
+  { value: 'FAMILY_COURT', label: 'Family Court' },
+  { value: 'MAGISTRATE_COURT', label: 'Magistrate Court' },
+  { value: 'SPECIAL_TRIBUNAL', label: 'Special Tribunal' }
+];
 
-  const message = {
-    id: Date.now(),
-    text: newMessage.value,
-  }
+const divisions = [
+  { value: 'DHAKA', label: 'Dhaka' },
+  { value: 'CHATTOGRAM', label: 'Chattogram' },
+  { value: 'RAJSHAHI', label: 'Rajshahi' },
+  { value: 'KHULNA', label: 'Khulna' },
+  { value: 'BARISHAL', label: 'Barishal' },
+  { value: 'SYLHET', label: 'Sylhet' },
+  { value: 'RANGPUR', label: 'Rangpur' },
+  { value: 'MYMENSINGH', label: 'Mymensingh' }
+];
 
-  chatHistory.value.push(message)
-  newMessage.value = ''
+const districts = [
+  { value: 'DHAKA', label: 'Dhaka' },
+  { value: 'CHATTOGRAM', label: 'Chattogram' },
+  { value: 'RAJSHAHI', label: 'Rajshahi' },
+  { value: 'KHULNA', label: 'Khulna' },
+  { value: 'BARISHAL', label: 'Barishal' },
+  { value: 'SYLHET', label: 'Sylhet' },
+  { value: 'RANGPUR', label: 'Rangpur' },
+  { value: 'MYMENSINGH', label: 'Mymensingh' },
+  { value: 'COMILLA', label: 'Comilla' },
+  { value: 'GAZIPUR', label: 'Gazipur' },
+  { value: 'NARAYANGANJ', label: 'Narayanganj' },
+  { value: 'TANGAIL', label: 'Tangail' },
+  { value: 'NARSINGDI', label: 'Narsingdi' },
+  { value: 'MUNSHIGANJ', label: 'Munshiganj' },
+  { value: 'MANIKGANJ', label: 'Manikganj' },
+  { value: 'MADARIPUR', label: 'Madaripur' },
+  { value: 'SHARIATPUR', label: 'Shariatpur' },
+  { value: 'RAJBARI', label: 'Rajbari' },
+  { value: 'GOPALGANJ', label: 'Gopalganj' },
+  { value: 'FARIDPUR', label: 'Faridpur' },
+  { value: 'KISHOREGANJ', label: 'Kishoreganj' },
+  { value: 'NETROKONA', label: 'Netrokona' },
+  { value: 'JAMALPUR', label: 'Jamalpur' },
+  { value: 'SHERPUR', label: 'Sherpur' },
+  { value: 'BOGRA', label: 'Bogra' },
+  { value: 'JOYPURHAT', label: 'Joypurhat' },
+  { value: 'NAOGAON', label: 'Naogaon' },
+  { value: 'NATORE', label: 'Natore' },
+  { value: 'CHAPAI_NAWABGANJ', label: 'Chapai Nawabganj' },
+  { value: 'PABNA', label: 'Pabna' },
+  { value: 'SIRAJGANJ', label: 'Sirajganj' },
+  { value: 'DINAJPUR', label: 'Dinajpur' },
+  { value: 'THAKURGAON', label: 'Thakurgaon' },
+  { value: 'PANCHAGARH', label: 'Panchagarh' },
+  { value: 'NILPHAMARI', label: 'Nilphamari' },
+  { value: 'LALMONIRHAT', label: 'Lalmonirhat' },
+  { value: 'KURIGRAM', label: 'Kurigram' },  { value: 'GAIBANDHA', label: 'Gaibandha' },
+  { value: 'COXS_BAZAR', label: "Cox's Bazar" },
+  { value: 'BANDARBAN', label: 'Bandarban' },
+  { value: 'RANGAMATI', label: 'Rangamati' },
+  { value: 'KHAGRACHHARI', label: 'Khagrachhari' },
+  { value: 'FENI', label: 'Feni' },
+  { value: 'LAKSHMIPUR', label: 'Lakshmipur' },
+  { value: 'CHANDPUR', label: 'Chandpur' },
+  { value: 'NOAKHALI', label: 'Noakhali' },
+  { value: 'BRAHMANBARIA', label: 'Brahmanbaria' },
+  { value: 'JESSORE', label: 'Jessore' },
+  { value: 'SATKHIRA', label: 'Satkhira' },
+  { value: 'MEHERPUR', label: 'Meherpur' },
+  { value: 'NARAIL', label: 'Narail' },
+  { value: 'CHUADANGA', label: 'Chuadanga' },
+  { value: 'KUSHTIA', label: 'Kushtia' },
+  { value: 'MAGURA', label: 'Magura' },
+  { value: 'JHENAIDAH', label: 'Jhenaidah' },
+  { value: 'BAGERHAT', label: 'Bagerhat' },
+  { value: 'PIROJPUR', label: 'Pirojpur' },
+  { value: 'JHALOKATHI', label: 'Jhalokathi' },
+  { value: 'BHOLA', label: 'Bhola' },
+  { value: 'PATUAKHALI', label: 'Patuakhali' },
+  { value: 'BARGUNA', label: 'Barguna' },
+  { value: 'SUNAMGANJ', label: 'Sunamganj' },
+  { value: 'HABIGANJ', label: 'Habiganj' },
+  { value: 'MOULVIBAZAR', label: 'Moulvibazar' }
+];
 
-  // Simulate AI response
-  setTimeout(() => {
-    const aiResponse = {
-      id: Date.now() + 1,
-      text: "Thank you for your question. I'm analyzing your request and will provide you with relevant legal information shortly.",
-      isAI: true,
+const specializations = [
+  { value: 'CRIMINAL_LAW', label: 'Criminal Law' },
+  { value: 'CIVIL_LAW', label: 'Civil Law' },
+  { value: 'FAMILY_LAW', label: 'Family Law' },
+  { value: 'LABOUR_LAW', label: 'Labour Law' },
+  { value: 'CORPORATE_LAW', label: 'Corporate Law' },
+  { value: 'CONSTITUTIONAL_LAW', label: 'Constitutional Law' },
+  { value: 'TAX_LAW', label: 'Tax Law' },
+  { value: 'ENVIRONMENTAL_LAW', label: 'Environmental Law' },
+  { value: 'INTELLECTUAL_PROPERTY_LAW', label: 'Intellectual Property Law' },
+  { value: 'BANKING_LAW', label: 'Banking and Finance Law' },
+  { value: 'PROPERTY_LAW', label: 'Property and Real Estate Law' },
+  { value: 'HUMAN_RIGHTS_LAW', label: 'Human Rights Law' },
+  { value: 'INTERNATIONAL_LAW', label: 'International Law' },
+  { value: 'CYBER_LAW', label: 'Cyber and ICT Law' },
+  { value: 'CONTRACT_LAW', label: 'Contract Law' },
+  { value: 'ADMINISTRATIVE_LAW', label: 'Administrative Law' },
+  { value: 'IMMIGRATION_LAW', label: 'Immigration Law' },
+  { value: 'CONSUMER_LAW', label: 'Consumer Protection Law' },
+  { value: 'INSURANCE_LAW', label: 'Insurance Law' },
+  { value: 'MARITIME_LAW', label: 'Maritime Law' },
+  { value: 'EDUCATION_LAW', label: 'Education Law' }
+];
+
+const toggleFindLawyerSection = () => {
+  showFindLawyerSection.value = !showFindLawyerSection.value;
+};
+
+const searchLawyersFromDashboard = () => {
+  const queryParams = {};
+  for (const key in findLawyerFilters.value) {
+    if (findLawyerFilters.value[key] !== null && findLawyerFilters.value[key] !== '') {
+      queryParams[key] = findLawyerFilters.value[key];
     }
-    chatHistory.value.push(aiResponse)
-    scrollToBottom()
-  }, 1000)
+  }
+  router.push({ name: 'find-lawyer', query: queryParams });
+};
 
-  await nextTick()
-  scrollToBottom()
-}
-
-const openAIChat = () => {
-  // Focus on chat input
-  const chatInput = document.querySelector('.chat-input input')
-  if (chatInput) chatInput.focus()
-}
-
-const findLawyer = () => {
-  alert('Redirecting to lawyer search...')
-}
 
 const scheduleAppointment = () => {
   alert('Opening appointment scheduler...')
@@ -720,6 +909,80 @@ const goToCalendar = () => {
 
   .chat-messages {
     height: 250px;
+  }
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+
+    .quick-actions-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chat-messages {
+      height: 250px;
+    }
+  }
+
+  /* Find Lawyer Search Section Styles */
+  .find-lawyer-search-section {
+    grid-column: 1 / -1; /* Span full width */
+  }
+
+  .find-lawyer-search-section .card-content {
+    padding: 1.5rem;
+  }
+
+  .find-lawyer-search-section .filters-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .find-lawyer-search-section .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .find-lawyer-search-section .form-group label {
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .find-lawyer-search-section .form-input,
+  .find-lawyer-search-section .form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background: var(--color-background-soft);
+    color: var(--color-text);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .find-lawyer-search-section .form-input:focus,
+  .find-lawyer-search-section .form-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+  }
+
+  .find-lawyer-search-section .search-button {
+    align-self: flex-end;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
   }
 }
 </style>
