@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,8 @@ import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.LawyerSpecializationRepo;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.Role;
+import com.javajedis.legalconnect.user.User;
 
 class AdminServiceTest {
 
@@ -42,10 +45,24 @@ class AdminServiceTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    private User createMockUser() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("First");
+        user.setLastName("Last");
+        user.setEmail("email@example.com");
+        user.setRole(Role.LAWYER);
+        user.setEmailVerified(true);
+        user.setCreatedAt(OffsetDateTime.now());
+        user.setUpdatedAt(OffsetDateTime.now());
+        return user;
+    }
+
     @Test
     void getLawyersByVerificationStatus_shouldReturnLawyers() {
         Lawyer lawyer = new Lawyer();
         lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUser());
         List<Lawyer> lawyers = List.of(lawyer);
         when(lawyerRepo.findByVerificationStatus(eq(VerificationStatus.PENDING), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(lawyers));
@@ -60,7 +77,9 @@ class AdminServiceTest {
     @Test
     void getLawyersByVerificationStatus_withNullStatus_shouldReturnAllLawyers() {
         Lawyer lawyer1 = new Lawyer();
+        lawyer1.setUser(createMockUser());
         Lawyer lawyer2 = new Lawyer();
+        lawyer2.setUser(createMockUser());
         List<Lawyer> lawyers = List.of(lawyer1, lawyer2);
         when(lawyerRepo.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(lawyers));
         when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
@@ -89,6 +108,7 @@ class AdminServiceTest {
         Lawyer lawyer = new Lawyer();
         lawyer.setId(lawyerId);
         lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUser());
         when(lawyerRepo.findById(lawyerId)).thenReturn(Optional.of(lawyer));
         when(lawyerRepo.save(any(Lawyer.class))).thenReturn(lawyer);
         when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
@@ -105,6 +125,7 @@ class AdminServiceTest {
         Lawyer lawyer = new Lawyer();
         lawyer.setId(lawyerId);
         lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUser());
         when(lawyerRepo.findById(lawyerId)).thenReturn(Optional.of(lawyer));
         when(lawyerRepo.save(any(Lawyer.class))).thenReturn(lawyer);
         when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
@@ -124,4 +145,4 @@ class AdminServiceTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
-} 
+}

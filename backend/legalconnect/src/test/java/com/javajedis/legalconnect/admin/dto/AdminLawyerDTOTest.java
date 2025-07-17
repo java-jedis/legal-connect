@@ -37,6 +37,7 @@ class AdminLawyerDTOTest {
         user.setUpdatedAt(now);
 
         LawyerInfoDTO lawyer = new LawyerInfoDTO(
+                lawyerId, "First", "Last", "email@example.com",
                 "Firm", 10, "BAR123", PracticingCourt.SUPREME_COURT,
                 Division.DHAKA, District.DHAKA, "Bio", VerificationStatus.PENDING,
                 now, now, specializations
@@ -59,4 +60,4 @@ class AdminLawyerDTOTest {
         dto.setBarCertificateFileUrl("test-url");
         assertThat(dto.getBarCertificateFileUrl()).isEqualTo("test-url");
     }
-} 
+}

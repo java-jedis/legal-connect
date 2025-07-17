@@ -1,6 +1,7 @@
-package com.javajedis.legalconnect.lawyer.dto;
+package com.javajedis.legalconnect.lawyerdirectory.dto;
 
-import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -8,48 +9,55 @@ import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
-import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class LawyerInfoDTO {
-    private UUID id;
+@Builder
+public class LawyerSearchResultDTO {
+    private UUID lawyerId;
+    private UUID userId;
     private String firstName;
     private String lastName;
     private String email;
     private String firm;
     private Integer yearsOfExperience;
-    private String barCertificateNumber;
     private PracticingCourt practicingCourt;
     private Division division;
     private District district;
     private String bio;
-    private VerificationStatus verificationStatus;
-    private OffsetDateTime lawyerCreatedAt;
-    private OffsetDateTime lawyerUpdatedAt;
     private List<SpecializationType> specializations;
-    
+    private Double averageRating;
+
+
+    // Utility method to convert specialization CSV to List<SpecializationType>
+    public static List<SpecializationType> parseSpecializations(String specializationCsv) {
+        if (specializationCsv != null && !specializationCsv.isEmpty()) {
+            return Arrays.stream(specializationCsv.split(","))
+                    .map(String::trim)
+                    .map(SpecializationType::valueOf)
+                    .toList();
+        }
+        return Collections.emptyList();
+    }
+
     public String getPracticingCourtDisplayName() {
         return practicingCourt != null ? practicingCourt.getDisplayName() : null;
     }
-    
+
     public String getDivisionDisplayName() {
         return division != null ? division.getDisplayName() : null;
     }
-    
+
     public String getDistrictDisplayName() {
         return district != null ? district.getDisplayName() : null;
     }
-    
-    public String getVerificationStatusDisplayName() {
-        return verificationStatus != null ? verificationStatus.getDisplayName() : null;
-    }
-    
+
     public List<String> getSpecializationDisplayNames() {
         if (specializations == null) {
             return List.of();
@@ -58,5 +66,4 @@ public class LawyerInfoDTO {
                 .map(SpecializationType::getDisplayName)
                 .toList();
     }
-} 
-
+}

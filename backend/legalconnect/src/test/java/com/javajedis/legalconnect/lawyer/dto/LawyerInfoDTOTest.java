@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,10 @@ class LawyerInfoDTOTest {
     @Test
     void testDefaultConstructor() {
         assertNotNull(lawyerInfoDTO);
+        assertNull(lawyerInfoDTO.getId());
+        assertNull(lawyerInfoDTO.getFirstName());
+        assertNull(lawyerInfoDTO.getLastName());
+        assertNull(lawyerInfoDTO.getEmail());
         assertNull(lawyerInfoDTO.getFirm());
         assertNull(lawyerInfoDTO.getYearsOfExperience());
         assertNull(lawyerInfoDTO.getBarCertificateNumber());
@@ -48,8 +53,12 @@ class LawyerInfoDTOTest {
     void testAllArgsConstructor() {
         OffsetDateTime now = OffsetDateTime.now();
         List<SpecializationType> specializations = Arrays.asList(SpecializationType.CRIMINAL_LAW, SpecializationType.CIVIL_LAW);
-        
+        UUID id = UUID.randomUUID();
         LawyerInfoDTO dto = new LawyerInfoDTO(
+            id,
+            "John",
+            "Doe",
+            "john.doe@example.com",
             "Test Firm",
             5,
             "BAR123456",
@@ -62,7 +71,10 @@ class LawyerInfoDTOTest {
             now,
             specializations
         );
-
+        assertEquals(id, dto.getId());
+        assertEquals("John", dto.getFirstName());
+        assertEquals("Doe", dto.getLastName());
+        assertEquals("john.doe@example.com", dto.getEmail());
         assertEquals("Test Firm", dto.getFirm());
         assertEquals(5, dto.getYearsOfExperience());
         assertEquals("BAR123456", dto.getBarCertificateNumber());
@@ -80,7 +92,11 @@ class LawyerInfoDTOTest {
     void testSettersAndGetters() {
         OffsetDateTime now = OffsetDateTime.now();
         List<SpecializationType> specializations = Arrays.asList(SpecializationType.CORPORATE_LAW);
-        
+        UUID id = UUID.randomUUID();
+        lawyerInfoDTO.setId(id);
+        lawyerInfoDTO.setFirstName("Jane");
+        lawyerInfoDTO.setLastName("Smith");
+        lawyerInfoDTO.setEmail("jane.smith@example.com");
         lawyerInfoDTO.setFirm("Test Firm");
         lawyerInfoDTO.setYearsOfExperience(10);
         lawyerInfoDTO.setBarCertificateNumber("BAR789012");
@@ -93,6 +109,10 @@ class LawyerInfoDTOTest {
         lawyerInfoDTO.setLawyerUpdatedAt(now);
         lawyerInfoDTO.setSpecializations(specializations);
 
+        assertEquals(id, lawyerInfoDTO.getId());
+        assertEquals("Jane", lawyerInfoDTO.getFirstName());
+        assertEquals("Smith", lawyerInfoDTO.getLastName());
+        assertEquals("jane.smith@example.com", lawyerInfoDTO.getEmail());
         assertEquals("Test Firm", lawyerInfoDTO.getFirm());
         assertEquals(10, lawyerInfoDTO.getYearsOfExperience());
         assertEquals("BAR789012", lawyerInfoDTO.getBarCertificateNumber());
@@ -196,25 +216,25 @@ class LawyerInfoDTOTest {
     void testEqualsAndHashCode() {
         OffsetDateTime now = OffsetDateTime.now();
         List<SpecializationType> specializations = Arrays.asList(SpecializationType.CRIMINAL_LAW);
-        
+        UUID id = UUID.randomUUID();
         LawyerInfoDTO dto1 = new LawyerInfoDTO(
+            id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
             now, now, specializations
         );
-        
         LawyerInfoDTO dto2 = new LawyerInfoDTO(
+            id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
             now, now, specializations
         );
-        
         LawyerInfoDTO dto3 = new LawyerInfoDTO(
+            UUID.randomUUID(), "Jane", "Smith", "jane.smith@example.com",
             "Different Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
             now, now, specializations
         );
-
         assertEquals(dto1, dto2);
         assertNotEquals(dto1, dto3);
         assertEquals(dto1.hashCode(), dto2.hashCode());
@@ -223,15 +243,21 @@ class LawyerInfoDTOTest {
 
     @Test
     void testToString() {
+        lawyerInfoDTO.setId(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+        lawyerInfoDTO.setFirstName("John");
+        lawyerInfoDTO.setLastName("Doe");
+        lawyerInfoDTO.setEmail("john.doe@example.com");
         lawyerInfoDTO.setFirm("Test Firm");
         lawyerInfoDTO.setYearsOfExperience(5);
         lawyerInfoDTO.setBarCertificateNumber("BAR123456");
-        
         String toString = lawyerInfoDTO.toString();
-        
         assertNotNull(toString);
+        assertTrue(toString.contains("123e4567-e89b-12d3-a456-426614174000"));
+        assertTrue(toString.contains("John"));
+        assertTrue(toString.contains("Doe"));
+        assertTrue(toString.contains("john.doe@example.com"));
         assertTrue(toString.contains("Test Firm"));
         assertTrue(toString.contains("5"));
         assertTrue(toString.contains("BAR123456"));
     }
-} 
+}
