@@ -53,7 +53,7 @@
                 </svg>
                 Edit Case
               </button>
-              <button @click="openStatusModal" class="btn btn-primary btn-sm">
+              <button @click="showStatusModal = true" class="btn btn-primary btn-sm">
                 Update Status
               </button>
             </div>
@@ -226,6 +226,7 @@
     <!-- Status Update Modal -->
     <UpdateStatusModal 
       v-if="showStatusModal" 
+      ref="statusModal"
       :case-data="currentCase"
       @close="showStatusModal = false"
       @status-updated="onStatusUpdated"
@@ -234,7 +235,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useCaseStore } from '../stores/case'
@@ -253,13 +254,13 @@ const router = useRouter()
 // Reactive data
 const showEditModal = ref(false)
 const showStatusModal = ref(false)
-const statusModalRef = ref(null)
 const scheduleCalendar = ref(null)
 const showDescription = ref(true)
 const showParticipants = ref(true)
 const showUpcomingDates = ref(true) // Changed to true
 const showDocuments = ref(false)
 const showNotes = ref(false)
+const statusModal = ref(null)
 
 // Computed properties
 const currentCase = computed(() => caseStore.currentCase)
@@ -334,14 +335,7 @@ const toggleNotes = () => {
   showNotes.value = !showNotes.value
 }
 
-function openStatusModal() {
-  showStatusModal.value = true
-  nextTick(() => {
-    if (statusModalRef.value) {
-      statusModalRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }
-  })
-}
+
 
 function openCreateEventModal() {
   if (scheduleCalendar.value) {
@@ -352,6 +346,15 @@ function openCreateEventModal() {
 // Lifecycle
 onMounted(() => {
   loadCase()
+})
+
+watch(showStatusModal, async (val) => {
+  if (val) {
+    await nextTick()
+    if (statusModal.value && statusModal.value.$el) {
+      statusModal.value.$el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
 })
 </script>
 
@@ -812,4 +815,4 @@ onMounted(() => {
     align-items: center;
   }
 }
-</style> 
+</style>

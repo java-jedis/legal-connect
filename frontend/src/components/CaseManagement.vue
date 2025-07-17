@@ -219,17 +219,25 @@ const loadingReviews = ref({})
 const cases = computed(() => caseStore.cases)
 const loading = computed(() => caseStore.loading)
 const error = computed(() => caseStore.error)
-const totalCases = computed(() => caseStore.totalCases)
 const hasMorePages = computed(() => caseStore.hasMorePages)
 const isLawyer = computed(() => authStore.isLawyer())
 const isClient = computed(() => !authStore.isLawyer())
 
-const inProgressCount = computed(() => 
-  cases.value.filter(c => c.status === 'IN_PROGRESS').length
-)
+const totalCases = ref(0)
+const inProgressCount = ref(0)
+const resolvedCount = ref(0)
 
-const resolvedCount = computed(() => 
-  cases.value.filter(c => c.status === 'RESOLVED').length
+// Watch for changes in all cases and update counts only when not filtering
+watch(
+  [() => caseStore.cases, () => caseStore.totalCases],
+  ([newCases, newTotalCases]) => {
+    if (currentFilter.value === null) {
+      totalCases.value = newTotalCases
+      inProgressCount.value = newCases.filter(c => c.status === 'IN_PROGRESS').length
+      resolvedCount.value = newCases.filter(c => c.status === 'RESOLVED').length
+    }
+  },
+  { deep: true }
 )
 
 // Fetch reviews for resolved cases on mount or when cases change
