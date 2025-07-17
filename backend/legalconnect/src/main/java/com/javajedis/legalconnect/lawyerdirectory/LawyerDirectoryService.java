@@ -187,11 +187,15 @@ public class LawyerDirectoryService {
     }
 
     /**
-     * Retrieves a review by its ID.
+     * Retrieves a review by case ID.
      */
-    public ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> getReview(UUID reviewId) {
-        log.info("Retrieving review with ID: {}", reviewId);
-        LawyerReview review = lawyerReviewRepo.findById(reviewId).orElse(null);
+    public ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> getReview(UUID caseId) {
+        log.info("Retrieving review with case ID: {}", caseId);
+        Case caseE = caseRepo.findById(caseId).orElse(null);
+        if (caseE == null) {
+            return ApiResponse.error("Case not found", HttpStatus.NOT_FOUND);
+        }
+        LawyerReview review = lawyerReviewRepo.findByCaseE(caseE);
         if (review == null) {
             return ApiResponse.error(REVIEW_NOT_FOUND_MSG, HttpStatus.NOT_FOUND);
         }

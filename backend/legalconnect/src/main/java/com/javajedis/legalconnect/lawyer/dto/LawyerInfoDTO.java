@@ -2,6 +2,7 @@ package com.javajedis.legalconnect.lawyer.dto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
@@ -17,6 +18,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LawyerInfoDTO {
+    private UUID id;
+    private String firstName;
+    private String lastName;
+    private String email;
     private String firm;
     private Integer yearsOfExperience;
     private String barCertificateNumber;
@@ -54,3 +59,4 @@ public class LawyerInfoDTO {
                 .toList();
     }
 } 
+

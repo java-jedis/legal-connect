@@ -49,6 +49,10 @@ public class LawyerUtil {
         }
         
         LawyerInfoDTO lawyerInfoDTO = new LawyerInfoDTO();
+        lawyerInfoDTO.setId(lawyer.getUser().getId());
+        lawyerInfoDTO.setFirstName(lawyer.getUser().getFirstName());
+        lawyerInfoDTO.setLastName(lawyer.getUser().getLastName());
+        lawyerInfoDTO.setEmail(lawyer.getUser().getEmail());
         lawyerInfoDTO.setFirm(lawyer.getFirm());
         lawyerInfoDTO.setYearsOfExperience(lawyer.getYearsOfExperience());
         lawyerInfoDTO.setBarCertificateNumber(lawyer.getBarCertificateNumber());

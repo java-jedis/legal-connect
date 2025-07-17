@@ -196,6 +196,10 @@ class LawyerUtilTest {
         
         // Assert
         assertNotNull(result);
+        assertEquals(testLawyer.getUser().getId(), result.getId());
+        assertEquals(testLawyer.getUser().getFirstName(), result.getFirstName());
+        assertEquals(testLawyer.getUser().getLastName(), result.getLastName());
+        assertEquals(testLawyer.getUser().getEmail(), result.getEmail());
         assertEquals(testLawyer.getFirm(), result.getFirm());
         assertEquals(testLawyer.getYearsOfExperience(), result.getYearsOfExperience());
         assertEquals(testLawyer.getBarCertificateNumber(), result.getBarCertificateNumber());
@@ -216,6 +220,10 @@ class LawyerUtilTest {
         
         // Assert
         assertNotNull(result);
+        assertEquals(testLawyer.getUser().getId(), result.getId());
+        assertEquals(testLawyer.getUser().getFirstName(), result.getFirstName());
+        assertEquals(testLawyer.getUser().getLastName(), result.getLastName());
+        assertEquals(testLawyer.getUser().getEmail(), result.getEmail());
         assertTrue(result.getSpecializations().isEmpty());
         assertEquals(testLawyer.getFirm(), result.getFirm());
         assertEquals(testLawyer.getYearsOfExperience(), result.getYearsOfExperience());
@@ -232,6 +240,10 @@ class LawyerUtilTest {
         
         // Assert
         assertNotNull(result);
+        assertEquals(testLawyer.getUser().getId(), result.getId());
+        assertEquals(testLawyer.getUser().getFirstName(), result.getFirstName());
+        assertEquals(testLawyer.getUser().getLastName(), result.getLastName());
+        assertEquals(testLawyer.getUser().getEmail(), result.getEmail());
         assertTrue(result.getSpecializations().isEmpty());
         assertEquals(testLawyer.getFirm(), result.getFirm());
     }
@@ -244,4 +256,4 @@ class LawyerUtilTest {
         // Assert
         assertNull(result);
     }
-} 
+}

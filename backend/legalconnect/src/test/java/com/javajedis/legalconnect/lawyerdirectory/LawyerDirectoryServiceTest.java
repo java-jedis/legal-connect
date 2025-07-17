@@ -259,8 +259,9 @@ class LawyerDirectoryServiceTest {
 
     @Test
     void getReview_success_returnsReview() {
-        when(lawyerReviewRepo.findById(testReviewId)).thenReturn(Optional.of(testReview));
-        ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> result = lawyerDirectoryService.getReview(testReviewId);
+        when(caseRepo.findById(testCaseId)).thenReturn(Optional.of(testCase));
+        when(lawyerReviewRepo.findByCaseE(testCase)).thenReturn(testReview);
+        ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> result = lawyerDirectoryService.getReview(testCaseId);
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertEquals("Review retrieved successfully", result.getBody().getMessage());
         assertNotNull(result.getBody().getData());
@@ -268,8 +269,9 @@ class LawyerDirectoryServiceTest {
 
     @Test
     void getReview_reviewNotFound_returnsNotFound() {
-        when(lawyerReviewRepo.findById(testReviewId)).thenReturn(Optional.empty());
-        ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> result = lawyerDirectoryService.getReview(testReviewId);
+        when(caseRepo.findById(testCaseId)).thenReturn(Optional.of(testCase));
+        when(lawyerReviewRepo.findByCaseE(testCase)).thenReturn(null);
+        ResponseEntity<ApiResponse<LawyerReviewResponseDTO>> result = lawyerDirectoryService.getReview(testCaseId);
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
         assertEquals("Review not found", result.getBody().getError().getMessage());
     }

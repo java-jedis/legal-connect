@@ -114,6 +114,10 @@ public class AdminService {
         }
 
         LawyerInfoDTO lawyerDto = new LawyerInfoDTO(
+            lawyer.getUser().getId(),
+            lawyer.getUser().getFirstName(),
+            lawyer.getUser().getLastName(),
+            lawyer.getUser().getEmail(),
             lawyer.getFirm(),
             lawyer.getYearsOfExperience(),
             lawyer.getBarCertificateNumber(),
