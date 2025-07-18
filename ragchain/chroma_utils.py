@@ -1,50 +1,61 @@
-# Chroma database utilities for vector storage and retrieval
-import chromadb
+from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader, UnstructuredHTMLLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from typing import List, Optional
+from typing import List
+from langchain_core.documents import Document
 import os
+from dotenv import load_dotenv
 
-class ChromaManager:
-    def __init__(self, persist_directory: str = "./chroma_db"):
-        self.persist_directory = persist_directory
-        self.client = chromadb.PersistentClient(path=persist_directory)
-        self.embeddings = OpenAIEmbeddings()
-        
-    def create_collection(self, collection_name: str):
-        """Create a new Chroma collection"""
-        return Chroma(
-            client=self.client,
-            collection_name=collection_name,
-            embedding_function=self.embeddings,
-            persist_directory=self.persist_directory
-        )
-    
-    def add_documents(self, collection_name: str, documents: List[str], metadatas: Optional[List[dict]] = None):
-        """Add documents to a collection"""
-        vectorstore = self.create_collection(collection_name)
-        
-        # Split documents into chunks
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
-        )
-        
-        texts = []
-        for doc in documents:
-            chunks = text_splitter.split_text(doc)
-            texts.extend(chunks)
-        
-        # Add to vectorstore
-        vectorstore.add_texts(texts, metadatas=metadatas)
-        return vectorstore
-    
-    def search_documents(self, collection_name: str, query: str, k: int = 5):
-        """Search for similar documents"""
-        vectorstore = self.create_collection(collection_name)
-        return vectorstore.similarity_search(query, k=k)
-    
-    def get_collection_names(self):
-        """Get all collection names"""
-        return [collection.name for collection in self.client.list_collections()]
+# Load environment variables
+load_dotenv()
+
+# Initialize text splitter and embedding function
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+embedding_function = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=os.getenv("GOOGLE_API_KEY"))
+
+# Initialize Chroma vector store
+vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embedding_function)
+
+
+def load_and_split_document(file_path: str) -> List[Document]:
+    if file_path.endswith('.pdf'):
+        loader = PyPDFLoader(file_path)
+    elif file_path.endswith('.docx'):
+        loader = Docx2txtLoader(file_path)
+    elif file_path.endswith('.html'):
+        loader = UnstructuredHTMLLoader(file_path)
+    else:
+        raise ValueError(f"Unsupported file type: {file_path}")
+
+    documents = loader.load()
+    return text_splitter.split_documents(documents)
+
+
+
+def index_document_to_chroma(file_path: str, file_id: int) -> bool:
+    try:
+        splits = load_and_split_document(file_path)
+
+        # Add metadata to each split
+        for split in splits:
+            split.metadata['file_id'] = file_id
+
+        vectorstore.add_documents(splits)
+        return True
+    except Exception as e:
+        print(f"Error indexing document: {e}")
+        return False
+
+def delete_doc_from_chroma(file_id: int):
+    try:
+        docs = vectorstore.get(where={"file_id": file_id})
+        print(f"Found {len(docs['ids'])} document chunks for file_id {file_id}")
+
+        vectorstore._collection.delete(where={"file_id": file_id})
+        print(f"Deleted all documents with file_id {file_id}")
+
+        return True
+    except Exception as e:
+        print(f"Error deleting document with file_id {file_id} from Chroma: {str(e)}")
+        return False
