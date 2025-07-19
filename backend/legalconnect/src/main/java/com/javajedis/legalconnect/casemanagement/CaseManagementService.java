@@ -20,10 +20,14 @@ import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseDTO;
 import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseStatusDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.UserNotFoundException;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.LawyerUtil;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.notifications.NotificationType;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -42,13 +46,22 @@ public class CaseManagementService {
     private final CaseRepo caseRepo;
     private final UserRepo userRepo;
     private final LawyerRepo lawyerRepo;
+    private final NotificationService notificationService;
+    private final NotificationPreferenceService notificationPreferenceService;
+    private final EmailService emailService;
 
     public CaseManagementService(CaseRepo caseRepo,
                                  UserRepo userRepo,
-                                 LawyerRepo lawyerRepo) {
+                                 LawyerRepo lawyerRepo,
+                                 NotificationService notificationService,
+                                 NotificationPreferenceService notificationPreferenceService,
+                                 EmailService emailService) {
         this.caseRepo = caseRepo;
         this.userRepo = userRepo;
         this.lawyerRepo = lawyerRepo;
+        this.notificationService = notificationService;
+        this.notificationPreferenceService = notificationPreferenceService;
+        this.emailService = emailService;
     }
 
     /**
@@ -89,6 +102,31 @@ public class CaseManagementService {
         Case savedCase = caseRepo.save(newCase);
         log.info("New case created for lawyer: {} client: {}", user.getEmail(), client.getEmail());
 
+        String subject = "New case created";
+        String content = String.format("New case '%s' has been created by %s %s",
+                savedCase.getTitle(),
+                lawyer.getUser().getFirstName(),
+                lawyer.getUser().getLastName());
+
+        UUID clientId = client.getId();
+
+        if (notificationPreferenceService.checkWebPushEnabled(clientId, NotificationType.CASE_CREATE)) {
+            notificationService.sendNotification(clientId, content);
+        }
+
+        if (notificationPreferenceService.checkEmailEnabled(clientId, NotificationType.CASE_CREATE)) {
+            Map<String, Object> templateVariables = new HashMap<>();
+            templateVariables.put("notificationType", "Case Creation");
+            templateVariables.put("content", content);
+            
+            emailService.sendTemplateEmail(
+                client.getEmail(),
+                subject,
+                "notification-email",
+                templateVariables
+            );
+        }
+
         CaseResponseDTO caseResponse = mapCaseToCaseResponseDTO(savedCase);
         return ApiResponse.success(caseResponse, HttpStatus.CREATED, "Case created successfully");
     }
@@ -98,7 +136,7 @@ public class CaseManagementService {
      */
     public ResponseEntity<ApiResponse<CaseResponseDTO>> updateCase(UUID caseId, UpdateCaseDTO updateData) {
         log.debug("Updating case with ID: {}", caseId);
-        
+
         LawyerCaseValidationResult validation = validateLawyerAndCase(caseId, "update");
         if (validation.hasError()) {
             return validation.errorResponse;
@@ -124,17 +162,48 @@ public class CaseManagementService {
      */
     public ResponseEntity<ApiResponse<CaseResponseDTO>> updateCaseStatus(UUID caseId, UpdateCaseStatusDTO statusData) {
         log.debug("Updating case status with ID: {}", caseId);
-        
+
         LawyerCaseValidationResult validation = validateLawyerAndCase(caseId, "update case status");
         if (validation.hasError()) {
             return validation.errorResponse;
         }
 
         Case existingCase = validation.caseEntity;
+        CaseStatus oldStatus = existingCase.getStatus();
         existingCase.setStatus(statusData.getStatus());
 
         Case updatedCase = caseRepo.save(existingCase);
         log.info("Case {} status updated to {} by lawyer: {}", caseId, statusData.getStatus(), validation.user.getEmail());
+
+        User client = updatedCase.getClient();
+        Lawyer lawyer = validation.lawyer;
+        
+        String subject = "Case status updated";
+        String content = String.format("Your case '%s' status has been updated from %s to %s by %s %s",
+                updatedCase.getTitle(),
+                oldStatus.name(),
+                statusData.getStatus().name(),
+                lawyer.getUser().getFirstName(),
+                lawyer.getUser().getLastName());
+
+        UUID clientId = client.getId();
+
+        if (notificationPreferenceService.checkWebPushEnabled(clientId, NotificationType.CASE_CREATE)) {
+            notificationService.sendNotification(clientId, content);
+        }
+
+        if (notificationPreferenceService.checkEmailEnabled(clientId, NotificationType.CASE_CREATE)) {
+            Map<String, Object> templateVariables = new HashMap<>();
+            templateVariables.put("notificationType", "Case Status Update");
+            templateVariables.put("content", content);
+            
+            emailService.sendTemplateEmail(
+                client.getEmail(),
+                subject,
+                "notification-email",
+                templateVariables
+            );
+        }
 
         CaseResponseDTO caseResponse = mapCaseToCaseResponseDTO(updatedCase);
         return ApiResponse.success(caseResponse, HttpStatus.OK, "Case status updated successfully");
@@ -269,7 +338,7 @@ public class CaseManagementService {
     /**
      * Validates lawyer authentication and case ownership for update operations.
      *
-     * @param caseId the ID of the case to validate
+     * @param caseId    the ID of the case to validate
      * @param operation the operation being performed (for logging)
      * @return LawyerCaseValidationResult containing validation results
      */
@@ -278,8 +347,8 @@ public class CaseManagementService {
 
         if (user == null) {
             log.warn("Unauthorized case {} attempt", operation);
-            return new LawyerCaseValidationResult(null, null, null, 
-                ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED));
+            return new LawyerCaseValidationResult(null, null, null,
+                    ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED));
         }
 
         Lawyer lawyer = lawyerRepo.findByUser(user).orElse(null);
@@ -287,20 +356,20 @@ public class CaseManagementService {
         if (lawyer == null) {
             log.warn(NO_LAWYER_PROFILE_LOG, user.getEmail());
             return new LawyerCaseValidationResult(user, null, null,
-                ApiResponse.error(LAWYER_PROFILE_NOT_EXIST_MSG, HttpStatus.NOT_FOUND));
+                    ApiResponse.error(LAWYER_PROFILE_NOT_EXIST_MSG, HttpStatus.NOT_FOUND));
         }
 
         Case existingCase = caseRepo.findById(caseId).orElse(null);
         if (existingCase == null) {
             log.warn(CASE_NOT_FOUND_LOG, caseId);
             return new LawyerCaseValidationResult(user, lawyer, null,
-                ApiResponse.error(CASE_NOT_FOUND_MSG, HttpStatus.NOT_FOUND));
+                    ApiResponse.error(CASE_NOT_FOUND_MSG, HttpStatus.NOT_FOUND));
         }
 
         if (!existingCase.getLawyer().getId().equals(lawyer.getId())) {
             log.warn("Lawyer {} attempted to {} case {} that doesn't belong to them", user.getEmail(), operation, caseId);
             return new LawyerCaseValidationResult(user, lawyer, existingCase,
-                ApiResponse.error(CASE_OWNERSHIP_ERROR_MSG, HttpStatus.FORBIDDEN));
+                    ApiResponse.error(CASE_OWNERSHIP_ERROR_MSG, HttpStatus.FORBIDDEN));
         }
 
         return new LawyerCaseValidationResult(user, lawyer, existingCase, null);
@@ -309,9 +378,9 @@ public class CaseManagementService {
     /**
      * Helper record to hold lawyer and case validation results.
      *
-     * @param user the authenticated user
-     * @param lawyer the lawyer entity
-     * @param caseEntity the case entity
+     * @param user          the authenticated user
+     * @param lawyer        the lawyer entity
+     * @param caseEntity    the case entity
      * @param errorResponse the error response if validation failed
      */
     private record LawyerCaseValidationResult(

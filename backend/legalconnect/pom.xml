@@ -11,8 +11,8 @@
     <groupId>com.java-jedis</groupId>
     <artifactId>legalconnect</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>legalconnect</name>
-    <description>Demo project for Spring Boot</description>
+    <name>LegalConnect</name>
+    <description>Connecting client and lawyers with advance AI features in a singe platform</description>
     <url/>
     <licenses>
         <license/>

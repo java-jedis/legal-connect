@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification Service Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .container { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; font-weight: bold; }
+        .status.connected { background-color: #d4edda; color: #155724; }
+        .status.disconnected { background-color: #f8d7da; color: #721c24; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .primary { background-color: #007bff; color: white; }
+        .secondary { background-color: #6c757d; color: white; }
+        .success { background-color: #28a745; color: white; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 3px; }
+        .notification { background-color: #e7f3ff; border-left: 4px solid #007bff; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .log { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Notification Service Test</h1>
+    
+    <div class="container">
+        <h3>Connection</h3>
+        <div id="connectionStatus" class="status disconnected">Disconnected</div>
+        <input type="password" id="jwtToken" placeholder="JWT Token">
+        <input type="text" id="userId" placeholder="User ID (UUID)">
+        <button class="primary" onclick="connect()">Connect</button>
+        <button class="secondary" onclick="disconnect()">Disconnect</button>
+    </div>
+
+    <div class="container">
+        <h3>Send Notification</h3>
+        <input type="text" id="receiverId" placeholder="Receiver ID (UUID)">
+        <textarea id="content" rows="3" placeholder="Notification content"></textarea>
+        <button class="primary" onclick="sendNotification()">Send Notification</button>
+        <button class="success" onclick="sendToSelf()">Send to Self</button>
+    </div>
+
+    <div class="container">
+        <h3>Real-time Notifications</h3>
+        <div id="notifications"></div>
+        <button class="secondary" onclick="clearNotifications()">Clear</button>
+    </div>
+
+    <div class="container">
+        <h3>Activity Log</h3>
+        <div id="log" class="log"></div>
+        <button class="secondary" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let connected = false;
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function connect() {
+            const token = document.getElementById('jwtToken').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            
+            if (!token || !userId) {
+                alert('Please enter both JWT token and User ID');
+                return;
+            }
+
+            log('Connecting to WebSocket...');
+            
+            const socket = new SockJS('/v1/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.debug = null;
+            
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'token': token
+            };
+
+            stompClient.connect(headers, function(frame) {
+                connected = true;
+                updateStatus('connected', 'Connected');
+                log('✅ Connected successfully');
+                
+                // Subscribe to user's notification topic (WORKING SOLUTION)
+                stompClient.subscribe(`/topic/user-${userId}`, function(notification) {
+                    const data = JSON.parse(notification.body);
+                    displayNotification(data);
+                    log(`📨 Received: ${data.content}`);
+                });
+                
+                // Send subscription message
+                stompClient.send('/app/notifications/subscribe', {}, JSON.stringify({}));
+                log('📡 Subscribed to notifications');
+                
+            }, function(error) {
+                connected = false;
+                updateStatus('disconnected', 'Connection failed');
+                log('❌ Connection failed: ' + error);
+            });
+        }
+
+        function disconnect() {
+            if (stompClient && connected) {
+                stompClient.disconnect();
+                connected = false;
+                updateStatus('disconnected', 'Disconnected');
+                log('🔌 Disconnected');
+            }
+        }
+
+        function sendNotification() {
+            const token = document.getElementById('jwtToken').value.trim();
+            const receiverId = document.getElementById('receiverId').value.trim();
+            const content = document.getElementById('content').value.trim();
+            
+            if (!token || !receiverId || !content) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            log('Sending notification...');
+            
+            fetch('/v1/notifications/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ receiverId, content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success || data.message === 'Notification sent successfully') {
+                    log('✅ Notification sent successfully');
+                    document.getElementById('content').value = '';
+                } else {
+                    log('❌ Failed: ' + data.message);
+                }
+            })
+            .catch(error => log('❌ Error: ' + error));
+        }
+
+        function sendToSelf() {
+            const userId = document.getElementById('userId').value.trim();
+            if (userId) {
+                document.getElementById('receiverId').value = userId;
+                document.getElementById('content').value = 'Test notification - real-time delivery working!';
+            }
+        }
+
+        function displayNotification(notification) {
+            const div = document.createElement('div');
+            div.className = 'notification';
+            div.innerHTML = `
+                <strong>ID:</strong> ${notification.id}<br>
+                <strong>Content:</strong> ${notification.content}<br>
+                <strong>Time:</strong> ${new Date().toLocaleString()}
+            `;
+            document.getElementById('notifications').insertBefore(div, document.getElementById('notifications').firstChild);
+        }
+
+        function clearNotifications() {
+            document.getElementById('notifications').innerHTML = '';
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        log('Notification Service Test loaded. Enter credentials and connect.');
+    </script>
+</body>
+</html>

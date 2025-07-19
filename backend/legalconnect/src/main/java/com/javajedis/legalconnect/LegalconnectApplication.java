@@ -2,8 +2,10 @@ package com.javajedis.legalconnect;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
+@EnableAsync
 public class LegalconnectApplication {
 
     public static void main(String[] args) {

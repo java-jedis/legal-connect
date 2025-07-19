@@ -1,5 +1,6 @@
 package com.javajedis.legalconnect.scheduling;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,25 +14,27 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import com.google.api.services.calendar.model.Event;
 import com.javajedis.legalconnect.caseassets.CaseAssetUtility;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.notifications.NotificationType;
+import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleResponseDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
 import lombok.extern.slf4j.Slf4j;
-import com.google.api.services.calendar.model.Event;
-import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
-import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
-import java.util.ArrayList;
 
 @Slf4j
 @Service
@@ -49,19 +52,28 @@ public class SchedulingService {
     private final GoogleCalendarService googleCalendarService;
     private final OAuthService oAuthService;
     private final ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo;
+    private final NotificationService notificationService;
+    private final NotificationPreferenceService notificationPreferenceService;
+    private final EmailService emailService;
 
     public SchedulingService(ScheduleRepo scheduleRepo,
                              UserRepo userRepo,
                              CaseRepo caseRepo,
                              GoogleCalendarService googleCalendarService,
                              OAuthService oAuthService,
-                             ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo) {
+                             ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo,
+                             NotificationService notificationService,
+                             NotificationPreferenceService notificationPreferenceService,
+                             EmailService emailService) {
         this.scheduleRepo = scheduleRepo;
         this.userRepo = userRepo;
         this.caseRepo = caseRepo;
         this.googleCalendarService = googleCalendarService;
         this.oAuthService = oAuthService;
         this.scheduleGoogleCalendarEventRepo = scheduleGoogleCalendarEventRepo;
+        this.notificationService = notificationService;
+        this.notificationPreferenceService = notificationPreferenceService;
+        this.emailService = emailService;
     }
 
     /**
@@ -101,8 +113,38 @@ public class SchedulingService {
 
         createGoogleCalendarEvent(savedSchedule, currentUser, client, lawyer);
 
-        log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), currentUser.getEmail());
+        User recipient = currentUser.getId().equals(client.getId()) ? lawyer : client;
+        UUID recipientId = recipient.getId();
+        String creatorName = currentUser.getFirstName() + " " + currentUser.getLastName();
+        
+        String subject = "New Schedule Created";
+        String content = String.format("%s scheduled '%s' on %s from %s to %s in case: %s",
+                creatorName,
+                savedSchedule.getTitle(),
+                savedSchedule.getDate(),
+                savedSchedule.getStartTime(),
+                savedSchedule.getEndTime(),
+                savedSchedule.getCaseEntity().getTitle());
 
+        if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            notificationService.sendNotification(recipientId, content);
+        }
+
+        if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            Map<String, Object> templateVariables = new HashMap<>();
+            templateVariables.put("notificationType", "Schedule Created");
+            templateVariables.put("content", content);
+
+            emailService.sendTemplateEmail(
+                    recipient.getEmail(),
+                    subject,
+                    "notification-email",
+                    templateVariables
+            );
+        }
+
+        log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), currentUser.getEmail());
+        
         ScheduleResponseDTO scheduleResponse = mapToScheduleResponseDTO(savedSchedule);
         return ApiResponse.success(scheduleResponse, HttpStatus.CREATED, "Schedule created successfully");
     }
@@ -139,6 +181,37 @@ public class SchedulingService {
         updateGoogleCalendarEvent(existingSchedule, validation.user(), client, lawyer);
 
         Schedule updatedSchedule = scheduleRepo.save(existingSchedule);
+        
+        User recipient = validation.user().getId().equals(client.getId()) ? lawyer : client;
+        UUID recipientId = recipient.getId();
+        String updaterName = validation.user().getFirstName() + " " + validation.user().getLastName();
+        
+        String subject = "Schedule Updated";
+        String content = String.format("%s changed '%s' to %s from %s to %s in case: %s",
+                updaterName,
+                updatedSchedule.getTitle(),
+                updatedSchedule.getDate(),
+                updatedSchedule.getStartTime(),
+                updatedSchedule.getEndTime(),
+                updatedSchedule.getCaseEntity().getTitle());
+
+        if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            notificationService.sendNotification(recipientId, content);
+        }
+
+        if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            Map<String, Object> templateVariables = new HashMap<>();
+            templateVariables.put("notificationType", "Schedule Updated");
+            templateVariables.put("content", content);
+
+            emailService.sendTemplateEmail(
+                    recipient.getEmail(),
+                    subject,
+                    "notification-email",
+                    templateVariables
+            );
+        }
+
         log.info("Schedule {} updated by user: {}", scheduleId, validation.user().getEmail());
 
         ScheduleResponseDTO scheduleResponse = mapToScheduleResponseDTO(updatedSchedule);
@@ -162,6 +235,37 @@ public class SchedulingService {
 
         if (validation.hasError()) {
             return validation.errorResponse();
+        }
+
+        // Send notifications before deleting
+        User client = existingSchedule.getCaseEntity().getClient();
+        User lawyer = existingSchedule.getCaseEntity().getLawyer().getUser();
+        User recipient = validation.user().getId().equals(client.getId()) ? lawyer : client;
+        UUID recipientId = recipient.getId();
+        String deleterName = validation.user().getFirstName() + " " + validation.user().getLastName();
+        
+        String subject = "Schedule Cancelled";
+        String content = String.format("%s cancelled '%s' scheduled for %s in case: %s",
+                deleterName,
+                existingSchedule.getTitle(),
+                existingSchedule.getDate(),
+                existingSchedule.getCaseEntity().getTitle());
+
+        if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            notificationService.sendNotification(recipientId, content);
+        }
+
+        if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
+            Map<String, Object> templateVariables = new HashMap<>();
+            templateVariables.put("notificationType", "Schedule Cancelled");
+            templateVariables.put("content", content);
+
+            emailService.sendTemplateEmail(
+                    recipient.getEmail(),
+                    subject,
+                    "notification-email",
+                    templateVariables
+            );
         }
 
         deleteGoogleCalendarEvent(existingSchedule, validation.user());
