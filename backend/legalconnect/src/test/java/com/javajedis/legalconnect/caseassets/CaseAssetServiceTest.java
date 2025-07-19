@@ -46,8 +46,19 @@ import com.javajedis.legalconnect.caseassets.dtos.UpdateDocumentDTO;
 import com.javajedis.legalconnect.caseassets.dtos.UpdateNoteDTO;
 import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
+import com.javajedis.legalconnect.casemanagement.CaseStatus;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.AwsService;
+import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.lawyer.Lawyer;
+import com.javajedis.legalconnect.lawyer.enums.District;
+import com.javajedis.legalconnect.lawyer.enums.Division;
+import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.notifications.NotificationType;
+import com.javajedis.legalconnect.user.Role;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -68,10 +79,22 @@ class CaseAssetServiceTest {
     @Mock
     private AwsService awsService;
 
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private NotificationPreferenceService notificationPreferenceService;
+
+    @Mock
+    private EmailService emailService;
+
     @InjectMocks
     private CaseAssetService caseAssetService;
 
     private User testUser;
+    private User clientUser;
+    private User lawyerUser;
+    private Lawyer lawyer;
     private Case testCase;
     private Note testNote;
     private Document testDocument;
@@ -82,6 +105,9 @@ class CaseAssetServiceTest {
     private MockMultipartFile testMultipartFile;
 
     private UUID testUserId;
+    private UUID clientUserId;
+    private UUID lawyerUserId;
+    private UUID lawyerId;
     private UUID testCaseId;
     private UUID testNoteId;
     private UUID testDocumentId;
@@ -95,21 +121,71 @@ class CaseAssetServiceTest {
 
         // Setup test IDs
         testUserId = UUID.randomUUID();
+        clientUserId = UUID.randomUUID();
+        lawyerUserId = UUID.randomUUID();
+        lawyerId = UUID.randomUUID();
         testCaseId = UUID.randomUUID();
         testNoteId = UUID.randomUUID();
         testDocumentId = UUID.randomUUID();
 
-        // Setup test user
+        // Setup test user (current user)
         testUser = new User();
         testUser.setId(testUserId);
         testUser.setEmail("test@example.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
+        testUser.setRole(Role.USER);
+        testUser.setEmailVerified(true);
+        testUser.setCreatedAt(OffsetDateTime.now());
+        testUser.setUpdatedAt(OffsetDateTime.now());
+
+        // Setup client user
+        clientUser = new User();
+        clientUser.setId(clientUserId);
+        clientUser.setEmail("client@example.com");
+        clientUser.setFirstName("Client");
+        clientUser.setLastName("User");
+        clientUser.setRole(Role.USER);
+        clientUser.setEmailVerified(true);
+        clientUser.setCreatedAt(OffsetDateTime.now());
+        clientUser.setUpdatedAt(OffsetDateTime.now());
+
+        // Setup lawyer user
+        lawyerUser = new User();
+        lawyerUser.setId(lawyerUserId);
+        lawyerUser.setEmail("lawyer@example.com");
+        lawyerUser.setFirstName("Lawyer");
+        lawyerUser.setLastName("User");
+        lawyerUser.setRole(Role.LAWYER);
+        lawyerUser.setEmailVerified(true);
+        lawyerUser.setCreatedAt(OffsetDateTime.now());
+        lawyerUser.setUpdatedAt(OffsetDateTime.now());
+
+        // Setup lawyer
+        lawyer = new Lawyer();
+        lawyer.setId(lawyerId);
+        lawyer.setUser(lawyerUser);
+        lawyer.setFirm("Test Law Firm");
+        lawyer.setYearsOfExperience(5);
+        lawyer.setBarCertificateNumber("BAR123456");
+        lawyer.setPracticingCourt(PracticingCourt.SUPREME_COURT);
+        lawyer.setDivision(Division.DHAKA);
+        lawyer.setDistrict(District.DHAKA);
+        lawyer.setBio("Experienced lawyer");
+        lawyer.setVerificationStatus(VerificationStatus.APPROVED);
+        lawyer.setCreatedAt(OffsetDateTime.now());
+        lawyer.setUpdatedAt(OffsetDateTime.now());
 
         // Setup test case
         testCase = new Case();
         testCase.setId(testCaseId);
         testCase.setTitle("Test Case");
+        testCase.setDescription("Test case description");
+        testCase.setStatus(CaseStatus.IN_PROGRESS);
+        testCase.setLawyer(lawyer);
+        testCase.setClient(clientUser);
+        testCase.setCreatedAt(OffsetDateTime.now());
+        testCase.setUpdatedAt(OffsetDateTime.now());
 
         // Setup test note
         testNote = new Note();
@@ -162,6 +238,8 @@ class CaseAssetServiceTest {
         // Arrange
         CaseAssetValidationResult<NoteResponseDTO> validationResult = new CaseAssetValidationResult<>(testUser, testCase, null);
         when(noteRepo.save(any(Note.class))).thenReturn(testNote);
+        when(notificationPreferenceService.checkWebPushEnabled(any(UUID.class), eq(NotificationType.NOTE_CREATE))).thenReturn(false);
+        when(notificationPreferenceService.checkEmailEnabled(any(UUID.class), eq(NotificationType.NOTE_CREATE))).thenReturn(false);
 
         try (MockedStatic<CaseAssetUtility> mockedUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
             mockedUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(
@@ -364,6 +442,8 @@ class CaseAssetServiceTest {
         when(awsService.uploadFile(anyString(), anyString(), anyLong(), anyString(), any()))
             .thenReturn("uploaded-file-url");
         when(documentRepo.save(any(Document.class))).thenReturn(testDocument);
+        when(notificationPreferenceService.checkWebPushEnabled(any(UUID.class), eq(NotificationType.DOC_UPLOAD))).thenReturn(false);
+        when(notificationPreferenceService.checkEmailEnabled(any(UUID.class), eq(NotificationType.DOC_UPLOAD))).thenReturn(false);
 
         try (MockedStatic<CaseAssetUtility> mockedUtility = org.mockito.Mockito.mockStatic(CaseAssetUtility.class)) {
             mockedUtility.when(() -> CaseAssetUtility.validateUserAndCaseAccess(

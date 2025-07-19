@@ -42,12 +42,15 @@ import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
@@ -83,6 +86,15 @@ class SchedulingServiceTest {
 
     @Mock
     private ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private NotificationPreferenceService notificationPreferenceService;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private SchedulingService schedulingService;

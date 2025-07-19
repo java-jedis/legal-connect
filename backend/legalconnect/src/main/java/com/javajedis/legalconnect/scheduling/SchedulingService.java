@@ -45,6 +45,9 @@ public class SchedulingService {
     private static final String SCHEDULE_NOT_FOUND_MSG = "Schedule not found";
     private static final String CREATED_AT_FIELD = "createdAt";
     private static final String NO_VALID_ACCESS_TOKEN_LOG = "No valid access token found for user: {}";
+    private static final String NOTIFICATION_TYPE = "notificationType";
+    private static final String CONTENT = "content";
+    private static final String EMAIIL_TEMPLATE = "notification-email";
 
     private final ScheduleRepo scheduleRepo;
     private final UserRepo userRepo;
@@ -132,13 +135,13 @@ public class SchedulingService {
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
             Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put("notificationType", "Schedule Created");
-            templateVariables.put("content", content);
+            templateVariables.put(NOTIFICATION_TYPE, "Schedule Created");
+            templateVariables.put(CONTENT, content);
 
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
-                    "notification-email",
+                    EMAIIL_TEMPLATE,
                     templateVariables
             );
         }
@@ -201,13 +204,13 @@ public class SchedulingService {
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
             Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put("notificationType", "Schedule Updated");
-            templateVariables.put("content", content);
+            templateVariables.put(NOTIFICATION_TYPE, "Schedule Updated");
+            templateVariables.put(CONTENT, content);
 
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
-                    "notification-email",
+                    EMAIIL_TEMPLATE,
                     templateVariables
             );
         }
@@ -257,13 +260,13 @@ public class SchedulingService {
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
             Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put("notificationType", "Schedule Cancelled");
-            templateVariables.put("content", content);
+            templateVariables.put(NOTIFICATION_TYPE, "Schedule Cancelled");
+            templateVariables.put(CONTENT, content);
 
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
-                    "notification-email",
+                    EMAIIL_TEMPLATE,
                     templateVariables
             );
         }
