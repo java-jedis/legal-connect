@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { authAPI } from "../services/api";
+import { useNotificationStore } from "./notification";
 
 export const useAuthStore = defineStore("auth", () => {
   // Initialize state from localStorage if available
@@ -63,6 +64,15 @@ export const useAuthStore = defineStore("auth", () => {
       localStorage.setItem("auth_isLoggedIn", "true");
       localStorage.setItem("auth_userType", userType.value);
       localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
+
+      // Initialize notification system and connect WebSocket
+      try {
+        const notificationStore = useNotificationStore();
+        await notificationStore.initialize();
+      } catch (wsError) {
+        console.warn("Failed to initialize notification system:", wsError);
+        // Don't fail login if WebSocket connection fails
+      }
 
       return { success: true, data: authData };
     } catch (error) {
@@ -136,6 +146,15 @@ export const useAuthStore = defineStore("auth", () => {
       localStorage.setItem("auth_isLoggedIn", "true");
       localStorage.setItem("auth_userType", userType.value);
       localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
+      
+      // Initialize notification system and connect WebSocket
+      try {
+        const notificationStore = useNotificationStore();
+        await notificationStore.initialize();
+      } catch (wsError) {
+        console.warn("Failed to initialize notification system:", wsError);
+        // Don't fail registration if WebSocket connection fails
+      }
 
       return { success: true, data: authData };
     } catch (error) {
@@ -160,6 +179,15 @@ export const useAuthStore = defineStore("auth", () => {
 
   const logout = async () => {
     try {
+      // Clean up notification store and disconnect WebSocket before logout
+      try {
+        const notificationStore = useNotificationStore();
+        await notificationStore.cleanup();
+      } catch (wsError) {
+        console.warn("Error cleaning up notification system:", wsError);
+        // Continue with logout even if WebSocket cleanup fails
+      }
+      
       await authAPI.logout();
     } catch {
       // Ignore errors, always clear local state
