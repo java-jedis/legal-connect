@@ -1,13 +1,10 @@
 package com.javajedis.legalconnect.notifications;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.notifications.dto.NotificationListResponseDTO;
-import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
-import com.javajedis.legalconnect.notifications.dto.SendNotificationDTO;
-import com.javajedis.legalconnect.notifications.dto.UnreadCountResponseDTO;
-import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
-import com.javajedis.legalconnect.notifications.exception.NotificationNotFoundException;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,10 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.WebSocketService;
+import com.javajedis.legalconnect.notifications.dto.NotificationListResponseDTO;
+import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
+import com.javajedis.legalconnect.notifications.dto.SendNotificationDTO;
+import com.javajedis.legalconnect.notifications.dto.UnreadCountResponseDTO;
+import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
+import com.javajedis.legalconnect.notifications.exception.NotificationNotFoundException;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -135,12 +138,6 @@ public class NotificationService {
     /**
      * Retrieves notifications for a specific user with pagination support.
      * Returns notifications ordered by creation date (newest first).
-     *
-     * @param receiverId the ID of the user whose notifications to retrieve
-     * @param page       page number (0-based)
-     * @param size       page size
-     * @param unreadOnly if true, returns only unread notifications
-     * @return ResponseEntity with paginated notification list and metadata
      */
     public ResponseEntity<ApiResponse<NotificationListResponseDTO>> getUserNotifications(
             UUID receiverId, int page, int size, boolean unreadOnly) {
@@ -187,9 +184,6 @@ public class NotificationService {
 
     /**
      * Gets the count of unread notifications for a specific user.
-     *
-     * @param receiverId the ID of the user whose unread count to retrieve
-     * @return ResponseEntity with unread count
      */
     public ResponseEntity<ApiResponse<UnreadCountResponseDTO>> getUnreadCount(UUID receiverId) {
         log.debug("Getting unread count for user: {}", receiverId);
@@ -208,10 +202,6 @@ public class NotificationService {
 
     /**
      * Marks a specific notification as read.
-     *
-     * @param notificationId the ID of the notification to mark as read
-     * @param receiverId     the ID of the user (for authorization)
-     * @return ResponseEntity with success/error response
      */
     @Transactional
     public ResponseEntity<ApiResponse<NotificationResponseDTO>> markAsRead(UUID notificationId, UUID receiverId) {
@@ -228,13 +218,11 @@ public class NotificationService {
                     return new NotificationNotFoundException("Notification not found with ID: " + notificationId);
                 });
 
-        // Check if the notification belongs to the requesting user
         if (!notification.getReceiverId().equals(receiverId)) {
             log.warn("User {} attempted to mark notification {} that doesn't belong to them", receiverId, notificationId);
             throw new SecurityException("You can only mark your own notifications as read");
         }
 
-        // Update the notification if it's not already read
         if (!notification.isRead()) {
             notification.setRead(true);
             notification = notificationRepo.save(notification);
@@ -249,9 +237,6 @@ public class NotificationService {
 
     /**
      * Marks all notifications as read for a specific user.
-     *
-     * @param receiverId the ID of the user whose notifications to mark as read
-     * @return ResponseEntity with success/error response
      */
     @Transactional
     public ResponseEntity<ApiResponse<UnreadCountResponseDTO>> markAllAsRead(UUID receiverId) {
@@ -262,12 +247,10 @@ public class NotificationService {
             throw new IllegalArgumentException(INVALID_RECEIVER_MSG);
         }
 
-        // Get all unread notifications for the user
         List<Notification> unreadNotifications = notificationRepo.findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(
                 receiverId, Pageable.unpaged()).getContent();
 
         if (!unreadNotifications.isEmpty()) {
-            // Mark all as read
             unreadNotifications.forEach(notification -> notification.setRead(true));
             notificationRepo.saveAll(unreadNotifications);
 
@@ -283,9 +266,6 @@ public class NotificationService {
 
     /**
      * Maps a Notification entity to NotificationResponseDTO.
-     *
-     * @param notification the Notification entity to map
-     * @return the mapped NotificationResponseDTO
      */
     private NotificationResponseDTO mapNotificationToResponseDTO(Notification notification) {
         return new NotificationResponseDTO(

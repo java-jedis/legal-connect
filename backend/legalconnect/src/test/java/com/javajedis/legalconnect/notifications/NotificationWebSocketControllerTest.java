@@ -28,6 +28,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
+import com.javajedis.legalconnect.common.service.WebSocketService;
 import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
 import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
 import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
@@ -47,6 +48,9 @@ class NotificationWebSocketControllerTest {
 
     @Mock
     private SimpMessageHeaderAccessor headerAccessor;
+
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private NotificationWebSocketController controller;
@@ -184,6 +188,7 @@ class NotificationWebSocketControllerTest {
         assertDoesNotThrow(() -> controller.markNotificationAsRead(notificationId, principal));
 
         // Assert
+        verify(notificationService).markAsRead(UUID.fromString(notificationId), testUserId);
         verify(messagingTemplate).convertAndSendToUser(
             testUserId.toString(),
             "/queue/status",

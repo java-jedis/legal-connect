@@ -1,9 +1,8 @@
 package com.javajedis.legalconnect.notifications;
 
-import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
-import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
-import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
-import lombok.extern.slf4j.Slf4j;
+import java.security.Principal;
+import java.util.UUID;
+
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -12,8 +11,13 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
-import java.security.Principal;
-import java.util.UUID;
+import com.javajedis.legalconnect.common.service.WebSocketService;
+import com.javajedis.legalconnect.common.utility.WebSocketUtil;
+import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
+import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
+import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
+
+import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
@@ -21,10 +25,14 @@ import java.util.UUID;
 public class NotificationWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final WebSocketService webSocketService;
+    private final NotificationService notificationService;
 
-    public NotificationWebSocketController(SimpMessagingTemplate messagingTemplate, WebSocketService webSocketService) {
+    public NotificationWebSocketController(SimpMessagingTemplate messagingTemplate,
+                                           WebSocketService webSocketService,
+                                           NotificationService notificationService) {
         this.messagingTemplate = messagingTemplate;
         this.webSocketService = webSocketService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -40,7 +48,7 @@ public class NotificationWebSocketController {
             throw new WebSocketAuthenticationException("Authentication required for notification subscription");
         }
 
-        String userId = extractUserIdFromPrincipal(principal);
+        String userId = WebSocketUtil.extractUserIdFromPrincipal(principal);
         UUID userUuid = UUID.fromString(userId);
         String sessionId = headerAccessor != null ? headerAccessor.getSessionId() : "unknown";
 
@@ -77,7 +85,7 @@ public class NotificationWebSocketController {
             log.warn("Unauthenticated ping request received");
             throw new WebSocketAuthenticationException("Authentication required for ping requests");
         }
-        String userId = extractUserIdFromPrincipal(principal);
+        String userId = WebSocketUtil.extractUserIdFromPrincipal(principal);
         UUID userUuid = UUID.fromString(userId);
         boolean isConnected = webSocketService.isUserConnected(userUuid);
 
@@ -103,7 +111,7 @@ public class NotificationWebSocketController {
             log.warn("User {} attempted to mark notification as read with empty notification ID", principal.getName());
             throw new IllegalArgumentException("Notification ID cannot be empty");
         }
-        String userId = extractUserIdFromPrincipal(principal);
+        String userId = WebSocketUtil.extractUserIdFromPrincipal(principal);
         UUID userUuid = UUID.fromString(userId);
         UUID notificationUuid = UUID.fromString(notificationId.trim());
 
@@ -113,6 +121,8 @@ public class NotificationWebSocketController {
             log.warn("User {} attempted mark-read but is not properly connected", userUuid);
             throw new NotificationDeliveryException("WebSocket connection not properly established");
         }
+
+        notificationService.markAsRead(notificationUuid, userUuid);
 
         messagingTemplate.convertAndSendToUser(
                 userUuid.toString(),
@@ -211,28 +221,4 @@ public class NotificationWebSocketController {
                 activeConnections, notification.getContent());
     }
 
-    /**
-     * Extracts the user ID from the Principal's authentication details.
-     * Since we now set the userId as the principal name, we can directly use it.
-     */
-    private String extractUserIdFromPrincipal(Principal principal) {
-        String principalName = principal.getName();
-        if (principalName != null && principalName.matches("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")) {
-            return principalName;
-        }
-
-        if (principal instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth) {
-            Object details = auth.getDetails();
-            if (details instanceof java.util.Map) {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> detailsMap = (java.util.Map<String, Object>) details;
-                Object userId = detailsMap.get("userId");
-                if (userId != null) {
-                    return userId.toString();
-                }
-            }
-        }
-        log.error("Failed to extract user ID from principal {}", principalName);
-        throw new IllegalArgumentException("Cannot extract user ID from principal: " + principalName);
-    }
 }

@@ -36,6 +36,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.WebSocketService;
 import com.javajedis.legalconnect.notifications.dto.NotificationListResponseDTO;
 import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
 import com.javajedis.legalconnect.notifications.dto.SendNotificationDTO;

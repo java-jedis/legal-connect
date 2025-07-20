@@ -1,8 +1,8 @@
-package com.javajedis.legalconnect.notifications;
+package com.javajedis.legalconnect.common.service;
 
-import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
-import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
-import lombok.extern.slf4j.Slf4j;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import com.javajedis.legalconnect.notifications.dto.NotificationResponseDTO;
+import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * WebSocket service for managing active connections and real-time notification delivery.
