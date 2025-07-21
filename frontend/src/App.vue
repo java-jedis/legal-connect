@@ -1,13 +1,75 @@
 <script setup>
 import AppFooter from '@/components/AppFooter.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import NotificationBanner from '@/components/NotificationBanner.vue'
 import { useThemeStore } from '@/stores/theme'
-import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
+import { ref, onMounted, watch } from 'vue'
 
 const themeStore = useThemeStore()
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+
+// Connection warning state
+const showConnectionWarning = ref(false)
+const connectionWarningDelay = ref(null)
+
+// Methods for connection warning
+const reconnectWebSocket = async () => {
+  try {
+    await notificationStore.connectWebSocket()
+  } catch (error) {
+    console.error('Failed to reconnect WebSocket:', error)
+  }
+}
+
+const dismissConnectionWarning = () => {
+  showConnectionWarning.value = false
+}
+
 onMounted(() => {
   themeStore.initTheme()
   console.log('Theme initialized:', themeStore.isDark ? 'dark' : 'light')
+  
+  // Initialize notification store if user is logged in
+  // This handles page refresh and maintains connection state
+  if (authStore.isLoggedIn) {
+    notificationStore.initialize().then(() => {
+      console.log('Notification system initialized on page load')
+    }).catch(error => {
+      console.error('Failed to initialize notification system on page load:', error)
+    })
+  }
+})
+
+// Watch for auth state changes to initialize/cleanup notification store
+watch(() => authStore.isLoggedIn, (isLoggedIn) => {
+  if (isLoggedIn) {
+    notificationStore.initialize()
+  } else {
+    notificationStore.cleanup()
+  }
+})
+
+// Watch for connection status changes to show persistent warning after delay
+watch(() => notificationStore.isConnected, (isConnected, oldValue) => {
+  // Clear any existing timer
+  if (connectionWarningDelay.value) {
+    clearTimeout(connectionWarningDelay.value)
+    connectionWarningDelay.value = null
+  }
+  
+  // Only show warning if we were previously connected and now disconnected
+  if (oldValue === true && isConnected === false) {
+    // Show warning after 30 seconds of disconnection
+    connectionWarningDelay.value = setTimeout(() => {
+      showConnectionWarning.value = true
+    }, 30000) // 30 seconds
+  } else if (isConnected) {
+    // Hide warning when reconnected
+    showConnectionWarning.value = false
+  }
 })
 
 // Transition hooks for smooth animations
@@ -42,6 +104,31 @@ const leave = (el, done) => {
 
 <template>
   <div id="app">
+    <!-- Add NotificationBanner component for real-time notifications -->
+    <NotificationBanner v-if="authStore.isLoggedIn" />
+    
+    <!-- Connection status indicator for persistent disconnections -->
+    <div v-if="authStore.isLoggedIn && !notificationStore.isConnected && showConnectionWarning" class="connection-warning">
+      <div class="connection-warning-content">
+        <svg class="warning-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span>Disconnected from notification service. Some features may be unavailable.</span>
+        <button @click="reconnectWebSocket" class="reconnect-btn">Reconnect</button>
+        <button @click="dismissConnectionWarning" class="dismiss-btn" aria-label="Dismiss warning">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    
     <AppHeader />
     <main class="main-content">
       <router-view v-slot="{ Component, route }">
@@ -151,4 +238,92 @@ input, textarea, select {
 .stagger-item:nth-child(4) { animation-delay: 0.4s; }
 .stagger-item:nth-child(5) { animation-delay: 0.5s; }
 .stagger-item:nth-child(6) { animation-delay: 0.6s; }
+
+/* Connection warning styles */
+.connection-warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(244, 67, 54, 0.1);
+  border-bottom: 1px solid var(--color-border);
+  z-index: 1000;
+  padding: 0.5rem 0;
+}
+
+.connection-warning-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+}
+
+.connection-warning .warning-icon {
+  width: 18px;
+  height: 18px;
+  color: #F44336;
+  flex-shrink: 0;
+}
+
+.reconnect-btn {
+  padding: 0.25rem 0.75rem;
+  background: var(--color-primary);
+  color: var(--color-background);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.reconnect-btn:hover {
+  background: var(--color-secondary);
+}
+
+.dismiss-btn {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 4px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dismiss-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--color-text);
+}
+
+.dismiss-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (max-width: 768px) {
+  .connection-warning-content {
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem;
+  }
+  
+  .connection-warning-content span {
+    flex: 1 0 100%;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  
+  .reconnect-btn {
+    margin-left: auto;
+  }
+}
 </style>

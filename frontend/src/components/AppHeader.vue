@@ -72,6 +72,9 @@
 
         <div class="nav-actions">
           <ThemeToggle />
+          
+          <!-- Notification dropdown (only for authenticated users) -->
+          <NotificationDropdown v-if="authStore.isLoggedIn" />
 
           <!-- Public actions -->
           <template v-if="!authStore.isLoggedIn">
@@ -159,15 +162,25 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotificationStore } from '../stores/notification'
 import ThemeToggle from './ThemeToggle.vue'
+import NotificationDropdown from './NotificationDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
 const isMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
+
+// Initialize notification store when component is mounted
+onMounted(() => {
+  if (authStore.isLoggedIn) {
+    notificationStore.initialize()
+  }
+})
 
 // Computed properties for user display
 const userFullName = computed(() => {
@@ -196,6 +209,10 @@ const toggleUserMenu = () => {
 }
 
 const logout = async () => {
+  // Clean up notification store before logout
+  await notificationStore.cleanup()
+  
+  // Perform logout
   await authStore.logout()
   isUserMenuOpen.value = false
   router.push('/')
@@ -291,6 +308,8 @@ const logout = async () => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
+  z-index: 101; /* Ensure dropdowns appear above other elements */
 }
 
 .nav-btn {
@@ -476,6 +495,7 @@ const logout = async () => {
 
   .nav-actions {
     gap: 0.5rem;
+    margin-left: auto; /* Push actions to the right */
   }
 
   .nav-btn {
@@ -484,6 +504,17 @@ const logout = async () => {
 
   .menu-toggle {
     display: flex;
+    margin-left: 0.5rem; /* Add spacing between notification dropdown and menu toggle */
+  }
+  
+  /* Ensure user name is hidden on smaller screens but avatar remains */
+  .user-name {
+    display: none;
+  }
+  
+  /* Adjust user menu position for better mobile experience */
+  .user-dropdown {
+    right: -10px;
   }
 }
 

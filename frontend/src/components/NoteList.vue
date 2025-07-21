@@ -254,10 +254,8 @@ const getUploaderName = (ownerId) => {
   // If ownerId equals client ID, show client name, otherwise show lawyer name
   if (props.caseData.client && props.caseData.client.id === ownerId) {
     return `${props.caseData.client.firstName} ${props.caseData.client.lastName}`
-  } else if (props.caseData.lawyer && props.caseData.lawyer.id === ownerId) {
-    return `${props.caseData.lawyer.firstName} ${props.caseData.lawyer.lastName}`
   } else {
-    return 'Unknown'
+    return `${props.caseData.lawyer.firstName} ${props.caseData.lawyer.lastName}`
   }
 }
 

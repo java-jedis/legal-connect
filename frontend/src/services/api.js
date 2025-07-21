@@ -347,6 +347,126 @@ export const scheduleAPI = {
   },
 };
 
+// Notification API methods
+export const notificationAPI = {
+  /**
+   * Get notifications for the authenticated user with pagination support
+   * @param {number} page - Page number (default: 0)
+   * @param {number} size - Page size (default: 10)
+   * @param {boolean} unreadOnly - Filter for unread notifications only (default: false)
+   * @returns {Promise<Object>} Response containing notifications list
+   */
+  getNotifications: async (page = 0, size = 10, unreadOnly = false) => {
+    try {
+      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.GET_ALL, {
+        params: { page, size, unreadOnly },
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get the count of unread notifications for the authenticated user
+   * @returns {Promise<Object>} Response containing unread count
+   */
+  getUnreadCount: async () => {
+    try {
+      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Mark a specific notification as read
+   * @param {string} notificationId - UUID of the notification to mark as read
+   * @returns {Promise<Object>} Response containing updated notification
+   */
+  markAsRead: async (notificationId) => {
+    try {
+      const endpoint = API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_AS_READ.replace('{id}', notificationId);
+      const response = await api.put(endpoint);
+      return response.data;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Mark all notifications as read for the authenticated user
+   * @returns {Promise<Object>} Response containing updated unread count
+   */
+  markAllAsRead: async () => {
+    try {
+      const response = await api.put(API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
+      return response.data;
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get all notification preferences for the authenticated user
+   * @returns {Promise<Object>} Response containing notification preferences
+   */
+  getPreferences: async () => {
+    try {
+      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.PREFERENCES);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Update a specific notification preference for the authenticated user
+   * @param {string} type - Notification type (e.g., 'CASE_CREATE', 'EVENT_ADD')
+   * @param {Object} preferences - Preference settings
+   * @param {boolean} preferences.emailEnabled - Enable/disable email notifications
+   * @param {boolean} preferences.webPushEnabled - Enable/disable web push notifications
+   * @returns {Promise<Object>} Response containing updated preference
+   */
+  updatePreference: async (type, preferences) => {
+    try {
+      const endpoint = API_CONFIG.ENDPOINTS.NOTIFICATIONS.UPDATE_PREFERENCE.replace('{type}', type);
+      const response = await api.put(endpoint, {
+        emailEnabled: preferences.emailEnabled,
+        webPushEnabled: preferences.webPushEnabled,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating notification preference:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Send a notification to a specific user (internal service calls)
+   * @param {Object} notificationData - Notification data
+   * @param {string} notificationData.receiverId - UUID of the receiver
+   * @param {string} notificationData.content - Notification content
+   * @param {string} notificationData.type - Notification type
+   * @returns {Promise<Object>} Response containing sent notification
+   */
+  sendNotification: async (notificationData) => {
+    try {
+      const response = await api.post(API_CONFIG.ENDPOINTS.NOTIFICATIONS.SEND, notificationData);
+      return response.data;
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      throw error;
+    }
+  },
+};
+
 // Case Assets API methods
 export const caseAssetsAPI = {
   // Get all notes for a case

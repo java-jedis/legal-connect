@@ -154,7 +154,11 @@
           <span class="divider-text">Notification Preferences</span>
         </div>
         <div id="notifications" class="notification-section">
-          <p>Notification settings will be available here in a future update.</p>
+          <div class="notification-preferences-container">
+            <h2 class="section-title">Notification Preferences</h2>
+            <p class="section-subtitle">Manage how you receive notifications from the system.</p>
+            <NotificationPreferences />
+          </div>
         </div>
         </div>
       </div>
@@ -165,6 +169,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue';
 import LawyerProfileSection from '../components/LawyerProfileSection.vue';
+import NotificationPreferences from '../components/NotificationPreferences.vue';
 import ProfileTopBar from '../components/ProfileTopBar.vue';
 import { useAuthStore } from '../stores/auth';
 
@@ -578,5 +583,29 @@ const submitChangePassword = async () => {
 }
 #lawyer-profile {
   padding-top: 2rem;
+}
+
+.notification-section {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-top: 2rem;
+}
+
+.notification-preferences-container {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.section-subtitle {
+  color: var(--color-text-muted);
+  text-align: center;
+  margin-bottom: 2rem;
 }
 </style> 
