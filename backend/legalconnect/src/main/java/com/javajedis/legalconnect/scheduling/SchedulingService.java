@@ -22,6 +22,9 @@ import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
 import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.jobscheduler.EmailJobDTO;
+import com.javajedis.legalconnect.jobscheduler.JobSchedulerService;
+import com.javajedis.legalconnect.jobscheduler.WebPushJobDTO;
 import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
@@ -48,6 +51,7 @@ public class SchedulingService {
     private static final String NOTIFICATION_TYPE = "notificationType";
     private static final String CONTENT = "content";
     private static final String EMAIIL_TEMPLATE = "notification-email";
+    private static final int REMINDER_MINUTES_BEFORE = 1;
 
     private final ScheduleRepo scheduleRepo;
     private final UserRepo userRepo;
@@ -58,6 +62,7 @@ public class SchedulingService {
     private final NotificationService notificationService;
     private final NotificationPreferenceService notificationPreferenceService;
     private final EmailService emailService;
+    private final JobSchedulerService jobSchedulerService;
 
     public SchedulingService(ScheduleRepo scheduleRepo,
                              UserRepo userRepo,
@@ -67,7 +72,8 @@ public class SchedulingService {
                              ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo,
                              NotificationService notificationService,
                              NotificationPreferenceService notificationPreferenceService,
-                             EmailService emailService) {
+                             EmailService emailService,
+                             JobSchedulerService jobSchedulerService) {
         this.scheduleRepo = scheduleRepo;
         this.userRepo = userRepo;
         this.caseRepo = caseRepo;
@@ -77,6 +83,7 @@ public class SchedulingService {
         this.notificationService = notificationService;
         this.notificationPreferenceService = notificationPreferenceService;
         this.emailService = emailService;
+        this.jobSchedulerService = jobSchedulerService;
     }
 
     /**
@@ -129,15 +136,15 @@ public class SchedulingService {
                 savedSchedule.getEndTime(),
                 savedSchedule.getCaseEntity().getTitle());
 
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put(NOTIFICATION_TYPE, "Schedule Created");
+        templateVariables.put(CONTENT, content);
+
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
         }
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
-            Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put(NOTIFICATION_TYPE, "Schedule Created");
-            templateVariables.put(CONTENT, content);
-
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
@@ -145,6 +152,36 @@ public class SchedulingService {
                     templateVariables
             );
         }
+        
+        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(), 
+                                                                            client.getId(), content,
+                                                                            savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
+
+        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)){
+                jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(),
+                        lawyer.getId(), content,
+                        savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
+
+        if (notificationPreferenceService.checkEmailEnabled(client.getId(),NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(savedSchedule.getId(),
+                                                                            EMAIIL_TEMPLATE,
+                                                                            client.getEmail(),
+                                                                            subject,
+                                                                            templateVariables,
+                                                                        savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
+
+        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(),NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(savedSchedule.getId(),
+                    EMAIIL_TEMPLATE,
+                    lawyer.getEmail(),
+                    subject,
+                    templateVariables,
+                    savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
 
         log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), currentUser.getEmail());
         
@@ -198,15 +235,16 @@ public class SchedulingService {
                 updatedSchedule.getEndTime(),
                 updatedSchedule.getCaseEntity().getTitle());
 
+        // Create template variables for both immediate and scheduled notifications
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put(NOTIFICATION_TYPE, "Schedule Updated");
+        templateVariables.put(CONTENT, content);
+
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
         }
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
-            Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put(NOTIFICATION_TYPE, "Schedule Updated");
-            templateVariables.put(CONTENT, content);
-
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
@@ -214,6 +252,40 @@ public class SchedulingService {
                     templateVariables
             );
         }
+
+        // Delete existing scheduled notifications for this schedule
+        jobSchedulerService.deleteAllJobsForTask(updatedSchedule.getId());
+
+        // Schedule new reminder notifications with updated time
+        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(), 
+                                                                            client.getId(), content,
+                                                                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
+
+        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)){
+                jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(),
+                        lawyer.getId(), content,
+                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
+
+        if (notificationPreferenceService.checkEmailEnabled(client.getId(),NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(updatedSchedule.getId(),
+                                                                            EMAIIL_TEMPLATE,
+                                                                            client.getEmail(),
+                                                                            subject,
+                                                                            templateVariables,
+                                                                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
+
+        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(),NotificationType.SCHEDULE_REMINDER)){
+            jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(updatedSchedule.getId(),
+                    EMAIIL_TEMPLATE,
+                    lawyer.getEmail(),
+                    subject,
+                    templateVariables,
+                    updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+            }
 
         log.info("Schedule {} updated by user: {}", scheduleId, validation.user().getEmail());
 
@@ -254,15 +326,16 @@ public class SchedulingService {
                 existingSchedule.getDate(),
                 existingSchedule.getCaseEntity().getTitle());
 
+        // Create template variables for immediate notifications
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put(NOTIFICATION_TYPE, "Schedule Cancelled");
+        templateVariables.put(CONTENT, content);
+
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
         }
 
         if (notificationPreferenceService.checkEmailEnabled(recipientId, NotificationType.EVENT_ADD)) {
-            Map<String, Object> templateVariables = new HashMap<>();
-            templateVariables.put(NOTIFICATION_TYPE, "Schedule Cancelled");
-            templateVariables.put(CONTENT, content);
-
             emailService.sendTemplateEmail(
                     recipient.getEmail(),
                     subject,
@@ -270,6 +343,9 @@ public class SchedulingService {
                     templateVariables
             );
         }
+
+        // Delete all scheduled notifications for this schedule
+        jobSchedulerService.deleteAllJobsForTask(existingSchedule.getId());
 
         deleteGoogleCalendarEvent(existingSchedule, validation.user());
 
