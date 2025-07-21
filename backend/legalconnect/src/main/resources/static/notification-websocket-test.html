@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notification Service Test Suite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+      }
+      .container {
+        margin-bottom: 20px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .container h3 {
+        margin-top: 0;
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+      }
+      .status {
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+      }
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .status.error {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+      .status.warning {
+        background-color: #ffeaa7;
+        color: #856404;
+        border: 1px solid #fdd835;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      button.primary {
+        background-color: #007bff;
+        color: white;
+      }
+      button.secondary {
+        background-color: #6c757d;
+        color: white;
+      }
+      button.danger {
+        background-color: #dc3545;
+        color: white;
+      }
+      button.success {
+        background-color: #28a745;
+        color: white;
+      }
+      button.warning {
+        background-color: #ffc107;
+        color: #212529;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+      }
+      .log {
+        background-color: #1e1e1e;
+        color: #f8f8f2;
+        border: 1px solid #333;
+        border-radius: 5px;
+        padding: 15px;
+        height: 250px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .notification {
+        background-color: #e7f3ff;
+        border-left: 4px solid #007bff;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 10px 0;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+      }
+      .notification.unread {
+        background-color: #fff3cd;
+        border-left-color: #ffc107;
+      }
+      .notification .timestamp {
+        font-size: 11px;
+        color: #666;
+        position: absolute;
+        top: 5px;
+        right: 10px;
+      }
+      .notification .actions {
+        margin-top: 10px;
+      }
+      .notification .actions button {
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+      }
+      .stat-item {
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+      .alert {
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid transparent;
+      }
+      .alert.info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+        color: #0c5460;
+      }
+      .alert.success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+      .alert.error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🔔 Notification Service Test Suite</h1>
+      <p>
+        Comprehensive testing interface for WebSocket connections, REST API, and
+        real-time notifications
+      </p>
+    </div>
+
+    <!-- Authentication Section -->
+    <div class="container">
+      <h3>🔐 Authentication & Connection</h3>
+      <div id="connectionStatus" class="status disconnected">Disconnected</div>
+
+      <div class="form-group">
+        <label for="jwtToken">JWT Token:</label>
+        <input
+          type="password"
+          id="jwtToken"
+          placeholder="Enter your JWT token here (will be hidden for security)"
+        />
+        <small style="color: #666"
+          >Get this token by logging in through /v1/auth/login endpoint</small
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="userId">Your User ID:</label>
+        <input
+          type="text"
+          id="userId"
+          placeholder="Enter your user ID (UUID)"
+        />
+        <small style="color: #666"
+          >This should match the user ID in your JWT token</small
+        >
+      </div>
+
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="connectionCount">0</div>
+          <div class="stat-label">Active Connections</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="messagesReceived">0</div>
+          <div class="stat-label">Messages Received</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="messagesSent">0</div>
+          <div class="stat-label">Messages Sent</div>
+        </div>
+      </div>
+
+      <button class="primary" onclick="connect()">🔌 Connect WebSocket</button>
+      <button class="danger" onclick="disconnect()">❌ Disconnect</button>
+      <button class="secondary" onclick="sendPing()">📡 Send Ping</button>
+      <button class="warning" onclick="testAuthentication()">
+        🔍 Test Auth
+      </button>
+      <button class="success" onclick="testWebSocketSubscription()">
+        🧪 Test Subscription
+      </button>
+    </div>
+
+    <div class="grid">
+      <!-- Send Notification Section -->
+      <div class="container">
+        <h3>📤 Send Notification (REST API)</h3>
+        <div class="form-group">
+          <label for="receiverId">Receiver User ID:</label>
+          <input
+            type="text"
+            id="receiverId"
+            placeholder="Enter receiver user ID (UUID)"
+          />
+          <button
+            class="secondary"
+            onclick="copyMyUserId()"
+            style="margin-top: 5px; padding: 5px 10px; font-size: 12px"
+          >
+            Copy My User ID
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label for="notificationContent">Notification Content:</label>
+          <textarea
+            id="notificationContent"
+            rows="3"
+            placeholder="Enter notification content (1-1000 characters)"
+          ></textarea>
+          <div style="font-size: 12px; color: #666">
+            <span id="contentLength">0</span>/1000 characters
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notificationTemplate">Quick Templates:</label>
+          <select id="notificationTemplate" onchange="useTemplate()">
+            <option value="">Select a template...</option>
+            <option value="welcome">Welcome Message</option>
+            <option value="reminder">Appointment Reminder</option>
+            <option value="update">Case Update</option>
+            <option value="urgent">Urgent Notice</option>
+            <option value="test">Test Message</option>
+          </select>
+        </div>
+
+        <button class="primary" onclick="sendNotification()">
+          📨 Send Notification
+        </button>
+        <button class="success" onclick="sendTestNotificationToSelf()">
+          🔄 Send to Self
+        </button>
+      </div>
+
+      <!-- Notification Management Section -->
+      <div class="container">
+        <h3>📋 Notification Management</h3>
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-number" id="unreadCount">-</div>
+            <div class="stat-label">Unread Count</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalNotifications">-</div>
+            <div class="stat-label">Total Notifications</div>
+          </div>
+        </div>
+
+        <button class="primary" onclick="getUnreadCount()">
+          📊 Get Unread Count
+        </button>
+        <button class="secondary" onclick="getMyNotifications()">
+          📥 Get My Notifications
+        </button>
+        <button class="warning" onclick="getUnreadOnly()">
+          🔍 Get Unread Only
+        </button>
+        <button class="success" onclick="markAllAsRead()">
+          ✅ Mark All Read
+        </button>
+      </div>
+    </div>
+
+    <!-- Real-time Notifications Display -->
+    <div class="container">
+      <h3>🔔 Real-time Notifications</h3>
+      <div class="alert info">
+        <strong
+          >Real-time notifications will appear here when received via
+          WebSocket.</strong
+        >
+        Connect to WebSocket first, then send notifications to see them appear
+        instantly.
+      </div>
+      <div id="notifications"></div>
+      <button class="secondary" onclick="clearNotifications()">
+        🗑️ Clear Notifications
+      </button>
+      <button class="warning" onclick="toggleNotificationSound()">
+        🔊 Toggle Sound
+      </button>
+    </div>
+
+    <!-- My Notifications (REST API) -->
+    <div class="container">
+      <h3>📜 My Notifications (REST API)</h3>
+      <div class="form-group">
+        <label>Pagination:</label>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <input
+            type="number"
+            id="pageNumber"
+            value="0"
+            min="0"
+            style="width: 80px"
+            placeholder="Page"
+          />
+          <input
+            type="number"
+            id="pageSize"
+            value="10"
+            min="1"
+            max="100"
+            style="width: 80px"
+            placeholder="Size"
+          />
+          <select id="filterType" style="width: 150px">
+            <option value="all">All Notifications</option>
+            <option value="unread">Unread Only</option>
+          </select>
+          <button class="primary" onclick="loadNotifications()">🔄 Load</button>
+        </div>
+      </div>
+      <div id="myNotifications"></div>
+    </div>
+
+    <!-- Connection Log -->
+    <div class="container">
+      <h3>📝 Activity Log</h3>
+      <div class="form-group">
+        <label>Log Level:</label>
+        <select id="logLevel" onchange="updateLogLevel()">
+          <option value="all">All Messages</option>
+          <option value="info">Info & Errors</option>
+          <option value="error">Errors Only</option>
+        </select>
+      </div>
+      <div id="log" class="log"></div>
+      <button class="secondary" onclick="clearLog()">🗑️ Clear Log</button>
+      <button class="warning" onclick="exportLog()">💾 Export Log</button>
+    </div>
+
+    <script>
+      let stompClient = null;
+      let connected = false;
+      let messagesReceived = 0;
+      let messagesSent = 0;
+      let soundEnabled = true;
+      let currentLogLevel = "all";
+
+      // Notification templates
+      const templates = {
+        welcome:
+          "Welcome to LegalConnect! Your account has been successfully created.",
+        reminder:
+          "Reminder: You have an appointment scheduled for tomorrow at 2:00 PM.",
+        update:
+          "Your case #12345 has been updated. Please check the latest documents.",
+        urgent:
+          "URGENT: Please contact your lawyer immediately regarding your case.",
+        test: "This is a test notification to verify the system is working correctly.",
+      };
+
+      // Initialize page
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set up content length counter
+        const contentTextarea = document.getElementById("notificationContent");
+        contentTextarea.addEventListener("input", updateContentLength);
+
+        // Initialize stats
+        updateStats();
+
+        // Initial log message
+        log(
+          "info",
+          "Notification Service Test Suite loaded. Enter JWT token and user ID to begin testing."
+        );
+      });
+
+      function log(level, message) {
+        if (currentLogLevel === "error" && level !== "error") return;
+        if (currentLogLevel === "info" && level === "debug") return;
+
+        const logDiv = document.getElementById("log");
+        const timestamp = new Date().toLocaleTimeString();
+        const levelIcon =
+          level === "error" ? "❌" : level === "info" ? "ℹ️" : "🔍";
+        logDiv.innerHTML += `[${timestamp}] ${levelIcon} ${message}\n`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function updateStats() {
+        document.getElementById("messagesReceived").textContent =
+          messagesReceived;
+        document.getElementById("messagesSent").textContent = messagesSent;
+        document.getElementById("connectionCount").textContent = connected
+          ? 1
+          : 0;
+      }
+
+      function updateConnectionStatus(status, message) {
+        const statusDiv = document.getElementById("connectionStatus");
+        statusDiv.className = `status ${status}`;
+        statusDiv.textContent = message;
+        updateStats();
+      }
+
+      function updateContentLength() {
+        const content = document.getElementById("notificationContent").value;
+        document.getElementById("contentLength").textContent = content.length;
+      }
+
+      function updateLogLevel() {
+        currentLogLevel = document.getElementById("logLevel").value;
+        log("info", `Log level changed to: ${currentLogLevel}`);
+      }
+
+      // Authentication and Connection Functions
+      function testAuthentication() {
+        const token = document.getElementById("jwtToken").value.trim();
+        if (!token) {
+          alert("Please enter a JWT token first");
+          return;
+        }
+
+        log("info", "Testing JWT token authentication...");
+
+        fetch("/v1/notifications/unread-count", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              log(
+                "info",
+                "✅ JWT token is valid and authentication successful"
+              );
+              return response.json();
+            } else {
+              log("error", `❌ Authentication failed: HTTP ${response.status}`);
+              throw new Error(`HTTP ${response.status}`);
+            }
+          })
+          .then((data) => {
+            if (data.success) {
+              log(
+                "info",
+                `✅ Authentication test passed. Unread count: ${data.data.unreadCount}`
+              );
+              document.getElementById("unreadCount").textContent =
+                data.data.unreadCount;
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Authentication test failed: ${error.message}`);
+          });
+      }
+
+      function connect() {
+        const token = document.getElementById("jwtToken").value.trim();
+        const userId = document.getElementById("userId").value.trim();
+
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        if (!userId) {
+          alert("Please enter a user ID");
+          return;
+        }
+
+        if (!isValidUUID(userId)) {
+          alert("Please enter a valid UUID for user ID");
+          return;
+        }
+
+        log("info", "Attempting to connect to WebSocket...");
+        updateConnectionStatus("warning", "Connecting...");
+
+        // Create SockJS connection
+        const socket = new SockJS("/v1/ws");
+        stompClient = Stomp.over(socket);
+
+        // Disable debug logging for cleaner output
+        stompClient.debug = null;
+
+        // Set up connection headers with JWT token
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          token: token, // Alternative header for WebSocket
+        };
+
+        stompClient.connect(
+          headers,
+          function (frame) {
+            connected = true;
+            updateConnectionStatus("connected", "Connected to WebSocket");
+            log("info", "✅ Connected to WebSocket successfully");
+
+            // Subscribe to user's notification queue
+            stompClient.subscribe(
+              `/user/${userId}/queue/notifications`,
+              function (notification) {
+                messagesReceived++;
+                log(
+                  "debug",
+                  `📨 Raw WebSocket message received: ${notification.body}`
+                );
+                try {
+                  const notificationData = JSON.parse(notification.body);
+                  log(
+                    "debug",
+                    `📨 Parsed notification data: ${JSON.stringify(
+                      notificationData
+                    )}`
+                  );
+                  displayRealtimeNotification(notificationData);
+                  playNotificationSound();
+                  log(
+                    "info",
+                    `📨 Received real-time notification: ${notificationData.content}`
+                  );
+                  updateStats();
+                } catch (error) {
+                  log(
+                    "error",
+                    `❌ Error parsing WebSocket notification: ${error.message}`
+                  );
+                  log("error", `❌ Raw message was: ${notification.body}`);
+                }
+              }
+            );
+
+            // Subscribe to status messages
+            stompClient.subscribe(
+              `/user/${userId}/queue/status`,
+              function (status) {
+                log("info", `📡 Status: ${status.body}`);
+              }
+            );
+
+            // Subscribe to error messages
+            stompClient.subscribe(
+              `/user/${userId}/queue/errors`,
+              function (error) {
+                log("error", `❌ WebSocket Error: ${error.body}`);
+              }
+            );
+
+            // Subscribe to notifications
+            stompClient.send(
+              "/app/notifications/subscribe",
+              {},
+              JSON.stringify({})
+            );
+            log("info", "📡 Subscribed to notification channels");
+          },
+          function (error) {
+            connected = false;
+            updateConnectionStatus("error", "Connection failed");
+            log("error", `❌ WebSocket connection failed: ${error}`);
+            console.error("WebSocket connection error:", error);
+          }
+        );
+      }
+
+      function disconnect() {
+        if (stompClient !== null && connected) {
+          stompClient.disconnect(function () {
+            connected = false;
+            updateConnectionStatus("disconnected", "Disconnected");
+            log("info", "🔌 Disconnected from WebSocket");
+            updateStats();
+          });
+        }
+      }
+
+      function sendPing() {
+        if (stompClient !== null && connected) {
+          stompClient.send("/app/notifications/ping", {}, JSON.stringify({}));
+          messagesSent++;
+          log("info", "📡 Ping sent to server");
+          updateStats();
+        } else {
+          alert("Not connected to WebSocket. Please connect first.");
+        }
+      }
+
+      function testWebSocketSubscription() {
+        if (stompClient !== null && connected) {
+          const userId = document.getElementById("userId").value.trim();
+          log("info", `🧪 Testing WebSocket subscription for user: ${userId}`);
+          log("info", `🧪 Subscribed to: /user/${userId}/queue/notifications`);
+          log("info", `🧪 Subscribed to: /user/${userId}/queue/status`);
+          log("info", `🧪 Subscribed to: /user/${userId}/queue/errors`);
+
+          // Send a test message to trigger the subscription
+          stompClient.send(
+            "/app/notifications/subscribe",
+            {},
+            JSON.stringify({ test: true })
+          );
+          log("info", "🧪 Test subscription message sent");
+        } else {
+          alert("Not connected to WebSocket. Please connect first.");
+        }
+      }
+
+      // Notification Functions
+      function copyMyUserId() {
+        const userId = document.getElementById("userId").value.trim();
+        if (userId) {
+          document.getElementById("receiverId").value = userId;
+          log("info", "📋 User ID copied to receiver field");
+        } else {
+          alert("Please enter your User ID first");
+        }
+      }
+
+      function useTemplate() {
+        const template = document.getElementById("notificationTemplate").value;
+        if (template && templates[template]) {
+          document.getElementById("notificationContent").value =
+            templates[template];
+          updateContentLength();
+          log("info", `📝 Template "${template}" applied`);
+        }
+      }
+
+      function sendNotification() {
+        const receiverId = document.getElementById("receiverId").value.trim();
+        const content = document
+          .getElementById("notificationContent")
+          .value.trim();
+        const token = document.getElementById("jwtToken").value.trim();
+
+        if (!receiverId || !content) {
+          alert("Please enter both receiver ID and notification content");
+          return;
+        }
+
+        if (!isValidUUID(receiverId)) {
+          alert("Please enter a valid UUID for receiver ID");
+          return;
+        }
+
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        if (content.length > 1000) {
+          alert("Notification content must be 1000 characters or less");
+          return;
+        }
+
+        log("info", `📤 Sending notification to ${receiverId}...`);
+
+        // Send notification via REST API
+        const notificationData = {
+          receiverId: receiverId,
+          content: content,
+        };
+
+        fetch("/v1/notifications/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(notificationData),
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            // Check if the response indicates success
+            if (
+              data.success === true ||
+              data.message === "Notification sent successfully"
+            ) {
+              messagesSent++;
+              log("info", "✅ Notification sent successfully via REST API");
+              document.getElementById("notificationContent").value = "";
+              document.getElementById("notificationTemplate").value = "";
+              updateContentLength();
+              updateStats();
+            } else {
+              log(
+                "error",
+                `❌ Failed to send notification: ${
+                  data.message || "Unknown error"
+                }`
+              );
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Error sending notification: ${error.message}`);
+            console.error("Error:", error);
+          });
+      }
+
+      function sendTestNotificationToSelf() {
+        const userId = document.getElementById("userId").value.trim();
+        if (!userId) {
+          alert("Please enter your User ID first");
+          return;
+        }
+
+        document.getElementById("receiverId").value = userId;
+        document.getElementById("notificationContent").value = templates.test;
+        updateContentLength();
+
+        setTimeout(() => {
+          sendNotification();
+        }, 100);
+      }
+
+      // Notification Management Functions
+      function getUnreadCount() {
+        const token = document.getElementById("jwtToken").value.trim();
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        log("info", "📊 Fetching unread count...");
+
+        fetch("/v1/notifications/unread-count", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            // Check if the response indicates success
+            if (
+              data.success === true ||
+              data.message === "Unread count retrieved successfully"
+            ) {
+              document.getElementById("unreadCount").textContent =
+                data.data.unreadCount;
+              log("info", `📊 Unread count: ${data.data.unreadCount}`);
+            } else {
+              log(
+                "error",
+                `❌ Failed to get unread count: ${
+                  data.message || "Unknown error"
+                }`
+              );
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Error getting unread count: ${error.message}`);
+          });
+      }
+
+      function getMyNotifications() {
+        document.getElementById("filterType").value = "all";
+        loadNotifications();
+      }
+
+      function getUnreadOnly() {
+        document.getElementById("filterType").value = "unread";
+        loadNotifications();
+      }
+
+      function loadNotifications() {
+        const token = document.getElementById("jwtToken").value.trim();
+        const page = parseInt(document.getElementById("pageNumber").value) || 0;
+        const size = parseInt(document.getElementById("pageSize").value) || 10;
+        const unreadOnly =
+          document.getElementById("filterType").value === "unread";
+
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        log(
+          "info",
+          `📥 Loading notifications (page: ${page}, size: ${size}, unread only: ${unreadOnly})...`
+        );
+
+        const url = `/v1/notifications/?page=${page}&size=${size}&unreadOnly=${unreadOnly}`;
+
+        fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            // Check if the response indicates success
+            if (
+              data.success === true ||
+              data.message === "Notifications retrieved successfully"
+            ) {
+              displayMyNotifications(data.data.notifications, data.metadata);
+              log(
+                "info",
+                `📥 Loaded ${data.data.notifications.length} notifications`
+              );
+            } else {
+              log(
+                "error",
+                `❌ Failed to load notifications: ${
+                  data.message || "Unknown error"
+                }`
+              );
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Error loading notifications: ${error.message}`);
+          });
+      }
+
+      function markAllAsRead() {
+        const token = document.getElementById("jwtToken").value.trim();
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        if (
+          !confirm("Are you sure you want to mark all notifications as read?")
+        ) {
+          return;
+        }
+
+        log("info", "✅ Marking all notifications as read...");
+
+        fetch("/v1/notifications/mark-all-read", {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            // Check if the response indicates success
+            if (
+              data.success === true ||
+              data.message === "All notifications marked as read"
+            ) {
+              document.getElementById("unreadCount").textContent =
+                data.data.unreadCount;
+              log("info", "✅ All notifications marked as read");
+              // Refresh notifications if they're currently displayed
+              loadNotifications();
+            } else {
+              log(
+                "error",
+                `❌ Failed to mark all as read: ${
+                  data.message || "Unknown error"
+                }`
+              );
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Error marking all as read: ${error.message}`);
+          });
+      }
+
+      function markAsRead(notificationId) {
+        const token = document.getElementById("jwtToken").value.trim();
+        if (!token) {
+          alert("Please enter a JWT token");
+          return;
+        }
+
+        log("info", `✅ Marking notification ${notificationId} as read...`);
+
+        fetch(`/v1/notifications/${notificationId}/read`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            } else {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+          })
+          .then((data) => {
+            // Check if the response indicates success
+            if (
+              data.success === true ||
+              data.message === "Notification marked as read"
+            ) {
+              log("info", `✅ Notification ${notificationId} marked as read`);
+              // Refresh notifications and unread count
+              loadNotifications();
+              getUnreadCount();
+            } else {
+              log(
+                "error",
+                `❌ Failed to mark as read: ${data.message || "Unknown error"}`
+              );
+            }
+          })
+          .catch((error) => {
+            log("error", `❌ Error marking as read: ${error.message}`);
+          });
+      }
+
+      // Display Functions
+      function displayRealtimeNotification(notification) {
+        const notificationsDiv = document.getElementById("notifications");
+        const notificationElement = document.createElement("div");
+        notificationElement.className = notification.read
+          ? "notification"
+          : "notification unread";
+        notificationElement.id = `realtime-${notification.id}`;
+
+        const timestamp = new Date(notification.createdAt).toLocaleString();
+        notificationElement.innerHTML = `
+                <div class="timestamp">${timestamp}</div>
+                <div><strong>ID:</strong> ${notification.id}</div>
+                <div><strong>Content:</strong> ${notification.content}</div>
+                <div><strong>Status:</strong> ${
+                  notification.read ? "Read" : "Unread"
+                }</div>
+                <div class="actions">
+                    ${
+                      !notification.read
+                        ? `<button class="success" onclick="markAsRead('${notification.id}')">Mark as Read</button>`
+                        : ""
+                    }
+                    <button class="secondary" onclick="removeRealtimeNotification('${
+                      notification.id
+                    }')">Remove</button>
+                </div>
+            `;
+
+        notificationsDiv.insertBefore(
+          notificationElement,
+          notificationsDiv.firstChild
+        );
+      }
+
+      function displayMyNotifications(notifications, metadata) {
+        const container = document.getElementById("myNotifications");
+
+        if (notifications.length === 0) {
+          container.innerHTML =
+            '<div class="alert info">No notifications found.</div>';
+          return;
+        }
+
+        let html = "";
+
+        if (metadata) {
+          html += `
+                    <div class="alert info">
+                        <strong>Page ${metadata.pageNumber + 1} of ${
+            metadata.totalPages
+          }</strong> 
+                        (${metadata.totalCount} total notifications)
+                    </div>
+                `;
+        }
+
+        notifications.forEach((notification) => {
+          const timestamp = new Date(notification.createdAt).toLocaleString();
+          html += `
+                    <div class="notification ${
+                      notification.read ? "" : "unread"
+                    }" id="my-${notification.id}">
+                        <div class="timestamp">${timestamp}</div>
+                        <div><strong>ID:</strong> ${notification.id}</div>
+                        <div><strong>Content:</strong> ${
+                          notification.content
+                        }</div>
+                        <div><strong>Status:</strong> ${
+                          notification.read ? "Read" : "Unread"
+                        }</div>
+                        <div class="actions">
+                            ${
+                              !notification.read
+                                ? `<button class="success" onclick="markAsRead('${notification.id}')">Mark as Read</button>`
+                                : ""
+                            }
+                        </div>
+                    </div>
+                `;
+        });
+
+        container.innerHTML = html;
+        document.getElementById("totalNotifications").textContent = metadata
+          ? metadata.totalCount
+          : notifications.length;
+      }
+
+      function removeRealtimeNotification(notificationId) {
+        const element = document.getElementById(`realtime-${notificationId}`);
+        if (element) {
+          element.remove();
+        }
+      }
+
+      function clearNotifications() {
+        document.getElementById("notifications").innerHTML = "";
+        log("info", "🗑️ Real-time notifications cleared");
+      }
+
+      function clearLog() {
+        document.getElementById("log").innerHTML = "";
+      }
+
+      function exportLog() {
+        const logContent = document.getElementById("log").textContent;
+        const blob = new Blob([logContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `notification-test-log-${new Date()
+          .toISOString()
+          .slice(0, 19)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        log("info", "💾 Log exported to file");
+      }
+
+      function toggleNotificationSound() {
+        soundEnabled = !soundEnabled;
+        const button = event.target;
+        button.textContent = soundEnabled
+          ? "🔊 Toggle Sound"
+          : "🔇 Toggle Sound";
+        log(
+          "info",
+          `🔊 Notification sound ${soundEnabled ? "enabled" : "disabled"}`
+        );
+      }
+
+      function playNotificationSound() {
+        if (soundEnabled) {
+          // Create a simple beep sound
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          oscillator.frequency.value = 800;
+          oscillator.type = "sine";
+
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(
+            0.01,
+            audioContext.currentTime + 0.5
+          );
+
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+        }
+      }
+
+      // Utility Functions
+      function isValidUUID(uuid) {
+        const uuidRegex =
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+      }
+
+      // Handle page unload
+      window.addEventListener("beforeunload", function () {
+        if (connected) {
+          disconnect();
+        }
+      });
+    </script>
+  </body>
+</html>

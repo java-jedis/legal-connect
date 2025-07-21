@@ -17,6 +17,7 @@ import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.enums.District;
@@ -28,6 +29,7 @@ import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewListResponseDT
 import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
+import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -42,16 +44,22 @@ public class LawyerDirectoryService {
     private final LawyerReviewRepo lawyerReviewRepo;
     private final UserRepo userRepo;
     private final CaseRepo caseRepo;
+    private final NotificationService notificationService;
+    private final EmailService emailService;
 
     public LawyerDirectoryService(
             LawyerRepo lawyerRepo,
             LawyerReviewRepo lawyerReviewRepo,
             UserRepo userRepo,
-            CaseRepo caseRepo) {
+            CaseRepo caseRepo,
+            NotificationService notificationService,
+            EmailService emailService) {
         this.lawyerRepo = lawyerRepo;
         this.lawyerReviewRepo = lawyerReviewRepo;
         this.userRepo = userRepo;
         this.caseRepo = caseRepo;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
     }
 
     /**
@@ -137,6 +145,28 @@ public class LawyerDirectoryService {
         lawyerReview.setReview(reviewDTO.getReview());
 
         LawyerReview savedReview = lawyerReviewRepo.save(lawyerReview);
+        
+        UUID lawyerUserId = lawyer.getId();
+        String lawyerEmail = lawyer.getEmail();
+        String clientName = client.getFirstName() + " " + client.getLastName();
+        
+        String subject = "New Client Review Received";
+        String content = String.format("Your client %s has provided feedback for case '%s'.", 
+                clientName, caseEntity.getTitle());
+        
+        notificationService.sendNotification(lawyerUserId, content);
+        
+        Map<String, Object> templateVariables = new HashMap<>();
+        templateVariables.put("notificationType", "Client Review");
+        templateVariables.put("content", content);
+        
+        emailService.sendTemplateEmail(
+            lawyerEmail,
+            subject,
+            "notification-email",
+            templateVariables
+        );
+
         LawyerReviewResponseDTO responseDTO = mapReviewToResponseDTO(savedReview);
 
         return ApiResponse.success(responseDTO, HttpStatus.CREATED, "Review added successfully");

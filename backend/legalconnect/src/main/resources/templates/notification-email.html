@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LegalConnect Notification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6fb;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+            padding: 32px 28px 24px 28px;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 24px auto;
+            max-width: 120px;
+        }
+
+        h2 {
+            color: #1a237e;
+            margin-top: 0;
+            font-weight: 600;
+        }
+
+        .notification-box {
+            background: linear-gradient(90deg, #e8f5e8 0%, #c8e6c9 100%);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 28px 0 18px 0;
+            border-left: 4px solid #4caf50;
+        }
+
+        .notification-content {
+            font-size: 1.1em;
+            color: #1a237e;
+            line-height: 1.5;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .notification-type {
+            background: #1976d2;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        .info {
+            color: #333;
+            font-size: 1.05em;
+            font-weight: 400;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin-top: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .action-button:hover {
+            background: #1565c0;
+        }
+
+        .footer {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 32px;
+            font-weight: 400;
+        }
+
+        .brand {
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        .timestamp {
+            color: #555;
+            font-size: 0.9em;
+            margin-top: 16px;
+            text-align: center;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <img alt="LegalConnect Logo" class="logo" src="https://your-legalconnect-logo-url.com/logo.png">
+    <h2>New Notification</h2>
+    <p class="info">You have received a new notification from <span class="brand">LegalConnect</span>:</p>
+    
+    <div class="notification-box">
+        <div class="notification-type" th:text="${notificationType}">Case Creation</div>
+        <p class="notification-content" th:text="${content}">New case 'Contract Review' has been created by John Doe</p>
+    </div>
+    
+    <p class="info">You can view more details by logging into your LegalConnect account.</p>
+    
+    <div style="text-align: center;">
+        <a href="http://localhost:5173/dashboard" class="action-button">View in Dashboard</a>
+    </div>
+    
+    <div class="timestamp" th:text="${#temporals.format(#temporals.createNow(), 'MMM dd, yyyy HH:mm')}">
+        Jan 15, 2025 14:30
+    </div>
+</div>
+
+<div class="footer">
+    <p>This is an automated message, please do not reply to this email.</p>
+    <p>To manage your notification preferences, visit your account settings.</p>
+    <p>&copy; 2025 LegalConnect. All rights reserved.</p>
+</div>
+</body>
+</html>

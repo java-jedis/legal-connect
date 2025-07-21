@@ -11,8 +11,8 @@
     <groupId>com.java-jedis</groupId>
     <artifactId>legalconnect</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>legalconnect</name>
-    <description>Demo project for Spring Boot</description>
+    <name>LegalConnect</name>
+    <description>Connecting client and lawyers with advance AI features in a singe platform</description>
     <url/>
     <licenses>
         <license/>
@@ -155,6 +155,12 @@
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-calendar</artifactId>
             <version>v3-rev20250404-2.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-quartz</artifactId>
+            <version>3.5.3</version>
         </dependency>
 
         <!-- Actuator for health checks -->

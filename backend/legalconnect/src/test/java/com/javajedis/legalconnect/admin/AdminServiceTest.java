@@ -22,10 +22,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.LawyerSpecializationRepo;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.Role;
 import com.javajedis.legalconnect.user.User;
 
@@ -36,6 +38,12 @@ class AdminServiceTest {
 
     @Mock
     private LawyerSpecializationRepo lawyerSpecializationRepo;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private AdminService adminService;

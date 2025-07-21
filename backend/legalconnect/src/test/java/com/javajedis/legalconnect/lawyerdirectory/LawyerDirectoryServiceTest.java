@@ -32,6 +32,7 @@ import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.enums.District;
@@ -43,6 +44,8 @@ import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewListResponseDT
 import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -55,6 +58,12 @@ class LawyerDirectoryServiceTest {
     private UserRepo userRepo;
     @Mock
     private CaseRepo caseRepo;
+    @Mock
+    private NotificationService notificationService;
+    @Mock
+    private NotificationPreferenceService notificationPreferenceService;
+    @Mock
+    private EmailService emailService;
     @InjectMocks
     private LawyerDirectoryService lawyerDirectoryService;
 

@@ -34,6 +34,7 @@ import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseDTO;
 import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseStatusDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.UserNotFoundException;
+import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.Lawyer;
 import com.javajedis.legalconnect.lawyer.LawyerRepo;
@@ -42,6 +43,8 @@ import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.Role;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
@@ -61,6 +64,15 @@ class CaseManagementServiceTest {
 
     @Mock
     private LawyerRepo lawyerRepo;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private NotificationPreferenceService notificationPreferenceService;
+
+    @Mock
+    private EmailService emailService;
 
     @InjectMocks
     private CaseManagementService caseManagementService;

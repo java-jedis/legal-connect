@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
+import com.javajedis.legalconnect.notifications.exception.NotificationNotFoundException;
+import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
 
 import jakarta.servlet.ServletException;
 import lombok.extern.slf4j.Slf4j;
@@ -100,6 +103,34 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<String>> handleLawyerNotVerified(LawyerNotVerifiedException ex) {
         log.warn("Lawyer not verified: {}", ex.getMessage());
         return ApiResponse.error(ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * Handles notification not found errors.
+     */
+    @ExceptionHandler(NotificationNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleNotificationNotFound(NotificationNotFoundException ex) {
+        log.warn("Notification not found: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Handles notification delivery errors.
+     * These are typically non-critical errors that should not fail the entire operation.
+     */
+    @ExceptionHandler(NotificationDeliveryException.class)
+    public ResponseEntity<ApiResponse<String>> handleNotificationDelivery(NotificationDeliveryException ex) {
+        log.warn("Notification delivery failed: {}", ex.getMessage());
+        return ApiResponse.error("Notification delivery failed, but the notification was saved", HttpStatus.PARTIAL_CONTENT);
+    }
+
+    /**
+     * Handles WebSocket authentication errors.
+     */
+    @ExceptionHandler(WebSocketAuthenticationException.class)
+    public ResponseEntity<ApiResponse<String>> handleWebSocketAuthentication(WebSocketAuthenticationException ex) {
+        log.warn("WebSocket authentication failed: {}", ex.getMessage());
+        return ApiResponse.error("WebSocket authentication failed", HttpStatus.UNAUTHORIZED);
     }
 
     /**

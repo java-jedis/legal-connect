@@ -36,6 +36,9 @@ public class SpringSecurityConfig {
         return http.authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/schedule/oauth/callback").permitAll()
+                        .requestMatchers("/ws/**").permitAll() // Allow WebSocket endpoints
+                        .requestMatchers("/notification-test.html","/websocket-debug.html").permitAll() // Allow notification test page for all
+
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/lawyer/profile", "/lawyer/profile/**","/lawyer/availability-slots","/lawyer/availability-slots/**").authenticated()
                         .requestMatchers("/lawyer/view-credentials", "/lawyer/view-credentials/**").hasAnyRole("LAWYER", "ADMIN")
