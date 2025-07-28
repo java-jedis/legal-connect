@@ -1,5 +1,6 @@
 package com.javajedis.legalconnect.lawyer.dto;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,6 +34,8 @@ public class LawyerInfoDTO {
     private OffsetDateTime lawyerCreatedAt;
     private OffsetDateTime lawyerUpdatedAt;
     private List<SpecializationType> specializations;
+    private BigDecimal hourlyCharge;
+    private Boolean completeProfile;
     
     public String getPracticingCourtDisplayName() {
         return practicingCourt != null ? practicingCourt.getDisplayName() : null;
@@ -57,6 +60,17 @@ public class LawyerInfoDTO {
         return specializations.stream()
                 .map(SpecializationType::getDisplayName)
                 .toList();
+    }
+    
+    public String getHourlyChargeDisplayText() {
+        return hourlyCharge != null ? hourlyCharge.toString() : null;
+    }
+    
+    public String getCompleteProfileDisplayText() {
+        if (completeProfile == null) {
+            return "Unknown";
+        }
+        return completeProfile ? "Complete" : "Incomplete";
     }
 } 
 

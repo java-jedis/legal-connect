@@ -1,5 +1,6 @@
 package com.javajedis.legalconnect.lawyer.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import com.javajedis.legalconnect.lawyer.enums.District;
@@ -7,6 +8,8 @@ import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -48,4 +51,8 @@ public class LawyerProfileDTO {
     
     @Size(min = 1, message = "At least one specialization is required")
     private List<SpecializationType> specializations;
+    
+    @DecimalMin(value = "0.01", message = "Hourly charge must be positive")
+    @Digits(integer = 8, fraction = 2, message = "Hourly charge must have at most 8 digits before decimal and 2 digits after")
+    private BigDecimal hourlyCharge;
 } 

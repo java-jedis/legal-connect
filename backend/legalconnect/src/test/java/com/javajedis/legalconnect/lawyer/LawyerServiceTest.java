@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.javajedis.legalconnect.common.service.AwsService;
 import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
 import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
 import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
+import com.javajedis.legalconnect.lawyer.dto.UpdateHourlyChargeDTO;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
@@ -106,6 +108,7 @@ class LawyerServiceTest {
         testLawyerProfileDTO.setDivision(Division.DHAKA);
         testLawyerProfileDTO.setDistrict(District.DHAKA);
         testLawyerProfileDTO.setBio("Experienced lawyer specializing in corporate law");
+        testLawyerProfileDTO.setHourlyCharge(new BigDecimal("150.00"));
         
         testSpecializations = List.of(SpecializationType.CORPORATE_LAW, SpecializationType.CRIMINAL_LAW);
         testLawyerProfileDTO.setSpecializations(testSpecializations);
@@ -627,6 +630,223 @@ class LawyerServiceTest {
             // Assert
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
             assertNull(result.getBody());
+        }
+    }
+
+    // Tests for updateHourlyCharge method
+    @Test
+    void updateHourlyCharge_success_returnsUpdatedLawyerInfo() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("150.00");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenReturn(testLawyer);
+        when(lawyerSpecializationRepo.findByLawyer(testLawyer)).thenReturn(List.of());
+        
+        LawyerInfoDTO expectedLawyerInfoDTO = new LawyerInfoDTO();
+        expectedLawyerInfoDTO.setHourlyCharge(hourlyCharge);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            mockStatic.when(() -> LawyerUtil.mapLawyerToLawyerInfoDTO(any(Lawyer.class), any())).thenReturn(expectedLawyerInfoDTO);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+            assertNotNull(result.getBody().getData());
+            assertEquals(hourlyCharge, result.getBody().getData().getHourlyCharge());
+            verify(lawyerRepo).save(any(Lawyer.class));
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_setToNull_success_returnsUpdatedLawyerInfo() {
+        // Arrange
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(null);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenReturn(testLawyer);
+        when(lawyerSpecializationRepo.findByLawyer(testLawyer)).thenReturn(List.of());
+        
+        LawyerInfoDTO expectedLawyerInfoDTO = new LawyerInfoDTO();
+        expectedLawyerInfoDTO.setHourlyCharge(null);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            mockStatic.when(() -> LawyerUtil.mapLawyerToLawyerInfoDTO(any(Lawyer.class), any())).thenReturn(expectedLawyerInfoDTO);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+            assertNotNull(result.getBody().getData());
+            assertNull(result.getBody().getData().getHourlyCharge());
+            verify(lawyerRepo).save(any(Lawyer.class));
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_userNotAuthenticated_returnsUnauthorized() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("150.00");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(null);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("User is not authenticated", result.getBody().getError().getMessage());
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_lawyerProfileNotFound_returnsNotFound() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("150.00");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.empty());
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Lawyer profile does not exist", result.getBody().getError().getMessage());
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_databaseSaveFails_returnsInternalServerError() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("150.00");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenThrow(new RuntimeException("Database error"));
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Failed to update hourly charge", result.getBody().getError().getMessage());
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_withPositiveDecimalValue_success() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("99.99");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenReturn(testLawyer);
+        when(lawyerSpecializationRepo.findByLawyer(testLawyer)).thenReturn(List.of());
+        
+        LawyerInfoDTO expectedLawyerInfoDTO = new LawyerInfoDTO();
+        expectedLawyerInfoDTO.setHourlyCharge(hourlyCharge);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            mockStatic.when(() -> LawyerUtil.mapLawyerToLawyerInfoDTO(any(Lawyer.class), any())).thenReturn(expectedLawyerInfoDTO);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+            assertEquals(hourlyCharge, result.getBody().getData().getHourlyCharge());
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_withLargeValue_success() {
+        // Arrange
+        BigDecimal hourlyCharge = new BigDecimal("99999999.99");
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(hourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenReturn(testLawyer);
+        when(lawyerSpecializationRepo.findByLawyer(testLawyer)).thenReturn(List.of());
+        
+        LawyerInfoDTO expectedLawyerInfoDTO = new LawyerInfoDTO();
+        expectedLawyerInfoDTO.setHourlyCharge(hourlyCharge);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            mockStatic.when(() -> LawyerUtil.mapLawyerToLawyerInfoDTO(any(Lawyer.class), any())).thenReturn(expectedLawyerInfoDTO);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+            assertEquals(hourlyCharge, result.getBody().getData().getHourlyCharge());
+        }
+    }
+
+    @Test
+    void updateHourlyCharge_updatesOnlyHourlyChargeField() {
+        // Arrange
+        BigDecimal originalHourlyCharge = new BigDecimal("100.00");
+        BigDecimal newHourlyCharge = new BigDecimal("200.00");
+        
+        testLawyer.setHourlyCharge(originalHourlyCharge);
+        String originalFirm = testLawyer.getFirm();
+        Integer originalExperience = testLawyer.getYearsOfExperience();
+        
+        UpdateHourlyChargeDTO updateHourlyChargeDTO = new UpdateHourlyChargeDTO(newHourlyCharge);
+        
+        when(lawyerRepo.findByUser(testUser)).thenReturn(Optional.of(testLawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenAnswer(invocation -> {
+            Lawyer savedLawyer = invocation.getArgument(0);
+            // Verify only hourly charge was modified
+            assertEquals(newHourlyCharge, savedLawyer.getHourlyCharge());
+            assertEquals(originalFirm, savedLawyer.getFirm());
+            assertEquals(originalExperience, savedLawyer.getYearsOfExperience());
+            return savedLawyer;
+        });
+        when(lawyerSpecializationRepo.findByLawyer(testLawyer)).thenReturn(List.of());
+        
+        LawyerInfoDTO expectedLawyerInfoDTO = new LawyerInfoDTO();
+        expectedLawyerInfoDTO.setHourlyCharge(newHourlyCharge);
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(testUser);
+            mockStatic.when(() -> LawyerUtil.mapLawyerToLawyerInfoDTO(any(Lawyer.class), any())).thenReturn(expectedLawyerInfoDTO);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+            
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            verify(lawyerRepo).save(any(Lawyer.class));
         }
     }
 } 

@@ -136,4 +136,15 @@ public class LawyerController {
         return lawyerAvailabilitySlotService.deleteSlot(slotId);
     }
 
+    /**
+     * Update the hourly charge for the authenticated lawyer.
+     */
+    @Operation(summary = "Update hourly charge", description = "Updates the hourly consultation charge for the authenticated lawyer.")
+    @RequireVerifiedLawyer
+    @PutMapping("/hourly-charge")
+    public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateHourlyCharge(@Valid @RequestBody UpdateHourlyChargeDTO updateHourlyChargeDTO) {
+        log.info("PUT /lawyer/hourly-charge called");
+        return lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
+    }
+
 } 

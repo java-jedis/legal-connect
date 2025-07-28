@@ -162,7 +162,9 @@ public class AdminService {
                 lawyerSpecializationRepo.findByLawyer(lawyer)
                         .stream()
                         .map(LawyerSpecialization::getSpecializationType)
-                        .toList()
+                        .toList(),
+                lawyer.getHourlyCharge(),
+                lawyer.getCompleteProfile()
         );
 
         return new AdminLawyerDTO(
