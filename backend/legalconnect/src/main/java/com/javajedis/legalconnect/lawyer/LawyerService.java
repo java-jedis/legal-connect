@@ -1,16 +1,5 @@
 package com.javajedis.legalconnect.lawyer;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.AwsService;
 import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
@@ -21,11 +10,22 @@ import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LawyerService {
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
     private static final String LAWYER_PROFILE_EXISTS_MSG = "Lawyer profile already exists for this user";
@@ -38,15 +38,6 @@ public class LawyerService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
-    public LawyerService(LawyerRepo lawyerRepo, 
-                        UserRepo userRepo, 
-                        LawyerSpecializationRepo lawyerSpecializationRepo, 
-                        AwsService awsService) {
-        this.lawyerRepo = lawyerRepo;
-        this.userRepo = userRepo;
-        this.lawyerSpecializationRepo = lawyerSpecializationRepo;
-        this.awsService = awsService;
-    }
 
     /**
      * Create a new lawyer profile.
@@ -155,29 +146,29 @@ public class LawyerService {
      */
     public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateHourlyCharge(UpdateHourlyChargeDTO updateHourlyChargeDTO) {
         log.debug("Updating hourly charge");
-        
+
         User user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
         if (user == null) {
             log.warn("Unauthorized hourly charge update attempt");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-        
+
         Lawyer lawyer = lawyerRepo.findByUser(user).orElse(null);
-        if (lawyer==null) {
+        if (lawyer == null) {
             log.warn("Attempt to update hourly charge before profile creation for user: {}", user.getEmail());
             return ApiResponse.error("Lawyer profile does not exist", HttpStatus.NOT_FOUND);
         }
-        
-        
+
+
         lawyer.setHourlyCharge(updateHourlyChargeDTO.getHourlyCharge());
-        
+
         try {
             Lawyer updatedLawyer = lawyerRepo.save(lawyer);
             log.info("Hourly charge updated for lawyer: {} to {}", user.getEmail(), updateHourlyChargeDTO.getHourlyCharge());
 
             List<SpecializationType> specializations = loadLawyerSpecializations(updatedLawyer);
             LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(updatedLawyer, specializations);
-            
+
             return ApiResponse.success(lawyerInfoDTO, HttpStatus.OK, "Hourly charge updated successfully");
         } catch (Exception e) {
             log.error("Failed to update hourly charge for user: {}", user.getEmail(), e);

@@ -1,18 +1,5 @@
 package com.javajedis.legalconnect.lawyerdirectory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
@@ -23,20 +10,28 @@ import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
-import com.javajedis.legalconnect.lawyerdirectory.dto.CreateLawyerReviewDTO;
-import com.javajedis.legalconnect.lawyerdirectory.dto.FindLawyersDTO;
-import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewListResponseDTO;
-import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
-import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
-import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.*;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class LawyerDirectoryService {
     private static final String REVIEW_NOT_FOUND_MSG = "Review not found";
     private static final String CREATED_AT_FIELD = "createdAt";
@@ -47,20 +42,6 @@ public class LawyerDirectoryService {
     private final NotificationService notificationService;
     private final EmailService emailService;
 
-    public LawyerDirectoryService(
-            LawyerRepo lawyerRepo,
-            LawyerReviewRepo lawyerReviewRepo,
-            UserRepo userRepo,
-            CaseRepo caseRepo,
-            NotificationService notificationService,
-            EmailService emailService) {
-        this.lawyerRepo = lawyerRepo;
-        this.lawyerReviewRepo = lawyerReviewRepo;
-        this.userRepo = userRepo;
-        this.caseRepo = caseRepo;
-        this.notificationService = notificationService;
-        this.emailService = emailService;
-    }
 
     /**
      * Finds lawyers based on provided criteria with pagination and sorting.
@@ -145,26 +126,26 @@ public class LawyerDirectoryService {
         lawyerReview.setReview(reviewDTO.getReview());
 
         LawyerReview savedReview = lawyerReviewRepo.save(lawyerReview);
-        
+
         UUID lawyerUserId = lawyer.getId();
         String lawyerEmail = lawyer.getEmail();
         String clientName = client.getFirstName() + " " + client.getLastName();
-        
+
         String subject = "New Client Review Received";
-        String content = String.format("Your client %s has provided feedback for case '%s'.", 
+        String content = String.format("Your client %s has provided feedback for case '%s'.",
                 clientName, caseEntity.getTitle());
-        
+
         notificationService.sendNotification(lawyerUserId, content);
-        
+
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("notificationType", "Client Review");
         templateVariables.put("content", content);
-        
+
         emailService.sendTemplateEmail(
-            lawyerEmail,
-            subject,
-            "notification-email",
-            templateVariables
+                lawyerEmail,
+                subject,
+                "notification-email",
+                templateVariables
         );
 
         LawyerReviewResponseDTO responseDTO = mapReviewToResponseDTO(savedReview);

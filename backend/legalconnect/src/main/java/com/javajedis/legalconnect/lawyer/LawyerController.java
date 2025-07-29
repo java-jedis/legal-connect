@@ -7,6 +7,7 @@ import com.javajedis.legalconnect.lawyer.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,18 +17,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 @Slf4j
-@Tag(name = "3. Lawyer", description = "Lawyer profile management endpoints")
+@Tag(name = "2. Lawyer", description = "Lawyer profile management endpoints")
 @RestController
 @RequestMapping("/lawyer")
+@RequiredArgsConstructor
 public class LawyerController {
 
     private final LawyerService lawyerService;
     private final LawyerAvailabilitySlotService lawyerAvailabilitySlotService;
 
-    public LawyerController(LawyerService lawyerService, LawyerAvailabilitySlotService lawyerAvailabilitySlotService) {
-        this.lawyerService = lawyerService;
-        this.lawyerAvailabilitySlotService = lawyerAvailabilitySlotService;
-    }
 
     /**
      * Create a new lawyer profile.

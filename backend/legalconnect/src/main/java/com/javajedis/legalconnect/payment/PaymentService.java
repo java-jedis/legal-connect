@@ -92,7 +92,7 @@ public class PaymentService {
     /**
      * Completes a payment with transaction details and schedules payment release.
      */
-    public ResponseEntity<ApiResponse<PaymentResponseDTO>> completePayment(CompletePaymentDTO paymentData) {
+    public ResponseEntity<ApiResponse<PaymentResponseDTO>> completePayment(@Valid CompletePaymentDTO paymentData) {
         log.debug("Completing payment with id: {} and transaction id: {}",
                 paymentData.getId(), paymentData.getTransactionId());
 
@@ -106,6 +106,12 @@ public class PaymentService {
             log.warn("Payment completion failed for payment id: {} - {}",
                     paymentData.getId(), checkAuth.get(MESSAGE_STRING));
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
+        }
+
+        // At this point, payment cannot be null due to checkAuthorization logic
+        if (payment == null) {
+            log.error("Payment is null after authorization check for payment id: {}", paymentData.getId());
+            return ApiResponse.error("Payment not found", HttpStatus.NOT_FOUND);
         }
 
         payment.setPaymentMethod(paymentData.getPaymentMethod());
@@ -238,11 +244,14 @@ public class PaymentService {
     /**
      * Internal method to execute payment release logic.
      */
-    @Transactional
     private ResponseEntity<ApiResponse<PaymentResponseDTO>> executePaymentRelease(Payment payment) {
         payment.getPayer().getFirstName();
         payment.getPayee().getEmail();
-        
+
+        if (payment.getPayer() == null || payment.getPayee() == null) {
+            throw new IllegalStateException("Payer or Payee cannot be null for payment release");
+        }
+
         payment.setStatus(PaymentStatus.RELEASED);
         payment.setReleaseAt(OffsetDateTime.now());
         Payment updatedPayment = paymentRepo.save(payment);
@@ -296,6 +305,12 @@ public class PaymentService {
             log.warn("Payment cancellation failed for payment id: {} - {}",
                     paymentId, checkAuth.get(MESSAGE_STRING));
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
+        }
+
+        // At this point, payment cannot be null due to checkAuthorization logic
+        if (payment == null) {
+            log.error("Payment is null after authorization check for payment id: {}", paymentId);
+            return ApiResponse.error("Payment not found", HttpStatus.NOT_FOUND);
         }
 
         payment.setStatus(PaymentStatus.CANCELED);

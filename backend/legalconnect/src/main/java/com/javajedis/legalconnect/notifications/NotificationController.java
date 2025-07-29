@@ -9,6 +9,7 @@ import com.javajedis.legalconnect.user.UserRepo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @Slf4j
-@Tag(name = "7. Notifications", description = "Notification management endpoints")
+@Tag(name = "8. Notifications", description = "Notification management endpoints")
 @RestController
 @RequestMapping("/notifications")
+@RequiredArgsConstructor
 public class NotificationController {
 
     private static final String AUTHENTICATION_REQUIRED_MSG = "Authentication required";
@@ -26,14 +28,6 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final NotificationPreferenceService notificationPreferenceService;
     private final UserRepo userRepo;
-
-    public NotificationController(NotificationService notificationService,
-                                  NotificationPreferenceService notificationPreferenceService,
-                                  UserRepo userRepo) {
-        this.notificationService = notificationService;
-        this.notificationPreferenceService = notificationPreferenceService;
-        this.userRepo = userRepo;
-    }
 
     /**
      * Send a notification to a specific user. This endpoint is intended for internal service calls.

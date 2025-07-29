@@ -1,10 +1,10 @@
 package com.javajedis.legalconnect.user;
 
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.common.utility.JWTUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,14 +14,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
-import com.javajedis.legalconnect.common.utility.JWTUtil;
-
-import lombok.extern.slf4j.Slf4j;
+import java.time.OffsetDateTime;
+import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private static final String USER_NOT_FOUND_MSG = "User not found";
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
@@ -33,20 +33,8 @@ public class UserService {
     private final JWTUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepo userRepo,
-                       StringRedisTemplate redisTemplate,
-                       JWTUtil jwtUtil,
-                       PasswordEncoder passwordEncoder) {
-        this.userRepo = userRepo;
-        this.redisTemplate = redisTemplate;
-        this.jwtUtil = jwtUtil;
-        this.passwordEncoder = passwordEncoder;
-    }
-
     /**
      * Retrieves the current authenticated user's information.
-     *
-     * @return ResponseEntity containing the user's information or error status
      */
     public ResponseEntity<ApiResponse<UserInfoResponseDTO>> getUserInfo() {
         log.debug("Attempting to retrieve current user info");
@@ -76,8 +64,6 @@ public class UserService {
 
     /**
      * Logs out the current user by blacklisting the JWT token in Redis.
-     *
-     * @return ResponseEntity with logout status
      */
     public ResponseEntity<ApiResponse<String>> logout() {
         log.debug("Attempting to logout current user");
@@ -92,7 +78,7 @@ public class UserService {
             return ApiResponse.error("JWT token not found in authentication context", HttpStatus.UNAUTHORIZED);
         }
         String jwtToken = credentials.toString();
-        
+
         // Blacklist the JWT token for the remaining validity period
         Date expiration = jwtUtil.extractExpiration(jwtToken);
         long now = System.currentTimeMillis();
@@ -108,9 +94,6 @@ public class UserService {
 
     /**
      * Changes the current user's password.
-     *
-     * @param data the change password data containing old and new password
-     * @return ResponseEntity indicating whether the password was successfully changed
      */
     public ResponseEntity<ApiResponse<Boolean>> changePassword(ChangePasswordReqDTO data) {
         log.debug("Attempting to change password for current user");

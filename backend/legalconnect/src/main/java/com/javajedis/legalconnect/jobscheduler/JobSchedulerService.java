@@ -1,18 +1,28 @@
 package com.javajedis.legalconnect.jobscheduler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
-import org.quartz.*;
-import org.quartz.impl.matchers.GroupMatcher;
-import org.springframework.stereotype.Service;
-
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.UUID;
 
+import org.quartz.JobBuilder;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.impl.matchers.GroupMatcher;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @Service
+@SuppressWarnings("javaarchitecture:S7091") // Cyclic dependency warning. Will Fix later
 public class JobSchedulerService {
     private static final String WEBPUSH_JOB_PREFIX = "webpush_";
     private static final String EMAIL_JOB_PREFIX = "email_";

@@ -1,23 +1,6 @@
 package com.javajedis.legalconnect.casemanagement;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import com.javajedis.legalconnect.casemanagement.dto.CaseListResponseDTO;
-import com.javajedis.legalconnect.casemanagement.dto.CaseResponseDTO;
-import com.javajedis.legalconnect.casemanagement.dto.CreateCaseDTO;
-import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseDTO;
-import com.javajedis.legalconnect.casemanagement.dto.UpdateCaseStatusDTO;
+import com.javajedis.legalconnect.casemanagement.dto.*;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.UserNotFoundException;
 import com.javajedis.legalconnect.common.service.EmailService;
@@ -30,11 +13,24 @@ import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CaseManagementService {
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
     private static final String CASE_NOT_FOUND_LOG = "Case not found with ID: {}";
@@ -49,20 +45,6 @@ public class CaseManagementService {
     private final NotificationService notificationService;
     private final NotificationPreferenceService notificationPreferenceService;
     private final EmailService emailService;
-
-    public CaseManagementService(CaseRepo caseRepo,
-                                 UserRepo userRepo,
-                                 LawyerRepo lawyerRepo,
-                                 NotificationService notificationService,
-                                 NotificationPreferenceService notificationPreferenceService,
-                                 EmailService emailService) {
-        this.caseRepo = caseRepo;
-        this.userRepo = userRepo;
-        this.lawyerRepo = lawyerRepo;
-        this.notificationService = notificationService;
-        this.notificationPreferenceService = notificationPreferenceService;
-        this.emailService = emailService;
-    }
 
     /**
      * Create a case for the authenticated lawyer.
@@ -118,12 +100,12 @@ public class CaseManagementService {
             Map<String, Object> templateVariables = new HashMap<>();
             templateVariables.put("notificationType", "Case Creation");
             templateVariables.put("content", content);
-            
+
             emailService.sendTemplateEmail(
-                client.getEmail(),
-                subject,
-                "notification-email",
-                templateVariables
+                    client.getEmail(),
+                    subject,
+                    "notification-email",
+                    templateVariables
             );
         }
 
@@ -177,7 +159,7 @@ public class CaseManagementService {
 
         User client = updatedCase.getClient();
         Lawyer lawyer = validation.lawyer;
-        
+
         String subject = "Case status updated";
         String content = String.format("Your case '%s' status has been updated from %s to %s by %s %s",
                 updatedCase.getTitle(),
@@ -196,12 +178,12 @@ public class CaseManagementService {
             Map<String, Object> templateVariables = new HashMap<>();
             templateVariables.put("notificationType", "Case Status Update");
             templateVariables.put("content", content);
-            
+
             emailService.sendTemplateEmail(
-                client.getEmail(),
-                subject,
-                "notification-email",
-                templateVariables
+                    client.getEmail(),
+                    subject,
+                    "notification-email",
+                    templateVariables
             );
         }
 

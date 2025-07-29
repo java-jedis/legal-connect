@@ -6,6 +6,7 @@ import com.javajedis.legalconnect.common.exception.VerificationCodeException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VerificationCodeService {
     private static final String VERIFICATION_PREFIX = "verification:";
     private static final String EMAIL_VERIFICATION_TYPE = "email:";
@@ -29,10 +31,6 @@ public class VerificationCodeService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    public VerificationCodeService(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
-    }
 
     /**
      * Generate a 6-digit OTP code.

@@ -12,11 +12,12 @@ import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventAttendee;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.EventReminder;
+import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -24,32 +25,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
-import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
-
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GoogleCalendarService {
 
     private static final String APPLICATION_NAME = "LegalConnect";
     private static final String TIME_ZONE = "Asia/Dhaka";
     private static final String CALENDAR_ID = "primary";
-    
-    private final OAuthCalendarTokenRepo oAuthCalendarTokenRepo;
 
-    public GoogleCalendarService(OAuthCalendarTokenRepo oAuthCalendarTokenRepo) {
-        this.oAuthCalendarTokenRepo = oAuthCalendarTokenRepo;
-    }
+    private final OAuthCalendarTokenRepo oAuthCalendarTokenRepo;
 
     /**
      * Creates a Google Calendar service instance with the user's access token.
      */
     public Calendar getCalendar(String accessToken) throws Exception {
         log.debug("Creating Google Calendar service with access token");
-        
+
         HttpTransport transport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
-        
+
         Credential credential = new Credential(BearerToken.authorizationHeaderAccessMethod())
                 .setAccessToken(accessToken);
 
@@ -63,16 +58,16 @@ public class GoogleCalendarService {
      */
     public Optional<String> getValidAccessToken(UUID userId) {
         log.debug("Getting access token for user ID: {}", userId);
-        
+
         Optional<OAuthCalendarToken> tokenOptional = oAuthCalendarTokenRepo.findByUserId(userId);
-        
+
         if (tokenOptional.isEmpty()) {
             log.debug("No OAuth tokens found for user: {}", userId);
             return Optional.empty();
         }
 
         OAuthCalendarToken token = tokenOptional.get();
-        
+
         if (token.getAccessToken() == null || token.getAccessToken().isEmpty()) {
             log.debug("No access token present for user: {}", userId);
             return Optional.empty();
@@ -85,9 +80,9 @@ public class GoogleCalendarService {
      * Creates a calendar event for a legal meeting.
      */
     public Event createEvent(CreateCalendarEventDTO eventData) throws Exception {
-        
+
         log.debug("Creating Google Calendar event: {} for date: {}", eventData.getTitle(), eventData.getDate());
-        
+
         Calendar service = getCalendar(eventData.getAccessToken());
 
         Event event = new Event()
@@ -131,7 +126,7 @@ public class GoogleCalendarService {
         // Insert into primary calendar
         Event createdEvent = service.events().insert(CALENDAR_ID, event).execute();
         log.info("Successfully created Google Calendar event with ID: {}", createdEvent.getId());
-        
+
         return createdEvent;
     }
 
@@ -139,9 +134,9 @@ public class GoogleCalendarService {
      * Updates an existing calendar event.
      */
     public Event updateEvent(UpdateCalendarEventDTO eventData) throws Exception {
-        
+
         log.debug("Updating Google Calendar event ID: {}", eventData.getEventId());
-        
+
         Calendar service = getCalendar(eventData.getAccessToken());
         Event event = service.events().get(CALENDAR_ID, eventData.getEventId()).execute();
 
@@ -167,7 +162,7 @@ public class GoogleCalendarService {
 
         Event updatedEvent = service.events().update(CALENDAR_ID, eventData.getEventId(), event).execute();
         log.info("Successfully updated Google Calendar event with ID: {}", eventData.getEventId());
-        
+
         return updatedEvent;
     }
 
@@ -176,10 +171,10 @@ public class GoogleCalendarService {
      */
     public void deleteEvent(String accessToken, String eventId) throws Exception {
         log.debug("Deleting Google Calendar event ID: {}", eventId);
-        
+
         Calendar service = getCalendar(accessToken);
         service.events().delete(CALENDAR_ID, eventId).execute();
-        
+
         log.info("Successfully deleted Google Calendar event with ID: {}", eventId);
     }
 

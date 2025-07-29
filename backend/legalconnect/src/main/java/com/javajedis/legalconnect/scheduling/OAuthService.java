@@ -7,6 +7,11 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -15,11 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -27,10 +27,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class OAuthService {
     private final OAuthCalendarTokenRepo oAuthCalendarTokenRepo;
     private final UserRepo userRepo;
-    
+
     @Value("${google.oauth.client-id}")
     private String clientId;
     @Value("${google.oauth.client-secret}")
@@ -40,14 +41,9 @@ public class OAuthService {
     @Value("${google.oauth.scope}")
     private String scope;
 
-    public OAuthService(OAuthCalendarTokenRepo oAuthCalendarTokenRepo, UserRepo userRepo) {
-        this.oAuthCalendarTokenRepo = oAuthCalendarTokenRepo;
-        this.userRepo = userRepo;
-    }
 
     /**
      * Generates the Google OAuth2 authorization URL for the authenticated user.
-     *
      */
     public ResponseEntity<ApiResponse<String>> oAuthAuthorize() {
         User user = GetUserUtil.getAuthenticatedUser(userRepo);
@@ -65,8 +61,8 @@ public class OAuthService {
                 .queryParam("prompt", "consent")
                 .queryParam("state", user.getId().toString())
                 .build().toUriString();
-            
-        return ApiResponse.success(url,HttpStatus.OK,"OAuth Redirect Url Sent ");
+
+        return ApiResponse.success(url, HttpStatus.OK, "OAuth Redirect Url Sent ");
     }
 
 
@@ -76,7 +72,7 @@ public class OAuthService {
      */
     public ResponseEntity<ApiResponse<String>> callback(@RequestParam("code") String code, @RequestParam("state") String state) {
         log.debug("Processing OAuth callback with authorization code for user ID: {}", state);
-        
+
         try {
             UUID userId = parseUserIdFromState(state);
             if (userId == null) {
@@ -104,12 +100,12 @@ public class OAuthService {
 
             String accessToken = tokenResponse.getAccessToken();
             String refreshToken = tokenResponse.getRefreshToken();
-            
+
             OffsetDateTime accessExpiry = null;
             if (tokenResponse.getExpiresInSeconds() != null) {
                 accessExpiry = OffsetDateTime.now().plusSeconds(tokenResponse.getExpiresInSeconds());
             }
-            
+
             // Refresh tokens typically don't expire or have a very long expiry (6 months)
             // Google doesn't provide refresh token expiry info, so we'll set it to 6 months from now
             OffsetDateTime refreshExpiry = null;
@@ -149,7 +145,7 @@ public class OAuthService {
 
         } catch (Exception e) {
             log.error("Error processing OAuth callback", e);
-            return ApiResponse.error("OAuth authentication failed: " + e.getMessage(), 
+            return ApiResponse.error("OAuth authentication failed: " + e.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -179,7 +175,7 @@ public class OAuthService {
      */
     public boolean refreshAccessToken(UUID userId) {
         log.debug("Attempting to refresh access token for user ID: {}", userId);
-        
+
         try {
             Optional<User> userOptional = userRepo.findById(userId);
             if (userOptional.isEmpty()) {
@@ -224,7 +220,7 @@ public class OAuthService {
 
             storedToken.setAccessToken(newAccessToken);
             storedToken.setAccessExpiry(newAccessExpiry);
-            
+
             if (tokenResponse.getRefreshToken() != null) {
                 storedToken.setRefreshToken(tokenResponse.getRefreshToken());
                 storedToken.setRefreshExpiry(OffsetDateTime.now().plusMonths(6));
@@ -235,7 +231,7 @@ public class OAuthService {
 
             oAuthCalendarTokenRepo.save(storedToken);
 
-            log.info("Successfully refreshed access token for user: {} with new expiry: {}", 
+            log.info("Successfully refreshed access token for user: {} with new expiry: {}",
                     user.getEmail(), newAccessExpiry);
             return true;
 
@@ -247,12 +243,12 @@ public class OAuthService {
 
     /**
      * Checks if the current authenticated user has a valid access token and refreshes it if expired.
-     * 
+     *
      * @return true if user has valid access token (or successfully refreshed), false if no token exists or refresh failed
      */
     public boolean checkAndRefreshAccessToken() {
         log.debug("Checking access token validity for current authenticated user");
-        
+
         try {
             User user = GetUserUtil.getAuthenticatedUser(userRepo);
             if (user == null) {
@@ -264,14 +260,14 @@ public class OAuthService {
             log.debug("Checking access token for user ID: {}", userId);
 
             Optional<OAuthCalendarToken> tokenOptional = oAuthCalendarTokenRepo.findByUserId(user.getId());
-            
+
             if (tokenOptional.isEmpty()) {
                 log.debug("No OAuth tokens found for user: {}", user.getEmail());
                 return false;
             }
 
             OAuthCalendarToken storedToken = tokenOptional.get();
-            
+
             if (storedToken.getAccessToken() == null || storedToken.getAccessToken().isEmpty()) {
                 log.debug("No access token present for user: {}", user.getEmail());
                 return false;
@@ -279,7 +275,7 @@ public class OAuthService {
 
             if (storedToken.getAccessExpiry() != null && storedToken.getAccessExpiry().isBefore(OffsetDateTime.now())) {
                 log.debug("Access token expired for user: {}, attempting to refresh", user.getEmail());
-                
+
                 return refreshAccessToken(userId);
             }
 

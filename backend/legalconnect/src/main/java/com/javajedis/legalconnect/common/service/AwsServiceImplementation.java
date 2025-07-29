@@ -1,31 +1,27 @@
 package com.javajedis.legalconnect.common.service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AwsServiceImplementation implements AwsService {
 
     private final AmazonS3 s3Client;
-
-    public AwsServiceImplementation(AmazonS3 s3Client) {
-        this.s3Client = s3Client;
-    }
 
     // Method to upload a file to an S3 bucket
     @Override

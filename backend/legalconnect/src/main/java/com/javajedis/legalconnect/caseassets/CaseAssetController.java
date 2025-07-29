@@ -1,49 +1,29 @@
 package com.javajedis.legalconnect.caseassets;
 
-import java.util.UUID;
-
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
-import com.javajedis.legalconnect.caseassets.dtos.CreateDocumentDTO;
-import com.javajedis.legalconnect.caseassets.dtos.CreateNoteDTO;
-import com.javajedis.legalconnect.caseassets.dtos.DocumentListResponseDTO;
-import com.javajedis.legalconnect.caseassets.dtos.DocumentResponseDTO;
-import com.javajedis.legalconnect.caseassets.dtos.NoteListResponseDTO;
-import com.javajedis.legalconnect.caseassets.dtos.NoteResponseDTO;
-import com.javajedis.legalconnect.caseassets.dtos.UpdateDocumentDTO;
-import com.javajedis.legalconnect.caseassets.dtos.UpdateNoteDTO;
+import com.javajedis.legalconnect.caseassets.dtos.*;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.UUID;
 
 @Slf4j
-@Tag(name = "5. Case Assets", description = "Case assets management endpoints for notes and documents")
+@Tag(name = "4. Case Assets", description = "Case assets management endpoints for notes and documents")
 @RestController
 @RequestMapping("/case-assets")
 @RequireUserOrVerifiedLawyer
+@RequiredArgsConstructor
 public class CaseAssetController {
-    
-    private final CaseAssetService caseAssetService;
 
-    public CaseAssetController(CaseAssetService caseAssetService) {
-        this.caseAssetService = caseAssetService;
-    }
+    private final CaseAssetService caseAssetService;
 
     /**
      * Create a new note for a case.
@@ -97,7 +77,7 @@ public class CaseAssetController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
-        log.info("GET /case-assets/cases/{}/notes called with page={}, size={}, sortDirection={}", 
+        log.info("GET /case-assets/cases/{}/notes called with page={}, size={}, sortDirection={}",
                 caseId, page, size, sortDirection);
         return caseAssetService.getAllNotesForCase(caseId, page, size, sortDirection);
     }
@@ -162,7 +142,7 @@ public class CaseAssetController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
-        log.info("GET /case-assets/cases/{}/documents called with page={}, size={}, sortDirection={}", 
+        log.info("GET /case-assets/cases/{}/documents called with page={}, size={}, sortDirection={}",
                 caseId, page, size, sortDirection);
         return caseAssetService.getAllDocumentsForCase(caseId, page, size, sortDirection);
     }

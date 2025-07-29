@@ -1,18 +1,5 @@
 package com.javajedis.legalconnect.admin;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.lawyer.Lawyer;
@@ -23,27 +10,29 @@ import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.UserInfoResponseDTO;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AdminService {
-
     private final LawyerRepo lawyerRepo;
     private final LawyerSpecializationRepo lawyerSpecializationRepo;
     private final NotificationService notificationService;
     private final EmailService emailService;
-
-    public AdminService(LawyerRepo lawyerRepo,
-                        LawyerSpecializationRepo lawyerSpecializationRepo,
-                        NotificationService notificationService,
-                        EmailService emailService) {
-        this.lawyerRepo = lawyerRepo;
-        this.lawyerSpecializationRepo = lawyerSpecializationRepo;
-        this.notificationService = notificationService;
-        this.emailService = emailService;
-    }
 
     /**
      * Get lawyers by verification status with pagination support.
@@ -100,27 +89,27 @@ public class AdminService {
 
         lawyer.setVerificationStatus(status);
         Lawyer updatedLawyer = lawyerRepo.save(lawyer);
-        
+
         UUID lawyerUserId = lawyer.getUser().getId();
         String lawyerEmail = lawyer.getUser().getEmail();
-        
+
         String subject = "Lawyer Verification Status Updated";
         String content = String.format("Your lawyer verification status has been updated to %s by the admin.", status);
-        
-  
+
+
         notificationService.sendNotification(lawyerUserId, content);
         log.info("Web push notification sent to lawyer: {} for verification status update", lawyerEmail);
-   
+
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put("notificationType", "Verification Status Update");
         templateVariables.put("content", content);
-            
+
         emailService.sendTemplateEmail(
-            lawyerEmail,
-            subject,
-            "notification-email",
-            templateVariables
-            );
+                lawyerEmail,
+                subject,
+                "notification-email",
+                templateVariables
+        );
 
         AdminLawyerDTO lawyerDTO = convertToAdminLawyerDTO(updatedLawyer);
 
