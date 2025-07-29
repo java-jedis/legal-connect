@@ -1,20 +1,5 @@
 package com.javajedis.legalconnect.payment;
 
-import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.exception.UserNotFoundException;
 import com.javajedis.legalconnect.common.service.EmailService;
@@ -26,10 +11,23 @@ import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Service for handling payment operations including creation, completion, release, and cancellation.
@@ -108,12 +106,7 @@ public class PaymentService {
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
         }
 
-        // At this point, payment cannot be null due to checkAuthorization logic
-        if (payment == null) {
-            log.error("Payment is null after authorization check for payment id: {}", paymentData.getId());
-            return ApiResponse.error("Payment not found", HttpStatus.NOT_FOUND);
-        }
-
+        assert payment != null; // At this point, payment cannot be null due to checkAuthorization logic
         payment.setPaymentMethod(paymentData.getPaymentMethod());
         payment.setTransactionId(paymentData.getTransactionId());
         payment.setPaymentDate(paymentData.getPaymentDate());
@@ -214,6 +207,7 @@ public class PaymentService {
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
         }
 
+        assert payment != null; //
         return executePaymentRelease(payment);
     }
 
@@ -307,12 +301,7 @@ public class PaymentService {
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
         }
 
-        // At this point, payment cannot be null due to checkAuthorization logic
-        if (payment == null) {
-            log.error("Payment is null after authorization check for payment id: {}", paymentId);
-            return ApiResponse.error("Payment not found", HttpStatus.NOT_FOUND);
-        }
-
+        assert payment != null; // At this point, payment cannot be null due to checkAuthorization logic
         payment.setStatus(PaymentStatus.CANCELED);
         Payment updatedPayment = paymentRepo.save(payment);
         log.info("Payment canceled successfully with id: {}", updatedPayment.getId());

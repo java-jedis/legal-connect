@@ -21,6 +21,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -50,12 +52,14 @@ class JobSchedulerServiceTest {
     private UUID testTaskId;
     private UUID testRecipientId;
     private String testReceiverEmail;
+    private UUID testPaymentId;
 
     @BeforeEach
     void setUp() {
         testTaskId = UUID.randomUUID();
         testRecipientId = UUID.randomUUID();
         testReceiverEmail = "test@example.com";
+        testPaymentId = UUID.randomUUID();
 
         webPushJobDTO = new WebPushJobDTO();
         webPushJobDTO.setTaskId(testTaskId);
@@ -523,5 +527,140 @@ class JobSchedulerServiceTest {
 
         // Then
         verify(scheduler, times(1)).scheduleJob(any(JobDetail.class), any(Trigger.class));
+    }
+
+    // Payment Release Scheduling Tests
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 24, 48, 12})
+    @DisplayName("Should schedule payment release successfully with different time offsets")
+    void schedulePaymentRelease_Success(int hoursOffset) throws SchedulerException {
+        // Given
+        OffsetDateTime releaseAt = OffsetDateTime.now().plusHours(hoursOffset);
+
+        // When
+        assertDoesNotThrow(() -> jobSchedulerService.schedulePaymentRelease(testPaymentId, releaseAt));
+
+        // Then
+        verify(scheduler, times(1)).scheduleJob(any(JobDetail.class), any(Trigger.class));
+    }
+
+    @Test
+    @DisplayName("Should handle scheduler exception when scheduling payment release")
+    void schedulePaymentRelease_SchedulerException() throws SchedulerException {
+        // Given
+        OffsetDateTime releaseAt = OffsetDateTime.now().plusDays(1);
+        doThrow(new SchedulerException("Scheduler error")).when(scheduler)
+                .scheduleJob(any(JobDetail.class), any(Trigger.class));
+
+        // When
+        assertDoesNotThrow(() -> jobSchedulerService.schedulePaymentRelease(testPaymentId, releaseAt));
+
+        // Then
+        verify(scheduler, times(1)).scheduleJob(any(JobDetail.class), any(Trigger.class));
+    }
+
+    @Test
+    @DisplayName("Should handle graceful error handling for scheduling failures")
+    void schedulePaymentRelease_SchedulingFailure_GracefulHandling() throws SchedulerException {
+        // Given
+        OffsetDateTime releaseAt = OffsetDateTime.now().plusHours(6);
+        doThrow(new SchedulerException("Job scheduling failed")).when(scheduler)
+                .scheduleJob(any(JobDetail.class), any(Trigger.class));
+
+        // When
+        assertDoesNotThrow(() -> jobSchedulerService.schedulePaymentRelease(testPaymentId, releaseAt));
+
+        // Then
+        verify(scheduler, times(1)).scheduleJob(any(JobDetail.class), any(Trigger.class));
+    }
+
+    @Test
+    @DisplayName("Should validate graceful error handling without propagation")
+    void schedulePaymentRelease_ErrorHandling_NoPropagation() throws SchedulerException {
+        // Given
+        OffsetDateTime releaseAt = OffsetDateTime.now().plusDays(3);
+        doThrow(new SchedulerException("Critical scheduler error")).when(scheduler)
+                .scheduleJob(any(JobDetail.class), any(Trigger.class));
+
+        // When & Then - Should not throw exception
+        assertDoesNotThrow(() -> jobSchedulerService.schedulePaymentRelease(testPaymentId, releaseAt));
+        verify(scheduler, times(1)).scheduleJob(any(JobDetail.class), any(Trigger.class));
+    }
+
+    // Payment Release Deletion Tests
+
+    @Test
+    @DisplayName("Should delete payment release successfully")
+    void deletePaymentRelease_Success() throws SchedulerException {
+        // Given
+        when(scheduler.deleteJob(any(JobKey.class))).thenReturn(true);
+
+        // When
+        assertDoesNotThrow(() -> jobSchedulerService.deletePaymentRelease(testPaymentId));
+
+        // Then
+        verify(scheduler, times(1)).deleteJob(any(JobKey.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Scheduler error", "Job deletion failed", "Critical deletion error"})
+    @DisplayName("Should handle scheduler exceptions when deleting payment release")
+    void deletePaymentRelease_SchedulerException(String errorMessage) throws SchedulerException {
+        // Given
+        doThrow(new SchedulerException(errorMessage)).when(scheduler)
+                .deleteJob(any(JobKey.class));
+
+        // When
+        assertDoesNotThrow(() -> jobSchedulerService.deletePaymentRelease(testPaymentId));
+
+        // Then
+        verify(scheduler, times(1)).deleteJob(any(JobKey.class));
+    }
+
+    // Payment Release Existence Check Tests
+
+    @Test
+    @DisplayName("Should return true when payment release job exists")
+    void paymentReleaseJobExists_JobExists_ReturnsTrue() throws SchedulerException {
+        // Given
+        when(scheduler.checkExists(any(JobKey.class))).thenReturn(true);
+
+        // When
+        boolean exists = jobSchedulerService.paymentReleaseJobExists(testPaymentId);
+
+        // Then
+        assertTrue(exists);
+        verify(scheduler, times(1)).checkExists(any(JobKey.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment release job does not exist")
+    void paymentReleaseJobExists_JobNotExists_ReturnsFalse() throws SchedulerException {
+        // Given
+        when(scheduler.checkExists(any(JobKey.class))).thenReturn(false);
+
+        // When
+        boolean exists = jobSchedulerService.paymentReleaseJobExists(testPaymentId);
+
+        // Then
+        assertFalse(exists);
+        verify(scheduler, times(1)).checkExists(any(JobKey.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Scheduler error", "Existence check failed", "Critical existence check error"})
+    @DisplayName("Should handle scheduler exceptions when checking payment release job exists")
+    void paymentReleaseJobExists_SchedulerException(String errorMessage) throws SchedulerException {
+        // Given
+        doThrow(new SchedulerException(errorMessage)).when(scheduler)
+                .checkExists(any(JobKey.class));
+
+        // When
+        boolean exists = jobSchedulerService.paymentReleaseJobExists(testPaymentId);
+
+        // Then
+        assertFalse(exists);
+        verify(scheduler, times(1)).checkExists(any(JobKey.class));
     }
 }
