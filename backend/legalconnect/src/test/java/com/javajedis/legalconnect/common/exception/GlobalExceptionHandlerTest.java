@@ -24,6 +24,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import com.javajedis.legalconnect.chat.exception.ChatDeliveryException;
+import com.javajedis.legalconnect.chat.exception.ConversationNotFoundException;
+import com.javajedis.legalconnect.chat.exception.MessageNotFoundException;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 
 import jakarta.servlet.ServletException;
@@ -322,5 +325,105 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("An unexpected runtime error occurred", response.getBody().getError().getMessage());
+    }
+
+    // Chat Exception Tests
+
+    @Test
+    @DisplayName("Should handle ConversationNotFoundException")
+    void shouldHandleConversationNotFoundException() {
+        // Given
+        ConversationNotFoundException exception = new ConversationNotFoundException("Conversation not found");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleConversationNotFound(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Conversation not found", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle MessageNotFoundException")
+    void shouldHandleMessageNotFoundException() {
+        // Given
+        MessageNotFoundException exception = new MessageNotFoundException("Message not found");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleMessageNotFound(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Message not found", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle ChatDeliveryException")
+    void shouldHandleChatDeliveryException() {
+        // Given
+        ChatDeliveryException exception = new ChatDeliveryException("Chat delivery failed");
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleChatDelivery(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.PARTIAL_CONTENT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Message delivery failed, but the message was saved", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle ConversationNotFoundException with null message")
+    void shouldHandleConversationNotFoundExceptionWithNullMessage() {
+        // Given
+        ConversationNotFoundException exception = new ConversationNotFoundException(null);
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleConversationNotFound(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(null, response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle MessageNotFoundException with cause")
+    void shouldHandleMessageNotFoundExceptionWithCause() {
+        // Given
+        Throwable cause = new RuntimeException("Database error");
+        MessageNotFoundException exception = new MessageNotFoundException("Message not found", cause);
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleMessageNotFound(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Message not found", response.getBody().getError().getMessage());
+    }
+
+    @Test
+    @DisplayName("Should handle ChatDeliveryException with cause")
+    void shouldHandleChatDeliveryExceptionWithCause() {
+        // Given
+        Throwable cause = new RuntimeException("WebSocket connection failed");
+        ChatDeliveryException exception = new ChatDeliveryException("Chat delivery failed", cause);
+
+        // When
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleChatDelivery(exception);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.PARTIAL_CONTENT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Message delivery failed, but the message was saved", response.getBody().getError().getMessage());
     }
 } 

@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.chat.exception.ChatDeliveryException;
+import com.javajedis.legalconnect.chat.exception.ConversationNotFoundException;
+import com.javajedis.legalconnect.chat.exception.MessageNotFoundException;
 import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
 import com.javajedis.legalconnect.notifications.exception.NotificationNotFoundException;
 import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
@@ -131,6 +134,34 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<String>> handleWebSocketAuthentication(WebSocketAuthenticationException ex) {
         log.warn("WebSocket authentication failed: {}", ex.getMessage());
         return ApiResponse.error("WebSocket authentication failed", HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
+     * Handles conversation not found errors.
+     */
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleConversationNotFound(ConversationNotFoundException ex) {
+        log.warn("Conversation not found: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Handles message not found errors.
+     */
+    @ExceptionHandler(MessageNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleMessageNotFound(MessageNotFoundException ex) {
+        log.warn("Message not found: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * Handles chat delivery errors.
+     * These are typically non-critical errors that should not fail the entire operation.
+     */
+    @ExceptionHandler(ChatDeliveryException.class)
+    public ResponseEntity<ApiResponse<String>> handleChatDelivery(ChatDeliveryException ex) {
+        log.warn("Chat delivery failed: {}", ex.getMessage());
+        return ApiResponse.error("Message delivery failed, but the message was saved", HttpStatus.PARTIAL_CONTENT);
     }
 
     /**
