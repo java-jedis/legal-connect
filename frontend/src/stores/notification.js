@@ -99,8 +99,10 @@ export const useNotificationStore = defineStore("notification", () => {
         // Only use cached connection status if it's recent (within last 5 minutes)
         const isRecent =
           status.timestamp && Date.now() - status.timestamp < 5 * 60 * 1000;
+        console.log('NotificationStore: Loading cached connection status:', status, 'isRecent:', isRecent);
         if (isRecent) {
           isConnected.value = status.isConnected;
+          console.log('NotificationStore: Set isConnected from cache to:', status.isConnected);
         }
       }
     } catch (err) {
@@ -125,40 +127,21 @@ export const useNotificationStore = defineStore("notification", () => {
     }
 
     try {
-      // Set up event callbacks
       websocketManager.setEventCallbacks({
-        onConnect: () => {
-          isConnected.value = true;
-          error.value = null;
-
-          // Cache connection status
+        onConnectionChange: (connected) => {
+          console.log('NotificationStore: Connection status changed to:', connected);
+          isConnected.value = connected;
+          if (connected) {
+            error.value = null;
+            fetchUnreadCount();
+          }
           _cacheConnectionStatus();
-
-          // Broadcast connection status to other tabs
-          _broadcastConnectionStatus(true);
-        },
-        onDisconnect: () => {
-          isConnected.value = false;
-
-          // Cache connection status
-          _cacheConnectionStatus();
-
-          // Broadcast connection status to other tabs
-          _broadcastConnectionStatus(false);
+          _broadcastConnectionStatus(connected);
         },
         onError: (err) => {
           console.error("WebSocket error:", err);
           error.value = err.message;
           isConnected.value = false;
-        },
-        onReconnect: () => {
-          isConnected.value = true;
-          error.value = null;
-          // Refresh notifications after reconnection
-          fetchUnreadCount();
-
-          // Broadcast connection status to other tabs
-          _broadcastConnectionStatus(true);
         },
       });
 

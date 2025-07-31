@@ -5,11 +5,14 @@ import NotificationBanner from '@/components/NotificationBanner.vue'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { useChatStore } from '@/stores/chat'
 import { ref, onMounted, watch } from 'vue'
+import { initializeApp } from './services/init';
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const chatStore = useChatStore()
 
 // Connection warning state
 const showConnectionWarning = ref(false)
@@ -28,29 +31,20 @@ const dismissConnectionWarning = () => {
   showConnectionWarning.value = false
 }
 
-onMounted(() => {
-  themeStore.initTheme()
-  console.log('Theme initialized:', themeStore.isDark ? 'dark' : 'light')
-  
-  // Initialize notification store if user is logged in
-  // This handles page refresh and maintains connection state
-  if (authStore.isLoggedIn) {
-    notificationStore.initialize().then(() => {
-      console.log('Notification system initialized on page load')
-    }).catch(error => {
-      console.error('Failed to initialize notification system on page load:', error)
-    })
-  }
-})
+onMounted(async () => {
+  themeStore.initTheme();
+  console.log('Theme initialized:', themeStore.isDark ? 'dark' : 'light');
+  await initializeApp();
+});
 
-// Watch for auth state changes to initialize/cleanup notification store
-watch(() => authStore.isLoggedIn, (isLoggedIn) => {
-  if (isLoggedIn) {
-    notificationStore.initialize()
-  } else {
-    notificationStore.cleanup()
+// Watch for auth state changes to initialize/cleanup notification and chat stores
+watch(() => authStore.isLoggedIn, async (isLoggedIn) => {
+  if (!isLoggedIn) {
+    await notificationStore.cleanup();
+    await chatStore.cleanup();
+    console.log('Notification and chat systems cleaned up after logout.');
   }
-})
+});
 
 // Watch for connection status changes to show persistent warning after delay
 watch(() => notificationStore.isConnected, (isConnected, oldValue) => {

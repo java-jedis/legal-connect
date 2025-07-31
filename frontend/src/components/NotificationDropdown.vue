@@ -30,21 +30,7 @@
         />
       </svg>
 
-      <!-- Connection Status Indicator -->
-      <span
-        v-if="isConnected !== null"
-        class="connection-status"
-        :class="{
-          'connection-status--connected': isConnected,
-          'connection-status--disconnected': !isConnected,
-        }"
-        :title="
-          isConnected
-            ? 'Connected to notifications'
-            : 'Disconnected from notifications'
-        "
-        aria-hidden="true"
-      ></span>
+      
 
       <!-- Unread Count Badge -->
       <span
@@ -98,62 +84,7 @@
         </button>
       </div>
 
-      <!-- Connection Status Banner -->
-      <div v-if="!isConnected && isOpen" class="connection-status-banner">
-        <svg
-          class="warning-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span>
-          <template v-if="reconnectionStatus.reconnecting">
-            Reconnecting... (Attempt {{ reconnectionStatus.attempt }}/{{
-              reconnectionStatus.maxAttempts
-            }})
-          </template>
-          <template v-else-if="reconnectionStatus.maxAttemptsReached">
-            Failed to reconnect after
-            {{ reconnectionStatus.maxAttempts }} attempts
-          </template>
-          <template v-else> Disconnected from notification service </template>
-        </span>
-        <button
-          @click="reconnectWebSocket"
-          class="reconnect-btn"
-          :disabled="reconnectionStatus.reconnecting"
-        >
-          <template v-if="reconnectionStatus.reconnecting">
-            <svg class="loading-spinner-small" viewBox="0 0 24 24">
-              <circle
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="2"
-                fill="none"
-                opacity="0.3"
-              />
-              <path
-                d="M12 2a10 10 0 0 1 10 10"
-                stroke="currentColor"
-                stroke-width="2"
-                fill="none"
-              />
-            </svg>
-            Reconnecting...
-          </template>
-          <template v-else> Reconnect </template>
-        </button>
-      </div>
+      
 
       <!-- Notifications List -->
       <div class="notification-list" ref="notificationListRef">
@@ -372,6 +303,9 @@ const toggleDropdown = async () => {
   isOpen.value = !isOpen.value;
 
   if (isOpen.value) {
+    // Debug: Log connection status when opening dropdown
+    console.log('NotificationDropdown: Opening dropdown, isConnected:', isConnected.value);
+    
     // Fetch notifications when opening dropdown
     if (notifications.value.length === 0) {
       await notificationStore.fetchNotifications(0, 10, false);
@@ -451,6 +385,7 @@ const reconnectWebSocket = async () => {
   try {
     // Set local reconnecting state
     reconnectionStatus.value.reconnecting = true;
+    reconnectionStatus.value.error = null;
 
     // Use the manual reconnect method from the notification store
     const success = await notificationStore.manualReconnect();
@@ -463,12 +398,18 @@ const reconnectWebSocket = async () => {
       if (isOpen.value) {
         await notificationStore.fetchNotifications(0, 10, false);
       }
+      
+      // Reset reconnection status on success
+      reconnectionStatus.value.maxAttemptsReached = false;
     }
   } catch (error) {
     console.error("Failed to reconnect WebSocket:", error);
 
     // Update local reconnection status with error
     reconnectionStatus.value.error = error.message;
+  } finally {
+    // Always reset reconnecting state
+    reconnectionStatus.value.reconnecting = false;
   }
 };
 
@@ -620,7 +561,8 @@ const handleTouchEnd = async (event, notification) => {
 // Watch for store initialization
 watch(
   () => notificationStore.isConnected,
-  (isConnected) => {
+  (isConnected, oldValue) => {
+    console.log('NotificationDropdown: Connection status changed from', oldValue, 'to', isConnected);
     if (isConnected) {
       // Refresh unread count when WebSocket connects
       notificationStore.fetchUnreadCount();

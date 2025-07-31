@@ -228,6 +228,12 @@ export const lawyerAPI = {
     );
     return response.data;
   },
+
+  // Update hourly charge
+  updateHourlyCharge: async (hourlyCharge) => {
+    const response = await api.put("/lawyer/hourly-charge", { hourlyCharge });
+    return response.data;
+  },
 };
 
 // Admin API methods
@@ -358,9 +364,12 @@ export const notificationAPI = {
    */
   getNotifications: async (page = 0, size = 10, unreadOnly = false) => {
     try {
-      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.GET_ALL, {
-        params: { page, size, unreadOnly },
-      });
+      const response = await api.get(
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.GET_ALL,
+        {
+          params: { page, size, unreadOnly },
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -374,7 +383,9 @@ export const notificationAPI = {
    */
   getUnreadCount: async () => {
     try {
-      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT);
+      const response = await api.get(
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching unread count:", error);
@@ -389,7 +400,10 @@ export const notificationAPI = {
    */
   markAsRead: async (notificationId) => {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_AS_READ.replace('{id}', notificationId);
+      const endpoint = API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_AS_READ.replace(
+        "{id}",
+        notificationId
+      );
       const response = await api.put(endpoint);
       return response.data;
     } catch (error) {
@@ -404,7 +418,9 @@ export const notificationAPI = {
    */
   markAllAsRead: async () => {
     try {
-      const response = await api.put(API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ);
+      const response = await api.put(
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ
+      );
       return response.data;
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
@@ -418,7 +434,9 @@ export const notificationAPI = {
    */
   getPreferences: async () => {
     try {
-      const response = await api.get(API_CONFIG.ENDPOINTS.NOTIFICATIONS.PREFERENCES);
+      const response = await api.get(
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.PREFERENCES
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching notification preferences:", error);
@@ -436,7 +454,11 @@ export const notificationAPI = {
    */
   updatePreference: async (type, preferences) => {
     try {
-      const endpoint = API_CONFIG.ENDPOINTS.NOTIFICATIONS.UPDATE_PREFERENCE.replace('{type}', type);
+      const endpoint =
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.UPDATE_PREFERENCE.replace(
+          "{type}",
+          type
+        );
       const response = await api.put(endpoint, {
         emailEnabled: preferences.emailEnabled,
         webPushEnabled: preferences.webPushEnabled,
@@ -458,7 +480,10 @@ export const notificationAPI = {
    */
   sendNotification: async (notificationData) => {
     try {
-      const response = await api.post(API_CONFIG.ENDPOINTS.NOTIFICATIONS.SEND, notificationData);
+      const response = await api.post(
+        API_CONFIG.ENDPOINTS.NOTIFICATIONS.SEND,
+        notificationData
+      );
       return response.data;
     } catch (error) {
       console.error("Error sending notification:", error);
@@ -567,6 +592,75 @@ export const caseAssetsAPI = {
         responseType: "blob",
       }
     );
+    return response.data;
+  },
+};
+
+// Chat API methods
+export const chatAPI = {
+  /**
+   * Send a message to another user
+   * Creates a new conversation if one doesn't exist between the participants
+   * @param {Object} messageData - Message data
+   * @param {string} messageData.receiverId - UUID of the receiver
+   * @param {string} messageData.content - Message content (1-1000 characters)
+   * @returns {Promise<Object>} Response containing sent message
+   */
+  sendMessage: async (messageData) => {
+    const response = await api.post(API_CONFIG.ENDPOINTS.CHAT.SEND_MESSAGE, messageData);
+    return response.data;
+  },
+
+  /**
+   * Get all conversations for the authenticated user
+   * Returns conversations ordered by most recent activity with unread counts and latest messages
+   * @returns {Promise<Object>} Response containing conversations list
+   */
+  getConversations: async () => {
+    const response = await api.get(API_CONFIG.ENDPOINTS.CHAT.GET_CONVERSATIONS);
+    return response.data;
+  },
+
+  /**
+   * Get messages for a specific conversation with pagination support
+   * Only participants of the conversation can access its messages
+   * @param {string} conversationId - UUID of the conversation
+   * @param {number} page - Page number (default: 0)
+   * @param {number} size - Page size (default: 20)
+   * @returns {Promise<Object>} Response containing messages list
+   */
+  getConversationMessages: async (conversationId, page = 0, size = 20) => {
+    const endpoint = API_CONFIG.ENDPOINTS.CHAT.GET_CONVERSATION_MESSAGES.replace(
+      "{id}",
+      conversationId
+    );
+    const response = await api.get(endpoint, {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  /**
+   * Mark all messages in a conversation as read for the authenticated user
+   * Only messages sent by other participants will be marked as read
+   * @param {string} conversationId - UUID of the conversation
+   * @returns {Promise<Object>} Response containing success status
+   */
+  markConversationAsRead: async (conversationId) => {
+    const endpoint = API_CONFIG.ENDPOINTS.CHAT.MARK_CONVERSATION_READ.replace(
+      "{id}",
+      conversationId
+    );
+    const response = await api.put(endpoint);
+    return response.data;
+  },
+
+  /**
+   * Get the total count of unread messages for the authenticated user across all conversations
+   * @returns {Promise<Object>} Response containing total unread count
+   */
+  getUnreadCount: async () => {
+    const response = await api.get(API_CONFIG.ENDPOINTS.CHAT.UNREAD_COUNT);
     return response.data;
   },
 };

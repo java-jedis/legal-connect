@@ -23,6 +23,13 @@ export const API_CONFIG = {
       UPDATE_PREFERENCE: "/notifications/preferences/{type}",
       SEND: "/notifications/send",
     },
+    CHAT: {
+      SEND_MESSAGE: "/chat/send",
+      GET_CONVERSATIONS: "/chat/conversations",
+      GET_CONVERSATION_MESSAGES: "/chat/conversations/{id}/messages",
+      MARK_CONVERSATION_READ: "/chat/conversations/{id}/read",
+      UNREAD_COUNT: "/chat/unread-count",
+    },
   },
 
   // Request timeout in milliseconds

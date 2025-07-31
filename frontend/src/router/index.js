@@ -115,6 +115,19 @@ const router = createRouter({
       meta: { requiresAuth: true },
       props: true,
     },
+    {
+      path: "/chat",
+      name: "chat-inbox",
+      component: () => import("../views/ChatInboxView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
+      path: "/chat/:id",
+      name: "chat-conversation",
+      component: () => import("../views/ChatConversationDetailView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+      props: true,
+    },
   ],
 });
 
@@ -162,6 +175,24 @@ router.beforeEach(async (to, from, next) => {
     // Allow access to lawyer dashboard - the component will handle the verification logic
     next();
     return;
+  }
+
+  // Chat conversation access validation
+  if (to.name === "chat-conversation" && to.params.id) {
+    try {
+      // Import chat service dynamically to avoid circular dependencies
+      const { chatService } = await import("../services/chatService");
+      
+      // Try to fetch conversation messages to validate access.
+      // A non-2xx response (like 403 Forbidden or 404 Not Found) will throw an error
+      // and be caught by the catch block.
+      await chatService.getConversationMessages(to.params.id, 0, 1);
+    } catch (error) {
+      // If there's an error (e.g., access denied, conversation not found), redirect.
+      console.warn(`Error or access denied for conversation ${to.params.id}:`, error.message);
+      next("/chat");
+      return;
+    }
   }
 
   next();
