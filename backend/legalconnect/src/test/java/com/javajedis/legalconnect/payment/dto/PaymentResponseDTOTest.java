@@ -24,7 +24,7 @@ class PaymentResponseDTOTest {
     private UUID testId;
     private UUID testPayeeId;
     private UUID testPayerId;
-    private UUID testRefId;
+    private UUID testmeetingId;
     private BigDecimal testAmount;
     private PaymentStatus testStatus;
     private PaymentMethod testPaymentMethod;
@@ -39,7 +39,7 @@ class PaymentResponseDTOTest {
         testId = UUID.randomUUID();
         testPayeeId = UUID.randomUUID();
         testPayerId = UUID.randomUUID();
-        testRefId = UUID.randomUUID();
+        testmeetingId = UUID.randomUUID();
         testAmount = new BigDecimal("100.00");
         testStatus = PaymentStatus.PENDING;
         testPaymentMethod = PaymentMethod.CARD;
@@ -57,7 +57,7 @@ class PaymentResponseDTOTest {
         assertNull(dto.getId());
         assertNull(dto.getPayeeId());
         assertNull(dto.getPayerId());
-        assertNull(dto.getRefId());
+        assertNull(dto.getMeetingId());
         assertNull(dto.getAmount());
         assertNull(dto.getStatus());
         assertNull(dto.getPaymentMethod());
@@ -71,7 +71,7 @@ class PaymentResponseDTOTest {
     @DisplayName("Should create DTO with all-args constructor")
     void testAllArgsConstructor() {
         PaymentResponseDTO dto = new PaymentResponseDTO(
-            testId, testPayeeId, testPayerId, testRefId, testAmount, 
+            testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
             testPaymentDate, testCreatedAt, testUpdatedAt
         );
@@ -79,7 +79,7 @@ class PaymentResponseDTOTest {
         assertEquals(testId, dto.getId());
         assertEquals(testPayeeId, dto.getPayeeId());
         assertEquals(testPayerId, dto.getPayerId());
-        assertEquals(testRefId, dto.getRefId());
+        assertEquals(testmeetingId, dto.getMeetingId());
         assertEquals(testAmount, dto.getAmount());
         assertEquals(testStatus, dto.getStatus());
         assertEquals(testPaymentMethod, dto.getPaymentMethod());
@@ -112,9 +112,9 @@ class PaymentResponseDTOTest {
 
     @Test
     @DisplayName("Should set and get reference ID")
-    void testRefIdGetterSetter() {
-        paymentResponseDTO.setRefId(testRefId);
-        assertEquals(testRefId, paymentResponseDTO.getRefId());
+    void testmeetingIdGetterSetter() {
+        paymentResponseDTO.setMeetingId(testmeetingId);
+        assertEquals(testmeetingId, paymentResponseDTO.getMeetingId());
     }
 
     @Test
@@ -172,7 +172,7 @@ class PaymentResponseDTOTest {
         paymentResponseDTO.setId(testId);
         paymentResponseDTO.setPayeeId(testPayeeId);
         paymentResponseDTO.setPayerId(testPayerId);
-        paymentResponseDTO.setRefId(testRefId);
+        paymentResponseDTO.setMeetingId(testmeetingId);
         paymentResponseDTO.setAmount(testAmount);
         paymentResponseDTO.setStatus(testStatus);
         paymentResponseDTO.setPaymentMethod(null); // Optional field
@@ -184,7 +184,7 @@ class PaymentResponseDTOTest {
         assertEquals(testId, paymentResponseDTO.getId());
         assertEquals(testPayeeId, paymentResponseDTO.getPayeeId());
         assertEquals(testPayerId, paymentResponseDTO.getPayerId());
-        assertEquals(testRefId, paymentResponseDTO.getRefId());
+        assertEquals(testmeetingId, paymentResponseDTO.getMeetingId());
         assertEquals(testAmount, paymentResponseDTO.getAmount());
         assertEquals(testStatus, paymentResponseDTO.getStatus());
         assertNull(paymentResponseDTO.getPaymentMethod());
@@ -282,19 +282,19 @@ class PaymentResponseDTOTest {
     @DisplayName("Should test equals and hashCode methods")
     void testEqualsAndHashCode() {
         PaymentResponseDTO dto1 = new PaymentResponseDTO(
-            testId, testPayeeId, testPayerId, testRefId, testAmount, 
+            testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
             testPaymentDate, testCreatedAt, testUpdatedAt
         );
         
         PaymentResponseDTO dto2 = new PaymentResponseDTO(
-            testId, testPayeeId, testPayerId, testRefId, testAmount, 
+            testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
             testPaymentDate, testCreatedAt, testUpdatedAt
         );
         
         PaymentResponseDTO dto3 = new PaymentResponseDTO(
-            UUID.randomUUID(), testPayeeId, testPayerId, testRefId, testAmount, 
+            UUID.randomUUID(), testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
             testPaymentDate, testCreatedAt, testUpdatedAt
         );
@@ -310,7 +310,7 @@ class PaymentResponseDTOTest {
         paymentResponseDTO.setId(testId);
         paymentResponseDTO.setPayeeId(testPayeeId);
         paymentResponseDTO.setPayerId(testPayerId);
-        paymentResponseDTO.setRefId(testRefId);
+        paymentResponseDTO.setMeetingId(testmeetingId);
         paymentResponseDTO.setAmount(testAmount);
         paymentResponseDTO.setStatus(testStatus);
         paymentResponseDTO.setPaymentMethod(testPaymentMethod);
@@ -326,7 +326,7 @@ class PaymentResponseDTOTest {
         assertTrue(toString.contains(testId.toString()));
         assertTrue(toString.contains(testPayeeId.toString()));
         assertTrue(toString.contains(testPayerId.toString()));
-        assertTrue(toString.contains(testRefId.toString()));
+        assertTrue(toString.contains(testmeetingId.toString()));
         assertTrue(toString.contains(testAmount.toString()));
         assertTrue(toString.contains(testStatus.toString()));
         assertTrue(toString.contains(testPaymentMethod.toString()));
@@ -341,7 +341,7 @@ class PaymentResponseDTOTest {
         sourceDTO.setId(testId);
         sourceDTO.setPayeeId(testPayeeId);
         sourceDTO.setPayerId(testPayerId);
-        sourceDTO.setRefId(testRefId);
+        sourceDTO.setMeetingId(testmeetingId);
         sourceDTO.setAmount(testAmount);
         sourceDTO.setStatus(testStatus);
         sourceDTO.setPaymentMethod(testPaymentMethod);
@@ -355,7 +355,7 @@ class PaymentResponseDTOTest {
             sourceDTO.getId(),
             sourceDTO.getPayeeId(),
             sourceDTO.getPayerId(),
-            sourceDTO.getRefId(),
+            sourceDTO.getMeetingId(),
             sourceDTO.getAmount(),
             sourceDTO.getStatus(),
             sourceDTO.getPaymentMethod(),
@@ -369,7 +369,7 @@ class PaymentResponseDTOTest {
         assertEquals(sourceDTO.getId(), targetDTO.getId());
         assertEquals(sourceDTO.getPayeeId(), targetDTO.getPayeeId());
         assertEquals(sourceDTO.getPayerId(), targetDTO.getPayerId());
-        assertEquals(sourceDTO.getRefId(), targetDTO.getRefId());
+        assertEquals(sourceDTO.getMeetingId(), targetDTO.getMeetingId());
         assertEquals(sourceDTO.getAmount(), targetDTO.getAmount());
         assertEquals(sourceDTO.getStatus(), targetDTO.getStatus());
         assertEquals(sourceDTO.getPaymentMethod(), targetDTO.getPaymentMethod());
@@ -386,7 +386,7 @@ class PaymentResponseDTOTest {
         paymentResponseDTO.setId(testId);
         paymentResponseDTO.setPayeeId(testPayeeId);
         paymentResponseDTO.setPayerId(testPayerId);
-        paymentResponseDTO.setRefId(testRefId);
+        paymentResponseDTO.setMeetingId(testmeetingId);
         paymentResponseDTO.setAmount(testAmount);
         paymentResponseDTO.setStatus(testStatus);
         paymentResponseDTO.setPaymentMethod(testPaymentMethod);
@@ -399,7 +399,7 @@ class PaymentResponseDTOTest {
         assertEquals(testId, paymentResponseDTO.getId());
         assertEquals(testPayeeId, paymentResponseDTO.getPayeeId());
         assertEquals(testPayerId, paymentResponseDTO.getPayerId());
-        assertEquals(testRefId, paymentResponseDTO.getRefId());
+        assertEquals(testmeetingId, paymentResponseDTO.getMeetingId());
         assertEquals(testAmount, paymentResponseDTO.getAmount());
         assertEquals(testStatus, paymentResponseDTO.getStatus());
         assertEquals(testPaymentMethod, paymentResponseDTO.getPaymentMethod());

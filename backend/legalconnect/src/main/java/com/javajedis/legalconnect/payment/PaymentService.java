@@ -1,19 +1,12 @@
 package com.javajedis.legalconnect.payment;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.exception.UserNotFoundException;
-import com.javajedis.legalconnect.common.service.EmailService;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
-import com.javajedis.legalconnect.jobscheduler.JobSchedulerService;
-import com.javajedis.legalconnect.notifications.NotificationService;
-import com.javajedis.legalconnect.payment.dto.CompletePaymentDTO;
-import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
-import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.OffsetDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,17 +16,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.exception.UserNotFoundException;
+import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.jobscheduler.JobSchedulerService;
+import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.payment.dto.CompletePaymentDTO;
+import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
+import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
+import com.javajedis.legalconnect.payment.dto.StripeSessionResponseDTO;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 
-/**
- * Service for handling payment operations including creation, completion, release, and cancellation.
- * Provides comprehensive payment management functionality with proper authorization checks,
- * notification services, and email notifications.
- */
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -51,6 +56,16 @@ public class PaymentService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final JobSchedulerService jobSchedulerService;
+    
+    @Value("${stripe.secret-key}")
+    private String stripeSecretKey;
+
+    @PostConstruct
+    @SuppressWarnings("java:S2696") // This method is from Stripe dependency can not enclose it in static
+    public void initializeStripe() {
+        Stripe.apiKey = stripeSecretKey;
+    }
+
 
     /**
      * Creates a new payment with the provided data.
@@ -76,7 +91,7 @@ public class PaymentService {
         Payment payment = new Payment();
         payment.setPayee(payee);
         payment.setPayer(payer);
-        payment.setRefId(paymentData.getRefId());
+        payment.setMeetingId(paymentData.getMeetingId());
         payment.setAmount(paymentData.getAmount());
         payment.setStatus(PaymentStatus.PENDING);
 
@@ -207,7 +222,7 @@ public class PaymentService {
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
         }
 
-        assert payment != null; //
+        assert payment != null; // At this point payment can not be null
         return executePaymentRelease(payment);
     }
 
@@ -339,12 +354,76 @@ public class PaymentService {
                     currentUser.getEmail(), operation, payment.getId());
             response.put(SUCCESS_STRING, true);
             response.put(MESSAGE_STRING, "OK");
-            response.put(HTTP_CODE_STRING, HttpStatus.OK.value()); // 200
+            response.put(HTTP_CODE_STRING, HttpStatus.OK.value()); 
         }
 
         return response;
     }
 
+
+    /**
+     * Creates a Stripe checkout session for a payment.
+     */
+    public ResponseEntity<ApiResponse<StripeSessionResponseDTO>> createStripeSession(UUID paymentId) {
+        log.debug("Creating Stripe session for payment id: {}", paymentId);
+
+        Payment payment = paymentRepo.findById(paymentId).orElse(null);
+        User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        Map<String, Object> checkAuth = checkAuthorization(currentUser, payment, "create Stripe session");
+
+        if (Boolean.FALSE.equals(checkAuth.get(SUCCESS_STRING))) {
+            HttpStatus status = HttpStatus.valueOf((int) checkAuth.get(HTTP_CODE_STRING));
+            log.warn("Stripe session creation failed for payment id: {} - {}", 
+                    paymentId, checkAuth.get(MESSAGE_STRING));
+            return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
+        }
+
+        assert payment != null; // At this point, payment cannot be null due to checkAuthorization logic
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Payment {} is not in PENDING status. Current status: {}", paymentId, payment.getStatus());
+            return ApiResponse.error("Payment is not in pending status", HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl("http://localhost:5173/payment/success?session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl("http://localhost:5173/payment/cancel?session_id={CHECKOUT_SESSION_ID}")
+                    .addLineItem(SessionCreateParams.LineItem.builder()
+                            .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency("bdt")
+                                    .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName("LegalConnect Payment")
+                                            .setDescription("Payment for " + payment.getMeetingId())
+                                            .build())
+                                    .setUnitAmount(payment.getAmount().longValue() * 100)
+                                    .build())
+                            .setQuantity(1L)
+                            .build())
+                    .putMetadata("payment_id", paymentId.toString())
+                    .putMetadata("payer_id", payment.getPayer().getId().toString())
+                    .putMetadata("payee_id", payment.getPayee().getId().toString())
+                    .putMetadata("meeting_id", payment.getMeetingId().toString())
+                    .build();
+
+            Session session = Session.create(params);
+
+            StripeSessionResponseDTO response = new StripeSessionResponseDTO();
+            response.setSessionId(session.getId());
+            response.setSessionUrl(session.getUrl());
+
+            log.info("Stripe session created successfully for payment id: {} with session id: {}", 
+                    paymentId, session.getId());
+
+            return ApiResponse.success(response, HttpStatus.CREATED, "Stripe session created successfully");
+
+        } catch (StripeException e) {
+            log.error("Error creating Stripe session for payment id: {}", paymentId, e);
+            return ApiResponse.error("Failed to create Stripe session: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     /**
      * Maps a Payment entity to PaymentResponseDTO.
@@ -357,7 +436,7 @@ public class PaymentService {
         paymentResponseDTO.setId(paymentData.getId());
         paymentResponseDTO.setPayerId(paymentData.getPayer().getId());
         paymentResponseDTO.setPayeeId(paymentData.getPayee().getId());
-        paymentResponseDTO.setRefId(paymentData.getRefId());
+        paymentResponseDTO.setMeetingId(paymentData.getMeetingId());
         paymentResponseDTO.setAmount(paymentData.getAmount());
         paymentResponseDTO.setStatus(paymentData.getStatus());
         paymentResponseDTO.setPaymentDate(paymentData.getPaymentDate());

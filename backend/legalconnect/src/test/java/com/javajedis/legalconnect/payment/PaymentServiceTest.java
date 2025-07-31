@@ -98,7 +98,7 @@ class PaymentServiceTest {
         testPayment.setId(UUID.randomUUID());
         testPayment.setPayer(testPayer);
         testPayment.setPayee(testPayee);
-        testPayment.setRefId(UUID.randomUUID());
+        testPayment.setMeetingId(UUID.randomUUID());
         testPayment.setAmount(new BigDecimal("100.00"));
         testPayment.setStatus(PaymentStatus.PENDING);
         testPayment.setCreatedAt(OffsetDateTime.now());
@@ -108,7 +108,7 @@ class PaymentServiceTest {
         createPaymentDTO = new CreatePaymentDTO();
         createPaymentDTO.setPayerId(testPayer.getId());
         createPaymentDTO.setPayeeId(testPayee.getId());
-        createPaymentDTO.setRefId(UUID.randomUUID());
+        createPaymentDTO.setMeetingId(UUID.randomUUID());
         createPaymentDTO.setAmount(new BigDecimal("100.00"));
 
         completePaymentDTO = new CompletePaymentDTO();
@@ -184,7 +184,7 @@ class PaymentServiceTest {
             Payment savedPayment = invocation.getArgument(0);
             assertEquals(PaymentStatus.PENDING, savedPayment.getStatus());
             assertEquals(createPaymentDTO.getAmount(), savedPayment.getAmount());
-            assertEquals(createPaymentDTO.getRefId(), savedPayment.getRefId());
+            assertEquals(createPaymentDTO.getMeetingId(), savedPayment.getMeetingId());
             assertEquals(testPayer, savedPayment.getPayer());
             assertEquals(testPayee, savedPayment.getPayee());
             return savedPayment;
@@ -385,7 +385,7 @@ class PaymentServiceTest {
         assertEquals(testPayment.getId(), responseData.getId());
         assertEquals(testPayment.getPayer().getId(), responseData.getPayerId());
         assertEquals(testPayment.getPayee().getId(), responseData.getPayeeId());
-        assertEquals(testPayment.getRefId(), responseData.getRefId());
+        assertEquals(testPayment.getMeetingId(), responseData.getMeetingId());
         assertEquals(testPayment.getAmount(), responseData.getAmount());
         assertEquals(testPayment.getStatus(), responseData.getStatus());
         assertEquals(testPayment.getPaymentMethod(), responseData.getPaymentMethod());
@@ -907,7 +907,7 @@ class PaymentServiceTest {
         assertEquals(testPayment.getId(), result.getId());
         assertEquals(testPayment.getPayer().getId(), result.getPayerId());
         assertEquals(testPayment.getPayee().getId(), result.getPayeeId());
-        assertEquals(testPayment.getRefId(), result.getRefId());
+        assertEquals(testPayment.getMeetingId(), result.getMeetingId());
         assertEquals(testPayment.getAmount(), result.getAmount());
         assertEquals(testPayment.getStatus(), result.getStatus());
         assertEquals(testPayment.getPaymentMethod(), result.getPaymentMethod());
@@ -933,7 +933,7 @@ class PaymentServiceTest {
         assertEquals(testPayment.getId(), result.getId());
         assertEquals(testPayment.getPayer().getId(), result.getPayerId());
         assertEquals(testPayment.getPayee().getId(), result.getPayeeId());
-        assertEquals(testPayment.getRefId(), result.getRefId());
+        assertEquals(testPayment.getMeetingId(), result.getMeetingId());
         assertEquals(testPayment.getAmount(), result.getAmount());
         assertEquals(testPayment.getStatus(), result.getStatus());
         assertEquals(null, result.getPaymentMethod());

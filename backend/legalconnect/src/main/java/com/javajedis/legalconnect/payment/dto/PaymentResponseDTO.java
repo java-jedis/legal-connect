@@ -1,14 +1,15 @@
 package com.javajedis.legalconnect.payment.dto;
 
-import com.javajedis.legalconnect.payment.PaymentMethod;
-import com.javajedis.legalconnect.payment.PaymentStatus;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import com.javajedis.legalconnect.payment.PaymentMethod;
+import com.javajedis.legalconnect.payment.PaymentStatus;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +18,7 @@ public class PaymentResponseDTO {
     private UUID id;
     private UUID payeeId;
     private UUID payerId;
-    private UUID refId;
+    private UUID meetingId;
     private BigDecimal amount;
     private PaymentStatus status;
     private PaymentMethod paymentMethod;

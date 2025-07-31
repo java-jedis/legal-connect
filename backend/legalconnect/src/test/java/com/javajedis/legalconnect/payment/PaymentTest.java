@@ -26,7 +26,7 @@ class PaymentTest {
     private UUID testId;
     private UUID payerId;
     private UUID payeeId;
-    private UUID refId;
+    private UUID meetingId;
     private BigDecimal testAmount;
 
     @BeforeEach
@@ -34,7 +34,7 @@ class PaymentTest {
         testId = UUID.randomUUID();
         payerId = UUID.randomUUID();
         payeeId = UUID.randomUUID();
-        refId = UUID.randomUUID();
+        meetingId = UUID.randomUUID();
         testAmount = new BigDecimal("100.00");
         
         // Setup test payer
@@ -60,7 +60,7 @@ class PaymentTest {
         payment.setId(testId);
         payment.setPayer(payer);
         payment.setPayee(payee);
-        payment.setRefId(refId);
+        payment.setMeetingId(meetingId);
         payment.setAmount(testAmount);
         payment.setStatus(PaymentStatus.PENDING);
         payment.setPaymentMethod(PaymentMethod.CARD);
@@ -76,7 +76,7 @@ class PaymentTest {
         assertNull(defaultPayment.getId());
         assertNull(defaultPayment.getPayer());
         assertNull(defaultPayment.getPayee());
-        assertNull(defaultPayment.getRefId());
+        assertNull(defaultPayment.getMeetingId());
         assertNull(defaultPayment.getAmount());
         assertEquals(PaymentStatus.PENDING, defaultPayment.getStatus()); // Default value
         assertNull(defaultPayment.getPaymentMethod());
@@ -95,14 +95,14 @@ class PaymentTest {
         OffsetDateTime releaseAt = now.plusDays(7);
         
         Payment constructedPayment = new Payment(
-            testId, payer, payee, refId, testAmount, PaymentStatus.PAID,
+            testId, payer, payee, meetingId, testAmount, PaymentStatus.PAID,
             PaymentMethod.MFS, "TXN789012", paymentDate, releaseAt, now, now
         );
         
         assertEquals(testId, constructedPayment.getId());
         assertEquals(payer, constructedPayment.getPayer());
         assertEquals(payee, constructedPayment.getPayee());
-        assertEquals(refId, constructedPayment.getRefId());
+        assertEquals(meetingId, constructedPayment.getMeetingId());
         assertEquals(testAmount, constructedPayment.getAmount());
         assertEquals(PaymentStatus.PAID, constructedPayment.getStatus());
         assertEquals(PaymentMethod.MFS, constructedPayment.getPaymentMethod());
@@ -146,11 +146,11 @@ class PaymentTest {
     }
 
     @Test
-    @DisplayName("Should handle refId getter and setter")
-    void testRefIdGetterAndSetter() {
-        UUID newRefId = UUID.randomUUID();
-        payment.setRefId(newRefId);
-        assertEquals(newRefId, payment.getRefId());
+    @DisplayName("Should handle meetingId getter and setter")
+    void testmeetingIdGetterAndSetter() {
+        UUID newmeetingId = UUID.randomUUID();
+        payment.setMeetingId(newmeetingId);
+        assertEquals(newmeetingId, payment.getMeetingId());
     }
 
     @Test
@@ -300,7 +300,7 @@ class PaymentTest {
         payment1.setId(testId);
         payment1.setPayer(payer);
         payment1.setPayee(payee);
-        payment1.setRefId(refId);
+        payment1.setMeetingId(meetingId);
         payment1.setAmount(testAmount);
         payment1.setStatus(PaymentStatus.PENDING);
         
@@ -308,7 +308,7 @@ class PaymentTest {
         payment2.setId(testId);
         payment2.setPayer(payer);
         payment2.setPayee(payee);
-        payment2.setRefId(refId);
+        payment2.setMeetingId(meetingId);
         payment2.setAmount(testAmount);
         payment2.setStatus(PaymentStatus.PENDING);
         
@@ -316,7 +316,7 @@ class PaymentTest {
         payment3.setId(UUID.randomUUID());
         payment3.setPayer(payer);
         payment3.setPayee(payee);
-        payment3.setRefId(refId);
+        payment3.setMeetingId(meetingId);
         payment3.setAmount(new BigDecimal("200.00"));
         payment3.setStatus(PaymentStatus.PAID);
         
@@ -354,7 +354,7 @@ class PaymentTest {
         
         assertNotNull(toString);
         assertTrue(toString.contains("id=" + testId));
-        assertTrue(toString.contains("refId=" + refId));
+        assertTrue(toString.contains("meetingId=" + meetingId));
         assertTrue(toString.contains("amount=" + testAmount));
         assertTrue(toString.contains("status=PENDING"));
         assertTrue(toString.contains("paymentMethod=CARD"));
@@ -416,12 +416,12 @@ class PaymentTest {
         Payment minimalPayment = new Payment();
         minimalPayment.setPayer(payer);
         minimalPayment.setPayee(payee);
-        minimalPayment.setRefId(refId);
+        minimalPayment.setMeetingId(meetingId);
         minimalPayment.setAmount(new BigDecimal("1.00"));
         
         assertEquals(payer, minimalPayment.getPayer());
         assertEquals(payee, minimalPayment.getPayee());
-        assertEquals(refId, minimalPayment.getRefId());
+        assertEquals(meetingId, minimalPayment.getMeetingId());
         assertEquals(new BigDecimal("1.00"), minimalPayment.getAmount());
         assertEquals(PaymentStatus.PENDING, minimalPayment.getStatus()); // Default value
         assertNull(minimalPayment.getId()); // Not set
@@ -436,7 +436,7 @@ class PaymentTest {
         assertNotNull(payment.getId());
         assertNotNull(payment.getPayer());
         assertNotNull(payment.getPayee());
-        assertNotNull(payment.getRefId());
+        assertNotNull(payment.getMeetingId());
         assertNotNull(payment.getAmount());
         assertNotNull(payment.getStatus());
         // Optional fields can be null
@@ -501,7 +501,7 @@ class PaymentTest {
         payment1.setId(testId);
         payment1.setPayer(payer);
         payment1.setPayee(payee);
-        payment1.setRefId(refId);
+        payment1.setMeetingId(meetingId);
         payment1.setAmount(testAmount);
         payment1.setStatus(PaymentStatus.PENDING);
         
@@ -509,7 +509,7 @@ class PaymentTest {
         payment2.setId(testId);
         payment2.setPayer(payer);
         payment2.setPayee(payee);
-        payment2.setRefId(refId);
+        payment2.setMeetingId(meetingId);
         payment2.setAmount(testAmount);
         payment2.setStatus(PaymentStatus.PAID); // Different status
         
@@ -592,14 +592,14 @@ class PaymentTest {
     @DisplayName("Should handle constructor with null values")
     void testConstructorWithNullValues() {
         Payment constructedPayment = new Payment(
-            testId, null, null, refId, testAmount, PaymentStatus.PENDING,
+            testId, null, null, meetingId, testAmount, PaymentStatus.PENDING,
             null, null, null, null, null, null
         );
         
         assertEquals(testId, constructedPayment.getId());
         assertNull(constructedPayment.getPayer());
         assertNull(constructedPayment.getPayee());
-        assertEquals(refId, constructedPayment.getRefId());
+        assertEquals(meetingId, constructedPayment.getMeetingId());
         assertEquals(testAmount, constructedPayment.getAmount());
         assertEquals(PaymentStatus.PENDING, constructedPayment.getStatus());
         assertNull(constructedPayment.getPaymentMethod());

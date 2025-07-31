@@ -64,7 +64,7 @@ class PaymentControllerTest {
     private UUID testPaymentId;
     private UUID testPayerId;
     private UUID testPayeeId;
-    private UUID testRefId;
+    private UUID testmeetingId;
 
     @TestConfiguration
     static class TestConfig {
@@ -79,12 +79,12 @@ class PaymentControllerTest {
         testPaymentId = UUID.randomUUID();
         testPayerId = UUID.randomUUID();
         testPayeeId = UUID.randomUUID();
-        testRefId = UUID.randomUUID();
+        testmeetingId = UUID.randomUUID();
 
         createPaymentDTO = new CreatePaymentDTO();
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("100.00"));
 
         completePaymentDTO = new CompletePaymentDTO();
@@ -98,7 +98,7 @@ class PaymentControllerTest {
         paymentResponseDTO.setId(testPaymentId);
         paymentResponseDTO.setPayerId(testPayerId);
         paymentResponseDTO.setPayeeId(testPayeeId);
-        paymentResponseDTO.setRefId(testRefId);
+        paymentResponseDTO.setMeetingId(testmeetingId);
         paymentResponseDTO.setAmount(new BigDecimal("100.00"));
         paymentResponseDTO.setStatus(PaymentStatus.PENDING);
         paymentResponseDTO.setCreatedAt(OffsetDateTime.now());
@@ -143,8 +143,8 @@ class PaymentControllerTest {
 
     @Test
     @DisplayName("Should return bad request when reference ID is null")
-    void createPayment_NullRefId_BadRequest() throws Exception {
-        createPaymentDTO.setRefId(null);
+    void createPayment_NullmeetingId_BadRequest() throws Exception {
+        createPaymentDTO.setMeetingId(null);
 
         mockMvc.perform(post("/payments/")
                         .contentType(MediaType.APPLICATION_JSON)
