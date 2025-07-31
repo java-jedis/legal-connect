@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,6 +28,7 @@ import com.javajedis.legalconnect.lawyer.dto.LawyerAvailabilitySlotListResponseD
 import com.javajedis.legalconnect.lawyer.dto.LawyerAvailabilitySlotResponseDTO;
 import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
 import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
+import com.javajedis.legalconnect.lawyer.dto.UpdateHourlyChargeDTO;
 import com.javajedis.legalconnect.lawyer.enums.DayOfWeek;
 
 class LawyerControllerTest {
@@ -46,6 +48,7 @@ class LawyerControllerTest {
     private LawyerAvailabilitySlotResponseDTO testAvailabilitySlotResponseDTO;
     private LawyerAvailabilitySlotListResponseDTO testAvailabilitySlotListResponseDTO;
     private BarCertificateUploadResponseDTO testBarCertificateUploadResponseDTO;
+    private UpdateHourlyChargeDTO testUpdateHourlyChargeDTO;
 
     @BeforeEach
     void setUp() {
@@ -56,11 +59,14 @@ class LawyerControllerTest {
         testLawyerProfileDTO.setFirm("Test Law Firm");
         testLawyerProfileDTO.setYearsOfExperience(5);
         testLawyerProfileDTO.setBarCertificateNumber("BAR123456");
+        testLawyerProfileDTO.setHourlyCharge(new BigDecimal("150.00"));
         
         testLawyerInfoDTO = new LawyerInfoDTO();
         testLawyerInfoDTO.setFirm("Test Law Firm");
         testLawyerInfoDTO.setYearsOfExperience(5);
         testLawyerInfoDTO.setBarCertificateNumber("BAR123456");
+        testLawyerInfoDTO.setHourlyCharge(new BigDecimal("150.00"));
+        testLawyerInfoDTO.setCompleteProfile(true);
         
         testAvailabilitySlotDTO = new LawyerAvailabilitySlotDTO();
         testAvailabilitySlotDTO.setDay(DayOfWeek.MON);
@@ -77,6 +83,9 @@ class LawyerControllerTest {
         testAvailabilitySlotListResponseDTO.setSlots(List.of(testAvailabilitySlotResponseDTO));
         
         testBarCertificateUploadResponseDTO = new BarCertificateUploadResponseDTO("uploaded-file-url");
+        
+        testUpdateHourlyChargeDTO = new UpdateHourlyChargeDTO();
+        testUpdateHourlyChargeDTO.setHourlyCharge(new BigDecimal("200.00"));
     }
 
     @Test
@@ -349,5 +358,135 @@ class LawyerControllerTest {
         assertNotNull(result.getBody().getError());
         assertEquals("File size exceeds 1MB limit", result.getBody().getError().getMessage());
         verify(lawyerService).uploadLawyerCredentials(file);
+    }
+
+    @Test
+    void updateHourlyCharge_returnsSuccess() {
+        // Arrange
+        LawyerInfoDTO updatedLawyerInfoDTO = new LawyerInfoDTO();
+        updatedLawyerInfoDTO.setFirm("Test Law Firm");
+        updatedLawyerInfoDTO.setYearsOfExperience(5);
+        updatedLawyerInfoDTO.setBarCertificateNumber("BAR123456");
+        updatedLawyerInfoDTO.setHourlyCharge(new BigDecimal("200.00"));
+        updatedLawyerInfoDTO.setCompleteProfile(true);
+        
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.success(updatedLawyerInfoDTO, HttpStatus.OK, "Hourly charge updated successfully").getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(testUpdateHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(updatedLawyerInfoDTO, result.getBody().getData());
+        assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+        assertEquals(new BigDecimal("200.00"), result.getBody().getData().getHourlyCharge());
+        verify(lawyerService).updateHourlyCharge(testUpdateHourlyChargeDTO);
+    }
+
+    @Test
+    void updateHourlyCharge_withNullValue_returnsSuccess() {
+        // Arrange
+        UpdateHourlyChargeDTO nullHourlyChargeDTO = new UpdateHourlyChargeDTO();
+        nullHourlyChargeDTO.setHourlyCharge(null);
+        
+        LawyerInfoDTO updatedLawyerInfoDTO = new LawyerInfoDTO();
+        updatedLawyerInfoDTO.setFirm("Test Law Firm");
+        updatedLawyerInfoDTO.setYearsOfExperience(5);
+        updatedLawyerInfoDTO.setBarCertificateNumber("BAR123456");
+        updatedLawyerInfoDTO.setHourlyCharge(null);
+        updatedLawyerInfoDTO.setCompleteProfile(true);
+        
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.success(updatedLawyerInfoDTO, HttpStatus.OK, "Hourly charge updated successfully").getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(nullHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(updatedLawyerInfoDTO, result.getBody().getData());
+        assertEquals("Hourly charge updated successfully", result.getBody().getMessage());
+        assertEquals(null, result.getBody().getData().getHourlyCharge());
+        verify(lawyerService).updateHourlyCharge(nullHourlyChargeDTO);
+    }
+
+    @Test
+    void updateHourlyCharge_withUnauthorizedUser_returnsError() {
+        // Arrange
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.<LawyerInfoDTO>error("User is not authenticated", HttpStatus.UNAUTHORIZED).getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(testUpdateHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("User is not authenticated", result.getBody().getError().getMessage());
+        verify(lawyerService).updateHourlyCharge(testUpdateHourlyChargeDTO);
+    }
+
+    @Test
+    void updateHourlyCharge_withUnverifiedLawyer_returnsError() {
+        // Arrange
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.<LawyerInfoDTO>error("Lawyer is not verified", HttpStatus.FORBIDDEN).getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(testUpdateHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.FORBIDDEN, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("Lawyer is not verified", result.getBody().getError().getMessage());
+        verify(lawyerService).updateHourlyCharge(testUpdateHourlyChargeDTO);
+    }
+
+    @Test
+    void updateHourlyCharge_withInvalidValue_returnsError() {
+        // Arrange
+        UpdateHourlyChargeDTO invalidHourlyChargeDTO = new UpdateHourlyChargeDTO();
+        invalidHourlyChargeDTO.setHourlyCharge(new BigDecimal("-50.00"));
+        
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.<LawyerInfoDTO>error("Hourly charge must be positive", HttpStatus.BAD_REQUEST).getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(invalidHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("Hourly charge must be positive", result.getBody().getError().getMessage());
+        verify(lawyerService).updateHourlyCharge(invalidHourlyChargeDTO);
+    }
+
+    @Test
+    void updateHourlyCharge_withLawyerNotFound_returnsError() {
+        // Arrange
+        ApiResponse<LawyerInfoDTO> apiResponse = ApiResponse.<LawyerInfoDTO>error("Lawyer profile not found", HttpStatus.NOT_FOUND).getBody();
+        when(lawyerService.updateHourlyCharge(any(UpdateHourlyChargeDTO.class)))
+            .thenReturn(ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerController.updateHourlyCharge(testUpdateHourlyChargeDTO);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("Lawyer profile not found", result.getBody().getError().getMessage());
+        verify(lawyerService).updateHourlyCharge(testUpdateHourlyChargeDTO);
     }
 } 

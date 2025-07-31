@@ -7,6 +7,7 @@ import com.javajedis.legalconnect.notifications.dto.NotificationPreferenceRespon
 import com.javajedis.legalconnect.notifications.dto.UpdateNotificationPreferenceDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NotificationPreferenceService {
 
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
@@ -30,12 +32,6 @@ public class NotificationPreferenceService {
 
     private final NotificationPreferenceRepo notificationPreferenceRepo;
     private final UserRepo userRepo;
-
-    public NotificationPreferenceService(NotificationPreferenceRepo notificationPreferenceRepo,
-                                         UserRepo userRepo) {
-        this.notificationPreferenceRepo = notificationPreferenceRepo;
-        this.userRepo = userRepo;
-    }
 
     /**
      * Retrieves all notification preferences for the authenticated user.

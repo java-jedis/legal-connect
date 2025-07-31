@@ -1,43 +1,30 @@
 package com.javajedis.legalconnect.scheduling;
 
-import java.util.UUID;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
 import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
 import com.javajedis.legalconnect.scheduling.dto.ScheduleResponseDTO;
 import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Slf4j
 @Tag(name = "6. Scheduling", description = "Scheduling and calendar management endpoints")
 @RestController
 @RequireUserOrVerifiedLawyer
 @RequestMapping("/schedule")
+@RequiredArgsConstructor
 public class SchedulingController {
-    
-    private final SchedulingService schedulingService;
 
-    public SchedulingController(SchedulingService schedulingService) {
-        this.schedulingService = schedulingService;
-    }
+    private final SchedulingService schedulingService;
 
     /**
      * Create a new schedule event for a case.

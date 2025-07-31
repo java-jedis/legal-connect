@@ -1,20 +1,5 @@
 package com.javajedis.legalconnect.scheduling;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
 import com.google.api.services.calendar.model.Event;
 import com.javajedis.legalconnect.caseassets.CaseAssetUtility;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
@@ -28,19 +13,24 @@ import com.javajedis.legalconnect.jobscheduler.WebPushJobDTO;
 import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
-import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
-import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
-import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
-import com.javajedis.legalconnect.scheduling.dto.ScheduleResponseDTO;
-import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
-import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
+import com.javajedis.legalconnect.scheduling.dto.*;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
-
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SchedulingService {
 
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
@@ -63,28 +53,6 @@ public class SchedulingService {
     private final NotificationPreferenceService notificationPreferenceService;
     private final EmailService emailService;
     private final JobSchedulerService jobSchedulerService;
-
-    public SchedulingService(ScheduleRepo scheduleRepo,
-                             UserRepo userRepo,
-                             CaseRepo caseRepo,
-                             GoogleCalendarService googleCalendarService,
-                             OAuthService oAuthService,
-                             ScheduleGoogleCalendarEventRepo scheduleGoogleCalendarEventRepo,
-                             NotificationService notificationService,
-                             NotificationPreferenceService notificationPreferenceService,
-                             EmailService emailService,
-                             JobSchedulerService jobSchedulerService) {
-        this.scheduleRepo = scheduleRepo;
-        this.userRepo = userRepo;
-        this.caseRepo = caseRepo;
-        this.googleCalendarService = googleCalendarService;
-        this.oAuthService = oAuthService;
-        this.scheduleGoogleCalendarEventRepo = scheduleGoogleCalendarEventRepo;
-        this.notificationService = notificationService;
-        this.notificationPreferenceService = notificationPreferenceService;
-        this.emailService = emailService;
-        this.jobSchedulerService = jobSchedulerService;
-    }
 
     /**
      * Create a new schedule event for a case.
@@ -126,7 +94,7 @@ public class SchedulingService {
         User recipient = currentUser.getId().equals(client.getId()) ? lawyer : client;
         UUID recipientId = recipient.getId();
         String creatorName = currentUser.getFirstName() + " " + currentUser.getLastName();
-        
+
         String subject = "New Schedule Created";
         String content = String.format("%s scheduled '%s' on %s from %s to %s in case: %s",
                 creatorName,
@@ -152,39 +120,39 @@ public class SchedulingService {
                     templateVariables
             );
         }
-        
-        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)){
-            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(), 
-                                                                            client.getId(), content,
-                                                                            savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+
+        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)) {
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(),
+                    client.getId(), content,
+                    savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
         }
 
-        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)){
-                jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(),
-                        lawyer.getId(), content,
-                        savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)) {
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(savedSchedule.getId(),
+                    lawyer.getId(), content,
+                    savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
 
-        if (notificationPreferenceService.checkEmailEnabled(client.getId(),NotificationType.SCHEDULE_REMINDER)){
+        if (notificationPreferenceService.checkEmailEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)) {
             jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(savedSchedule.getId(),
-                                                                            EMAIIL_TEMPLATE,
-                                                                            client.getEmail(),
-                                                                            subject,
-                                                                            templateVariables,
-                                                                        savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+                    EMAIIL_TEMPLATE,
+                    client.getEmail(),
+                    subject,
+                    templateVariables,
+                    savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
 
-        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(),NotificationType.SCHEDULE_REMINDER)){
+        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)) {
             jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(savedSchedule.getId(),
                     EMAIIL_TEMPLATE,
                     lawyer.getEmail(),
                     subject,
                     templateVariables,
                     savedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+        }
 
         log.info("Schedule created for case {} by user: {}", eventData.getCaseId(), currentUser.getEmail());
-        
+
         ScheduleResponseDTO scheduleResponse = mapToScheduleResponseDTO(savedSchedule);
         return ApiResponse.success(scheduleResponse, HttpStatus.CREATED, "Schedule created successfully");
     }
@@ -221,11 +189,11 @@ public class SchedulingService {
         updateGoogleCalendarEvent(existingSchedule, validation.user(), client, lawyer);
 
         Schedule updatedSchedule = scheduleRepo.save(existingSchedule);
-        
+
         User recipient = validation.user().getId().equals(client.getId()) ? lawyer : client;
         UUID recipientId = recipient.getId();
         String updaterName = validation.user().getFirstName() + " " + validation.user().getLastName();
-        
+
         String subject = "Schedule Updated";
         String content = String.format("%s changed '%s' to %s from %s to %s in case: %s",
                 updaterName,
@@ -257,35 +225,35 @@ public class SchedulingService {
         jobSchedulerService.deleteAllJobsForTask(updatedSchedule.getId());
 
         // Schedule new reminder notifications with updated time
-        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)){
-            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(), 
-                                                                            client.getId(), content,
-                                                                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)) {
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(),
+                    client.getId(), content,
+                    updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
         }
 
-        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)){
-                jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(),
-                        lawyer.getId(), content,
-                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+        if (notificationPreferenceService.checkWebPushEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)) {
+            jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(),
+                    lawyer.getId(), content,
+                    updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
 
-        if (notificationPreferenceService.checkEmailEnabled(client.getId(),NotificationType.SCHEDULE_REMINDER)){
+        if (notificationPreferenceService.checkEmailEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)) {
             jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(updatedSchedule.getId(),
-                                                                            EMAIIL_TEMPLATE,
-                                                                            client.getEmail(),
-                                                                            subject,
-                                                                            templateVariables,
-                                                                        updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+                    EMAIIL_TEMPLATE,
+                    client.getEmail(),
+                    subject,
+                    templateVariables,
+                    updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
+        }
 
-        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(),NotificationType.SCHEDULE_REMINDER)){
+        if (notificationPreferenceService.checkEmailEnabled(lawyer.getId(), NotificationType.SCHEDULE_REMINDER)) {
             jobSchedulerService.scheduleEmailNotification(new EmailJobDTO(updatedSchedule.getId(),
                     EMAIIL_TEMPLATE,
                     lawyer.getEmail(),
                     subject,
                     templateVariables,
                     updatedSchedule.getStartTime().minusMinutes(REMINDER_MINUTES_BEFORE)));
-            }
+        }
 
         log.info("Schedule {} updated by user: {}", scheduleId, validation.user().getEmail());
 
@@ -318,7 +286,7 @@ public class SchedulingService {
         User recipient = validation.user().getId().equals(client.getId()) ? lawyer : client;
         UUID recipientId = recipient.getId();
         String deleterName = validation.user().getFirstName() + " " + validation.user().getLastName();
-        
+
         String subject = "Schedule Cancelled";
         String content = String.format("%s cancelled '%s' scheduled for %s in case: %s",
                 deleterName,
@@ -416,8 +384,8 @@ public class SchedulingService {
         ScheduleListResponseDTO responseData = new ScheduleListResponseDTO(scheduleResponses);
 
         Map<String, Object> metadata = buildPaginationMetadata(
-                schedulePage, 
-                sortDirection, 
+                schedulePage,
+                sortDirection,
                 Map.of("caseId", caseId.toString())
         );
 
@@ -507,7 +475,7 @@ public class SchedulingService {
     /**
      * Helper method to validate user access to a schedule through case validation.
      *
-     * @param caseId the case ID to validate access for
+     * @param caseId    the case ID to validate access for
      * @param operation the operation being performed (for logging)
      * @return CaseAssetValidationResult containing validation results
      */
@@ -518,8 +486,8 @@ public class SchedulingService {
     /**
      * Helper method to build pagination metadata for schedule list responses.
      *
-     * @param schedulePage the page of schedules
-     * @param sortDirection the sort direction applied
+     * @param schedulePage      the page of schedules
+     * @param sortDirection     the sort direction applied
      * @param additionalFilters any additional filters applied
      * @return Map containing pagination metadata
      */
@@ -544,9 +512,9 @@ public class SchedulingService {
      */
     private void createGoogleCalendarEvent(Schedule schedule, User currentUser, User client, User lawyer) {
         log.debug("Attempting to create Google Calendar event for schedule: {}", schedule.getId());
-        
+
         if (!oAuthService.checkAndRefreshAccessToken()) {
-            log.info("User {} does not have Google Calendar integration, skipping calendar event creation", 
+            log.info("User {} does not have Google Calendar integration, skipping calendar event creation",
                     currentUser.getEmail());
             return;
         }
@@ -571,7 +539,7 @@ public class SchedulingService {
                     hostEmail,
                     attendeeEmails
             );
-            
+
             Event googleEvent = googleCalendarService.createEvent(eventData);
 
             ScheduleGoogleCalendarEvent calendarEvent = new ScheduleGoogleCalendarEvent();
@@ -579,11 +547,11 @@ public class SchedulingService {
             calendarEvent.setGoogleCalendarEventId(googleEvent.getId());
             scheduleGoogleCalendarEventRepo.save(calendarEvent);
 
-            log.info("Successfully created Google Calendar event {} for schedule {}", 
+            log.info("Successfully created Google Calendar event {} for schedule {}",
                     googleEvent.getId(), schedule.getId());
 
         } catch (Exception e) {
-            log.error("Failed to create Google Calendar event for schedule {}: {}", 
+            log.error("Failed to create Google Calendar event for schedule {}: {}",
                     schedule.getId(), e.getMessage(), e);
             throw new GoogleCalendarException("Failed to create Google Calendar event for schedule " + schedule.getId(), e);
         }
@@ -594,7 +562,7 @@ public class SchedulingService {
      */
     private void updateGoogleCalendarEvent(Schedule schedule, User currentUser, User client, User lawyer) {
         log.debug("Attempting to update Google Calendar event for schedule: {}", schedule.getId());
-        
+
         executeGoogleCalendarOperation(schedule, currentUser, "update", (accessToken, googleCalendarEventId) -> {
             try {
                 List<String> attendeeEmails = determineAndValidateAttendees(currentUser, client, lawyer, " update");
@@ -609,10 +577,10 @@ public class SchedulingService {
                         schedule.getEndTime().toLocalTime(),
                         attendeeEmails
                 );
-                
+
                 googleCalendarService.updateEvent(eventData);
 
-                log.info("Successfully updated Google Calendar event {} for schedule {}", 
+                log.info("Successfully updated Google Calendar event {} for schedule {}",
                         googleCalendarEventId, schedule.getId());
             } catch (Exception e) {
                 throw new GoogleCalendarException("Failed to update Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
@@ -625,14 +593,14 @@ public class SchedulingService {
      */
     private void deleteGoogleCalendarEvent(Schedule schedule, User currentUser) {
         log.debug("Attempting to delete Google Calendar event for schedule: {}", schedule.getId());
-        
+
         executeGoogleCalendarOperation(schedule, currentUser, "delete", (accessToken, googleCalendarEventId) -> {
             try {
                 googleCalendarService.deleteEvent(accessToken, googleCalendarEventId);
-                
+
                 scheduleGoogleCalendarEventRepo.deleteByScheduleId(schedule.getId());
 
-                log.info("Successfully deleted Google Calendar event {} for schedule {}", 
+                log.info("Successfully deleted Google Calendar event {} for schedule {}",
                         googleCalendarEventId, schedule.getId());
             } catch (Exception e) {
                 throw new GoogleCalendarException("Failed to delete Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
@@ -641,27 +609,19 @@ public class SchedulingService {
     }
 
     /**
-     * Functional interface for Google Calendar operations.
-     */
-    @FunctionalInterface
-    private interface GoogleCalendarOperation {
-        void execute(String accessToken, String googleCalendarEventId) throws GoogleCalendarException;
-    }
-
-    /**
      * Executes a Google Calendar operation with common validation and error handling.
      */
     private void executeGoogleCalendarOperation(Schedule schedule, User currentUser, String operationType, GoogleCalendarOperation operation) {
         Optional<String> googleCalendarEventIdOpt = scheduleGoogleCalendarEventRepo
                 .findGoogleCalendarEventIdByScheduleId(schedule.getId());
-                
+
         if (googleCalendarEventIdOpt.isEmpty()) {
             log.debug("No Google Calendar event ID found for schedule: {}", schedule.getId());
             return;
         }
 
         if (!oAuthService.checkAndRefreshAccessToken()) {
-            log.info("User {} does not have Google Calendar integration, skipping calendar event {}", 
+            log.info("User {} does not have Google Calendar integration, skipping calendar event {}",
                     currentUser.getEmail(), operationType);
             return;
         }
@@ -678,7 +638,7 @@ public class SchedulingService {
             operation.execute(accessToken, googleCalendarEventId);
 
         } catch (GoogleCalendarException e) {
-            log.error("Failed to {} Google Calendar event for schedule {}: {}", 
+            log.error("Failed to {} Google Calendar event for schedule {}: {}",
                     operationType, schedule.getId(), e.getMessage(), e);
             throw e;
         }
@@ -700,14 +660,14 @@ public class SchedulingService {
      */
     private List<String> determineAndValidateAttendees(User currentUser, User client, User lawyer, String operationSuffix) {
         List<String> attendeeEmails = new ArrayList<>();
-        
+
         User attendeeUser;
         if (currentUser.getId().equals(client.getId())) {
             attendeeUser = lawyer;
         } else {
             attendeeUser = client;
         }
-        
+
         Optional<String> attendeeAccessToken = googleCalendarService.getValidAccessToken(attendeeUser.getId());
         if (attendeeAccessToken.isPresent()) {
             attendeeEmails.add(attendeeUser.getEmail());
@@ -715,7 +675,7 @@ public class SchedulingService {
         } else {
             log.debug("Skipping attendee {} - no Google Calendar integration", attendeeUser.getEmail());
         }
-        
+
         return attendeeEmails;
     }
 
@@ -727,18 +687,26 @@ public class SchedulingService {
         description.append("LegalConnect Meeting\n\n");
         description.append("Case: ").append(schedule.getCaseEntity().getTitle()).append("\n");
         description.append("Type: ").append(schedule.getType()).append("\n\n");
-        
+
         if (schedule.getDescription() != null && !schedule.getDescription().trim().isEmpty()) {
             description.append("Description: ").append(schedule.getDescription()).append("\n\n");
         }
-        
+
         description.append("Participants:\n");
         description.append("Client: ").append(client.getFirstName()).append(" ").append(client.getLastName())
-                  .append(" (").append(client.getEmail()).append(")\n");
+                .append(" (").append(client.getEmail()).append(")\n");
         description.append("Lawyer: ").append(lawyer.getFirstName()).append(" ").append(lawyer.getLastName())
-                  .append(" (").append(lawyer.getEmail()).append(")\n\n");
+                .append(" (").append(lawyer.getEmail()).append(")\n\n");
         description.append("Generated by LegalConnect");
-        
+
         return description.toString();
+    }
+
+    /**
+     * Functional interface for Google Calendar operations.
+     */
+    @FunctionalInterface
+    private interface GoogleCalendarOperation {
+        void execute(String accessToken, String googleCalendarEventId) throws GoogleCalendarException;
     }
 }

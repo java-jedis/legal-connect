@@ -1,9 +1,17 @@
 package com.javajedis.legalconnect.lawyer;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.AwsService;
+import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
+import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
+import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
+import com.javajedis.legalconnect.lawyer.dto.UpdateHourlyChargeDTO;
+import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,20 +19,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.AwsService;
-import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
-import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
-import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
-import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
-import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LawyerService {
     private static final String NOT_AUTHENTICATED_MSG = "User is not authenticated";
     private static final String LAWYER_PROFILE_EXISTS_MSG = "Lawyer profile already exists for this user";
@@ -37,15 +38,6 @@ public class LawyerService {
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
 
-    public LawyerService(LawyerRepo lawyerRepo, 
-                        UserRepo userRepo, 
-                        LawyerSpecializationRepo lawyerSpecializationRepo, 
-                        AwsService awsService) {
-        this.lawyerRepo = lawyerRepo;
-        this.userRepo = userRepo;
-        this.lawyerSpecializationRepo = lawyerSpecializationRepo;
-        this.awsService = awsService;
-    }
 
     /**
      * Create a new lawyer profile.
@@ -74,6 +66,7 @@ public class LawyerService {
         lawyer.setDivision(lawyerProfileDTO.getDivision());
         lawyer.setDistrict(lawyerProfileDTO.getDistrict());
         lawyer.setBio(lawyerProfileDTO.getBio());
+        lawyer.setHourlyCharge(lawyerProfileDTO.getHourlyCharge());
         lawyer.setVerificationStatus(VerificationStatus.PENDING);
         Lawyer savedLawyer = lawyerRepo.save(lawyer);
         log.info("Profile created for user: {}", user.getEmail());
@@ -119,14 +112,6 @@ public class LawyerService {
 
     /**
      * Updates the profile information of the authenticated lawyer.
-     *
-     * This method updates the lawyer's firm, years of experience, practicing court,
-     * division, district, and bio. It also updates the lawyer's specializations by
-     * removing all existing specializations and saving the new ones provided.
-     *
-     * @param lawyerProfileDTO the DTO containing the updated profile information and specializations
-     * @return a ResponseEntity containing an ApiResponse with the updated LawyerInfoDTO,
-     *         or an error message if the user is not authenticated or the profile does not exist
      */
     public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateLawyerProfile(LawyerProfileDTO lawyerProfileDTO) {
         log.debug("Updating lawyer profile");
@@ -147,12 +132,48 @@ public class LawyerService {
         lawyer.setDivision(lawyerProfileDTO.getDivision());
         lawyer.setDistrict(lawyerProfileDTO.getDistrict());
         lawyer.setBio(lawyerProfileDTO.getBio());
+        lawyer.setHourlyCharge(lawyerProfileDTO.getHourlyCharge());
         Lawyer updatedLawyer = lawyerRepo.save(lawyer);
         log.info("Profile updated for lawyer: {}", user.getEmail());
         updateLawyerSpecilizations(updatedLawyer, lawyerProfileDTO.getSpecializations());
         List<SpecializationType> specializations = loadLawyerSpecializations(updatedLawyer);
         LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(updatedLawyer, specializations);
         return ApiResponse.success(lawyerInfoDTO, HttpStatus.OK, "Lawyer profile updated successfully");
+    }
+
+    /**
+     * Updates the hourly charge for the authenticated lawyer.
+     */
+    public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateHourlyCharge(UpdateHourlyChargeDTO updateHourlyChargeDTO) {
+        log.debug("Updating hourly charge");
+
+        User user = LawyerUtil.getAuthenticatedLawyerUser(userRepo);
+        if (user == null) {
+            log.warn("Unauthorized hourly charge update attempt");
+            return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
+        }
+
+        Lawyer lawyer = lawyerRepo.findByUser(user).orElse(null);
+        if (lawyer == null) {
+            log.warn("Attempt to update hourly charge before profile creation for user: {}", user.getEmail());
+            return ApiResponse.error("Lawyer profile does not exist", HttpStatus.NOT_FOUND);
+        }
+
+
+        lawyer.setHourlyCharge(updateHourlyChargeDTO.getHourlyCharge());
+
+        try {
+            Lawyer updatedLawyer = lawyerRepo.save(lawyer);
+            log.info("Hourly charge updated for lawyer: {} to {}", user.getEmail(), updateHourlyChargeDTO.getHourlyCharge());
+
+            List<SpecializationType> specializations = loadLawyerSpecializations(updatedLawyer);
+            LawyerInfoDTO lawyerInfoDTO = LawyerUtil.mapLawyerToLawyerInfoDTO(updatedLawyer, specializations);
+
+            return ApiResponse.success(lawyerInfoDTO, HttpStatus.OK, "Hourly charge updated successfully");
+        } catch (Exception e) {
+            log.error("Failed to update hourly charge for user: {}", user.getEmail(), e);
+            return ApiResponse.error("Failed to update hourly charge", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -235,9 +256,6 @@ public class LawyerService {
 
     /**
      * Saves specializations for a lawyer.
-     *
-     * @param lawyer          the lawyer entity
-     * @param specializations the list of specializations to save
      */
     private void saveLawyerSpecializations(Lawyer lawyer, List<SpecializationType> specializations) {
         if (specializations != null && !specializations.isEmpty()) {
@@ -254,9 +272,6 @@ public class LawyerService {
     /**
      * Updates the specializations for a lawyer by removing all existing specializations
      * and saving the new ones provided.
-     *
-     * @param lawyer the lawyer entity whose specializations are to be updated
-     * @param specializations the new list of specializations to set for the lawyer
      */
     private void updateLawyerSpecilizations(Lawyer lawyer, List<SpecializationType> specializations) {
         List<LawyerSpecialization> existingSpecs = lawyerSpecializationRepo.findByLawyer(lawyer);
@@ -271,9 +286,6 @@ public class LawyerService {
 
     /**
      * Loads specializations for a lawyer.
-     *
-     * @param lawyer the lawyer entity
-     * @return the list of specialization types
      */
     private List<SpecializationType> loadLawyerSpecializations(Lawyer lawyer) {
         List<LawyerSpecialization> lawyerSpecializations = lawyerSpecializationRepo.findByLawyer(lawyer);

@@ -1,5 +1,6 @@
 package com.javajedis.legalconnect.lawyer;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -76,6 +77,12 @@ public class Lawyer {
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus = VerificationStatus.PENDING;
+
+    @Column(name = "hourly_charge", precision = 10, scale = 2)
+    private BigDecimal hourlyCharge;
+
+    @Column(name = "complete_profile", insertable = false, updatable = false)
+    private Boolean completeProfile;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ DEFAULT now()")

@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat System Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        text-align: center;
+        font-weight: bold;
+      }
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      button {
+        padding: 10px 15px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .primary {
+        background-color: #007bff;
+        color: white;
+      }
+      .secondary {
+        background-color: #6c757d;
+        color: white;
+      }
+      .success {
+        background-color: #28a745;
+        color: white;
+      }
+      .danger {
+        background-color: #dc3545;
+        color: white;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        box-sizing: border-box;
+      }
+      .message {
+        background-color: #e7f3ff;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+      .message.sent {
+        background-color: #d4edda;
+        border-left-color: #28a745;
+      }
+      .message.received {
+        background-color: #fff3cd;
+        border-left-color: #ffc107;
+      }
+      .conversation {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .conversation:hover {
+        background-color: #e9ecef;
+      }
+      .conversation.selected {
+        background-color: #cce5ff;
+        border-color: #007bff;
+      }
+      .log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .messages-container {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        background-color: #f8f9fa;
+      }
+      .conversations-container {
+        height: 250px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        background-color: #f8f9fa;
+      }
+      .unread-badge {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        margin-left: 10px;
+      }
+      .flex-container {
+        display: flex;
+        gap: 20px;
+      }
+      .flex-item {
+        flex: 1;
+      }
+      .message-meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+      }
+      .read-status {
+        font-size: 11px;
+        color: #28a745;
+        font-style: italic;
+      }
+      .unread-status {
+        font-size: 11px;
+        color: #dc3545;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>💬 Chat System Test</h1>
+
+    <div class="container">
+      <h3>Connection</h3>
+      <div id="connectionStatus" class="status disconnected">Disconnected</div>
+      <input type="password" id="jwtToken" placeholder="JWT Token" />
+      <input type="text" id="userId" placeholder="User ID (UUID)" />
+      <button class="primary" onclick="connect()">Connect</button>
+      <button class="secondary" onclick="disconnect()">Disconnect</button>
+      <button class="success" onclick="pingChat()">Ping Chat</button>
+    </div>
+
+    <div class="container">
+      <h3>Send Message</h3>
+      <input type="text" id="receiverId" placeholder="Receiver ID (UUID)" />
+      <textarea
+        id="messageContent"
+        rows="3"
+        placeholder="Message content (max 1000 characters)"
+      ></textarea>
+      <button class="primary" onclick="sendMessage()">Send Message</button>
+      <button class="success" onclick="sendToSelf()">Send to Self</button>
+    </div>
+
+    <div class="flex-container">
+      <div class="flex-item">
+        <div class="container">
+          <h3>
+            Conversations
+            <span
+              id="totalUnreadBadge"
+              class="unread-badge"
+              style="display: none"
+              >0</span
+            >
+          </h3>
+          <div
+            id="conversationsContainer"
+            class="conversations-container"
+          ></div>
+          <button class="secondary" onclick="loadConversations()">
+            Refresh Conversations
+          </button>
+          <button class="primary" onclick="getTotalUnreadCount()">
+            Get Unread Count
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-item">
+        <div class="container">
+          <h3>
+            Messages
+            <span
+              id="selectedConversationId"
+              style="font-size: 12px; color: #666"
+            ></span>
+          </h3>
+          <div id="messagesContainer" class="messages-container"></div>
+          <button class="secondary" onclick="loadMessages()">
+            Load Messages
+          </button>
+          <button class="success" onclick="markAsRead()">Mark as Read</button>
+          <button class="primary" onclick="loadMoreMessages()">
+            Load More
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <h3>Real-time Messages</h3>
+      <div id="realtimeMessages"></div>
+      <button class="secondary" onclick="clearRealtimeMessages()">Clear</button>
+    </div>
+
+    <div class="container">
+      <h3>Activity Log</h3>
+      <div id="log" class="log"></div>
+      <button class="secondary" onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+      let stompClient = null;
+      let connected = false;
+      let selectedConversationId = null;
+      let currentPage = 0;
+      let conversations = [];
+
+      function log(message) {
+        const logDiv = document.getElementById("log");
+        const timestamp = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      function updateStatus(status, message) {
+        const statusDiv = document.getElementById("connectionStatus");
+        statusDiv.className = `status ${status}`;
+        statusDiv.textContent = message;
+      }
+
+      function connect() {
+        const token = document.getElementById("jwtToken").value.trim();
+        const userId = document.getElementById("userId").value.trim();
+
+        if (!token || !userId) {
+          alert("Please enter both JWT token and User ID");
+          return;
+        }
+
+        log("Connecting to WebSocket...");
+
+        const socket = new SockJS("/v1/ws");
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          token: token,
+        };
+
+        stompClient.connect(
+          headers,
+          function (frame) {
+            connected = true;
+            updateStatus("connected", "Connected");
+            log("✅ Connected successfully");
+
+            // Subscribe to chat messages
+            stompClient.subscribe(`/topic/chat-${userId}`, function (message) {
+              const data = JSON.parse(message.body);
+              displayRealtimeMessage(data, "received");
+              log(`📨 Received message: ${data.content}`);
+
+              // Auto-refresh conversations and unread count
+              setTimeout(() => {
+                loadConversations();
+                getTotalUnreadCount();
+              }, 500);
+            });
+
+            // Subscribe to unread count updates
+            stompClient.subscribe(
+              `/topic/chat-unread-${userId}`,
+              function (message) {
+                const data = JSON.parse(message.body);
+                updateTotalUnreadBadge(data.totalUnreadCount);
+                log(`🔢 Unread count updated: ${data.totalUnreadCount}`);
+              }
+            );
+
+            // Subscribe to read status updates
+            stompClient.subscribe(
+              `/topic/chat-read-status-${userId}`,
+              function (message) {
+                const data = JSON.parse(message.body);
+                log(
+                  `✅ Message ${data.messageId} marked as read: ${data.read}`
+                );
+              }
+            );
+
+            // Subscribe to chat queue for system messages
+            stompClient.subscribe(`/user/queue/chat`, function (message) {
+              const data = JSON.parse(message.body);
+              log(`🔔 System message: ${data.content}`);
+            });
+
+            // Subscribe to chat status updates
+            stompClient.subscribe(
+              `/user/queue/chat-status`,
+              function (message) {
+                log(`📡 Status: ${message.body}`);
+              }
+            );
+
+            // Subscribe to chat errors
+            stompClient.subscribe(
+              `/user/queue/chat-errors`,
+              function (message) {
+                log(`❌ Error: ${message.body}`);
+              }
+            );
+
+            // Send subscription message
+            stompClient.send("/app/chat/subscribe", {}, JSON.stringify({}));
+            log("📡 Subscribed to chat");
+
+            // Load initial data
+            loadConversations();
+            getTotalUnreadCount();
+          },
+          function (error) {
+            connected = false;
+            updateStatus("disconnected", "Connection failed");
+            log("❌ Connection failed: " + error);
+          }
+        );
+      }
+
+      function disconnect() {
+        if (stompClient && connected) {
+          stompClient.disconnect();
+          connected = false;
+          updateStatus("disconnected", "Disconnected");
+          log("🔌 Disconnected");
+        }
+      }
+
+      function pingChat() {
+        if (stompClient && connected) {
+          log("Sending chat ping...");
+          stompClient.send("/app/chat/ping", {}, JSON.stringify({}));
+        } else {
+          alert("Not connected");
+        }
+      }
+
+      function sendMessage() {
+        const token = document.getElementById("jwtToken").value.trim();
+        const receiverId = document.getElementById("receiverId").value.trim();
+        const content = document.getElementById("messageContent").value.trim();
+
+        if (!token || !receiverId || !content) {
+          alert("Please fill all fields");
+          return;
+        }
+
+        if (content.length > 1000) {
+          alert("Message content must be 1000 characters or less");
+          return;
+        }
+
+        log("Sending message...");
+
+        fetch("/v1/chat/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ receiverId, content }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              log("✅ Message sent successfully");
+              document.getElementById("messageContent").value = "";
+              displayRealtimeMessage(data.data, "sent");
+
+              // Refresh conversations and unread count
+              setTimeout(() => {
+                loadConversations();
+                getTotalUnreadCount();
+                if (selectedConversationId) {
+                  loadMessages();
+                }
+              }, 500);
+            } else {
+              log("❌ Failed: " + data.message);
+            }
+          })
+          .catch((error) => log("❌ Error: " + error));
+      }
+
+      function sendToSelf() {
+        const userId = document.getElementById("userId").value.trim();
+        if (userId) {
+          document.getElementById("receiverId").value = userId;
+          document.getElementById("messageContent").value =
+            "Test message - real-time chat working!";
+        }
+      }
+
+      function loadConversations() {
+        const token = document.getElementById("jwtToken").value.trim();
+
+        if (!token) {
+          alert("Please enter JWT token");
+          return;
+        }
+
+        log("Loading conversations...");
+
+        fetch("/v1/chat/conversations", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success && data.data && data.data.conversations) {
+              conversations = data.data.conversations;
+              displayConversations(conversations);
+              log(`✅ Loaded ${conversations.length} conversations`);
+            } else if (data.success) {
+              // Handle case where success is true but no conversations
+              conversations = [];
+              displayConversations(conversations);
+              log("✅ No conversations found");
+            } else {
+              log(
+                "❌ Failed to load conversations: " +
+                  (data.message || "Unknown error")
+              );
+            }
+          })
+          .catch((error) => log("❌ Error loading conversations: " + error));
+      }
+
+      function displayConversations(conversations) {
+        const container = document.getElementById("conversationsContainer");
+        container.innerHTML = "";
+
+        conversations.forEach((conv) => {
+          const div = document.createElement("div");
+          div.className = "conversation";
+          if (selectedConversationId === conv.id) {
+            div.classList.add("selected");
+          }
+
+          const unreadBadge =
+            conv.unreadCount > 0
+              ? `<span class="unread-badge">${conv.unreadCount}</span>`
+              : "";
+
+          const latestMessage = conv.latestMessage
+            ? `<div style="font-size: 12px; color: #666; margin-top: 5px;">
+                        ${conv.latestMessage.content.substring(0, 50)}${
+                conv.latestMessage.content.length > 50 ? "..." : ""
+              }
+                    </div>`
+            : "";
+
+          div.innerHTML = `
+                    <strong>${
+                      conv.otherParticipantName || "Unknown User"
+                    }</strong> ${unreadBadge}
+                    <div style="font-size: 12px; color: #999;">ID: ${
+                      conv.otherParticipantId
+                    }</div>
+                    ${latestMessage}
+                `;
+
+          div.onclick = () =>
+            selectConversation(conv.id, conv.otherParticipantName);
+          container.appendChild(div);
+        });
+      }
+
+      function selectConversation(conversationId, participantName) {
+        selectedConversationId = conversationId;
+        currentPage = 0;
+        document.getElementById("selectedConversationId").textContent = `(${
+          participantName || "Unknown"
+        } - ${conversationId})`;
+
+        // Update visual selection
+        document.querySelectorAll(".conversation").forEach((conv) => {
+          conv.classList.remove("selected");
+        });
+        event.target.closest(".conversation").classList.add("selected");
+
+        loadMessages();
+        log(`📋 Selected conversation: ${conversationId}`);
+      }
+
+      function loadMessages() {
+        if (!selectedConversationId) {
+          alert("Please select a conversation first");
+          return;
+        }
+
+        const token = document.getElementById("jwtToken").value.trim();
+
+        if (!token) {
+          alert("Please enter JWT token");
+          return;
+        }
+
+        log(`Loading messages for conversation ${selectedConversationId}...`);
+
+        fetch(
+          `/v1/chat/conversations/${selectedConversationId}/messages?page=${currentPage}&size=20`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              if (currentPage === 0) {
+                document.getElementById("messagesContainer").innerHTML = "";
+              }
+              displayMessages(data.data.messages, currentPage === 0);
+              log(
+                `✅ Loaded ${data.data.messages.length} messages (page ${currentPage})`
+              );
+            } else {
+              log("❌ Failed to load messages: " + data.message);
+            }
+          })
+          .catch((error) => log("❌ Error loading messages: " + error));
+      }
+
+      function loadMoreMessages() {
+        if (!selectedConversationId) {
+          alert("Please select a conversation first");
+          return;
+        }
+
+        currentPage++;
+        loadMessages();
+      }
+
+      function displayMessages(messages, clearFirst = true) {
+        const container = document.getElementById("messagesContainer");
+        if (clearFirst) {
+          container.innerHTML = "";
+        }
+
+        const currentUserId = document.getElementById("userId").value.trim();
+
+        messages.forEach((msg) => {
+          const div = document.createElement("div");
+          div.className = "message";
+
+          const isSent = msg.senderId === currentUserId;
+          if (isSent) {
+            div.classList.add("sent");
+          }
+
+          const readStatus = msg.read
+            ? '<span class="read-status">✓ Read</span>'
+            : '<span class="unread-status">○ Unread</span>';
+
+          div.innerHTML = `
+                    <div><strong>${isSent ? "You" : "Other User"}:</strong> ${
+            msg.content
+          }</div>
+                    <div class="message-meta">
+                        ${new Date(
+                          msg.createdAt
+                        ).toLocaleString()} | ${readStatus}
+                        <br>ID: ${msg.id}
+                    </div>
+                `;
+
+          if (clearFirst) {
+            container.appendChild(div);
+          } else {
+            container.insertBefore(div, container.firstChild);
+          }
+        });
+
+        if (clearFirst) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }
+
+      function markAsRead() {
+        if (!selectedConversationId) {
+          alert("Please select a conversation first");
+          return;
+        }
+
+        const token = document.getElementById("jwtToken").value.trim();
+
+        if (!token) {
+          alert("Please enter JWT token");
+          return;
+        }
+
+        log(`Marking conversation ${selectedConversationId} as read...`);
+
+        fetch(`/v1/chat/conversations/${selectedConversationId}/read`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              log("✅ Conversation marked as read");
+
+              // Refresh data
+              setTimeout(() => {
+                loadConversations();
+                loadMessages();
+                getTotalUnreadCount();
+              }, 500);
+            } else {
+              log("❌ Failed to mark as read: " + data.message);
+            }
+          })
+          .catch((error) => log("❌ Error marking as read: " + error));
+      }
+
+      function getTotalUnreadCount() {
+        const token = document.getElementById("jwtToken").value.trim();
+
+        if (!token) {
+          return;
+        }
+
+        fetch("/v1/chat/unread-count", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success && data.data) {
+              updateTotalUnreadBadge(data.data.totalUnreadCount);
+              log(`📊 Total unread count: ${data.data.totalUnreadCount}`);
+            } else {
+              log(
+                "❌ Failed to get unread count: " +
+                  (data.message || "Unknown error")
+              );
+            }
+          })
+          .catch((error) => log("❌ Error getting unread count: " + error));
+      }
+
+      function updateTotalUnreadBadge(count) {
+        const badge = document.getElementById("totalUnreadBadge");
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = "inline";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      function displayRealtimeMessage(message, type) {
+        const div = document.createElement("div");
+        div.className = `message ${type}`;
+
+        const typeLabel = type === "sent" ? "Sent" : "Received";
+        const readStatus = message.read ? "✓ Read" : "○ Unread";
+
+        div.innerHTML = `
+                <strong>${typeLabel}:</strong> ${message.content}
+                <div class="message-meta">
+                    ${new Date(
+                      message.createdAt
+                    ).toLocaleString()} | ${readStatus}
+                    <br>From: ${message.senderId} | Conv: ${
+          message.conversationId
+        }
+                </div>
+            `;
+
+        document
+          .getElementById("realtimeMessages")
+          .insertBefore(
+            div,
+            document.getElementById("realtimeMessages").firstChild
+          );
+      }
+
+      function clearRealtimeMessages() {
+        document.getElementById("realtimeMessages").innerHTML = "";
+      }
+
+      function clearLog() {
+        document.getElementById("log").innerHTML = "";
+      }
+
+      // Initial log
+      log(
+        "Chat System Test loaded. Enter JWT token and User ID, then connect."
+      );
+    </script>
+  </body>
+</html>

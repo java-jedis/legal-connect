@@ -1,29 +1,25 @@
 package com.javajedis.legalconnect.scheduling;
 
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 @Tag(name = "7. OAuth", description = "OAuth2 Google Calendar integration endpoints")
 @RestController
 @RequestMapping("/schedule/oauth")
+@RequiredArgsConstructor
 public class OAuthController {
-    
-    private final OAuthService oAuthService;
 
-    public OAuthController(OAuthService oAuthService) {
-        this.oAuthService = oAuthService;
-    }
+    private final OAuthService oAuthService;
 
     /**
      * Initiates OAuth2 authorization flow with Google Calendar.
@@ -58,9 +54,9 @@ public class OAuthController {
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<Boolean>> checkGoogleCalendarStatus() {
         log.info("GET /schedule/oauth/status called");
-        
+
         boolean hasValidTokens = oAuthService.checkAndRefreshAccessToken();
-        
+
         if (hasValidTokens) {
             return ApiResponse.success(true, org.springframework.http.HttpStatus.OK, "User has valid Google Calendar integration");
         } else {

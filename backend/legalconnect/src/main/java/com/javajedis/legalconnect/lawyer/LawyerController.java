@@ -7,6 +7,7 @@ import com.javajedis.legalconnect.lawyer.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,18 +17,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 @Slf4j
-@Tag(name = "3. Lawyer", description = "Lawyer profile management endpoints")
+@Tag(name = "2. Lawyer", description = "Lawyer profile management endpoints")
 @RestController
 @RequestMapping("/lawyer")
+@RequiredArgsConstructor
 public class LawyerController {
 
     private final LawyerService lawyerService;
     private final LawyerAvailabilitySlotService lawyerAvailabilitySlotService;
 
-    public LawyerController(LawyerService lawyerService, LawyerAvailabilitySlotService lawyerAvailabilitySlotService) {
-        this.lawyerService = lawyerService;
-        this.lawyerAvailabilitySlotService = lawyerAvailabilitySlotService;
-    }
 
     /**
      * Create a new lawyer profile.
@@ -134,6 +132,17 @@ public class LawyerController {
     public ResponseEntity<ApiResponse<Void>> deleteAvailabilitySlot(@PathVariable UUID slotId) {
         log.info("DELETE /lawyer/availability-slots/{} called", slotId);
         return lawyerAvailabilitySlotService.deleteSlot(slotId);
+    }
+
+    /**
+     * Update the hourly charge for the authenticated lawyer.
+     */
+    @Operation(summary = "Update hourly charge", description = "Updates the hourly consultation charge for the authenticated lawyer.")
+    @RequireVerifiedLawyer
+    @PutMapping("/hourly-charge")
+    public ResponseEntity<ApiResponse<LawyerInfoDTO>> updateHourlyCharge(@Valid @RequestBody UpdateHourlyChargeDTO updateHourlyChargeDTO) {
+        log.info("PUT /lawyer/hourly-charge called");
+        return lawyerService.updateHourlyCharge(updateHourlyChargeDTO);
     }
 
 } 

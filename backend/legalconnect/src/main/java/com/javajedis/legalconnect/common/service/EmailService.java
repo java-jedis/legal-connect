@@ -1,8 +1,8 @@
 package com.javajedis.legalconnect.common.service;
 
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -11,9 +11,8 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -21,6 +20,7 @@ public class EmailService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+
     private final String fromEmail;
 
     public EmailService(JavaMailSender mailSender,

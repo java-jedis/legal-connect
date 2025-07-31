@@ -64,6 +64,9 @@ public class LawyerUtil {
         lawyerInfoDTO.setLawyerCreatedAt(lawyer.getCreatedAt());
         lawyerInfoDTO.setLawyerUpdatedAt(lawyer.getUpdatedAt());
         lawyerInfoDTO.setSpecializations(specializations != null ? specializations : List.of());
+        lawyerInfoDTO.setHourlyCharge(lawyer.getHourlyCharge());
+        lawyerInfoDTO.setCompleteProfile(lawyer.getCompleteProfile());
+        
         return lawyerInfoDTO;
     }
 } 

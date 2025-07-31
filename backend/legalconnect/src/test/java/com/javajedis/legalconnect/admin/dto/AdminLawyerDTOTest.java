@@ -40,7 +40,7 @@ class AdminLawyerDTOTest {
                 lawyerId, "First", "Last", "email@example.com",
                 "Firm", 10, "BAR123", PracticingCourt.SUPREME_COURT,
                 Division.DHAKA, District.DHAKA, "Bio", VerificationStatus.PENDING,
-                now, now, specializations
+                now, now, specializations, null, null
         );
 
         AdminLawyerDTO dto = new AdminLawyerDTO(

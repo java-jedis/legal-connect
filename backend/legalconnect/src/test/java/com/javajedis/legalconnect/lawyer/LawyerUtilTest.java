@@ -256,4 +256,56 @@ class LawyerUtilTest {
         // Assert
         assertNull(result);
     }
+
+    @Test
+    void mapLawyerToLawyerInfoDTO_withHourlyChargeAndCompleteProfile_mapsCorrectly() {
+        // Arrange
+        testLawyer.setHourlyCharge(new java.math.BigDecimal("150.00"));
+        testLawyer.setCompleteProfile(true);
+        List<SpecializationType> specializations = List.of(SpecializationType.CORPORATE_LAW);
+        
+        // Act
+        LawyerInfoDTO result = LawyerUtil.mapLawyerToLawyerInfoDTO(testLawyer, specializations);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(testLawyer.getHourlyCharge(), result.getHourlyCharge());
+        assertEquals(testLawyer.getCompleteProfile(), result.getCompleteProfile());
+        assertEquals(new java.math.BigDecimal("150.00"), result.getHourlyCharge());
+        assertTrue(result.getCompleteProfile());
+    }
+
+    @Test
+    void mapLawyerToLawyerInfoDTO_withNullHourlyChargeAndCompleteProfile_handlesGracefully() {
+        // Arrange
+        testLawyer.setHourlyCharge(null);
+        testLawyer.setCompleteProfile(null);
+        List<SpecializationType> specializations = List.of(SpecializationType.CORPORATE_LAW);
+        
+        // Act
+        LawyerInfoDTO result = LawyerUtil.mapLawyerToLawyerInfoDTO(testLawyer, specializations);
+        
+        // Assert
+        assertNotNull(result);
+        assertNull(result.getHourlyCharge());
+        assertNull(result.getCompleteProfile());
+    }
+
+    @Test
+    void mapLawyerToLawyerInfoDTO_withIncompleteProfile_mapsCorrectly() {
+        // Arrange
+        testLawyer.setHourlyCharge(new java.math.BigDecimal("75.50"));
+        testLawyer.setCompleteProfile(false);
+        List<SpecializationType> specializations = List.of(SpecializationType.FAMILY_LAW);
+        
+        // Act
+        LawyerInfoDTO result = LawyerUtil.mapLawyerToLawyerInfoDTO(testLawyer, specializations);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(testLawyer.getHourlyCharge(), result.getHourlyCharge());
+        assertEquals(testLawyer.getCompleteProfile(), result.getCompleteProfile());
+        assertEquals(new java.math.BigDecimal("75.50"), result.getHourlyCharge());
+        assertEquals(false, result.getCompleteProfile());
+    }
 }

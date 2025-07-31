@@ -10,6 +10,7 @@ import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CaseAssetService {
 
     private static final String NOTE_NOT_FOUND_LOG = "Note not found with ID: {}";
@@ -48,25 +50,7 @@ public class CaseAssetService {
     private final EmailService emailService;
     @Value("${cloud.aws.s3.bucket}")
     private String bucketName;
-
-    public CaseAssetService(NoteRepo noteRepo,
-                            UserRepo userRepo,
-                            CaseRepo caseRepo,
-                            DocumentRepo documentRepo,
-                            AwsService awsService,
-                            NotificationService notificationService,
-                            NotificationPreferenceService notificationPreferenceService,
-                            EmailService emailService) {
-        this.noteRepo = noteRepo;
-        this.userRepo = userRepo;
-        this.caseRepo = caseRepo;
-        this.documentRepo = documentRepo;
-        this.awsService = awsService;
-        this.notificationService = notificationService;
-        this.notificationPreferenceService = notificationPreferenceService;
-        this.emailService = emailService;
-    }
-
+    
     /**
      * Create note for a user in a case
      */

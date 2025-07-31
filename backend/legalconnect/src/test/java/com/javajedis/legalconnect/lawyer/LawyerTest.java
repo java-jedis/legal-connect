@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -71,6 +72,8 @@ class LawyerTest {
         assertNull(defaultLawyer.getBio());
         assertNull(defaultLawyer.getBarCertificateFileUrl());
         assertEquals(VerificationStatus.PENDING, defaultLawyer.getVerificationStatus());
+        assertNull(defaultLawyer.getHourlyCharge());
+        assertNull(defaultLawyer.getCompleteProfile());
         assertNull(defaultLawyer.getCreatedAt());
         assertNull(defaultLawyer.getUpdatedAt());
     }
@@ -78,11 +81,12 @@ class LawyerTest {
     @Test
     void testAllArgsConstructor() {
         OffsetDateTime now = OffsetDateTime.now();
+        BigDecimal testHourlyCharge = new BigDecimal("150.00");
         Lawyer constructedLawyer = new Lawyer(
             testId, user, "Test Firm", 10, "BAR789012",
             PracticingCourt.HIGH_COURT_DIVISION, Division.CHATTOGRAM, District.CHATTOGRAM,
             "Test bio", "https://test.com/cert.pdf", VerificationStatus.APPROVED,
-            now, now
+            testHourlyCharge, true, now, now
         );
         
         assertEquals(testId, constructedLawyer.getId());
@@ -96,6 +100,8 @@ class LawyerTest {
         assertEquals("Test bio", constructedLawyer.getBio());
         assertEquals("https://test.com/cert.pdf", constructedLawyer.getBarCertificateFileUrl());
         assertEquals(VerificationStatus.APPROVED, constructedLawyer.getVerificationStatus());
+        assertEquals(testHourlyCharge, constructedLawyer.getHourlyCharge());
+        assertEquals(true, constructedLawyer.getCompleteProfile());
         assertEquals(now, constructedLawyer.getCreatedAt());
         assertEquals(now, constructedLawyer.getUpdatedAt());
     }
@@ -196,6 +202,60 @@ class LawyerTest {
     }
 
     @Test
+    void testHourlyChargeGetterAndSetter() {
+        BigDecimal hourlyCharge = new BigDecimal("100.50");
+        lawyer.setHourlyCharge(hourlyCharge);
+        assertEquals(hourlyCharge, lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testHourlyChargeWithNullValue() {
+        lawyer.setHourlyCharge(null);
+        assertNull(lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testHourlyChargeWithZeroValue() {
+        BigDecimal zeroCharge = BigDecimal.ZERO;
+        lawyer.setHourlyCharge(zeroCharge);
+        assertEquals(zeroCharge, lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testHourlyChargeWithLargeValue() {
+        BigDecimal largeCharge = new BigDecimal("9999.99");
+        lawyer.setHourlyCharge(largeCharge);
+        assertEquals(largeCharge, lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testHourlyChargeWithPrecision() {
+        BigDecimal preciseCharge = new BigDecimal("123.45");
+        lawyer.setHourlyCharge(preciseCharge);
+        assertEquals(preciseCharge, lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testCompleteProfileGetterAndSetter() {
+        Boolean completeProfile = true;
+        lawyer.setCompleteProfile(completeProfile);
+        assertEquals(completeProfile, lawyer.getCompleteProfile());
+    }
+
+    @Test
+    void testCompleteProfileWithFalseValue() {
+        Boolean completeProfile = false;
+        lawyer.setCompleteProfile(completeProfile);
+        assertEquals(completeProfile, lawyer.getCompleteProfile());
+    }
+
+    @Test
+    void testCompleteProfileWithNullValue() {
+        lawyer.setCompleteProfile(null);
+        assertNull(lawyer.getCompleteProfile());
+    }
+
+    @Test
     void testEqualsAndHashCode() {
         Lawyer lawyer1 = new Lawyer();
         lawyer1.setId(testId);
@@ -225,6 +285,10 @@ class LawyerTest {
 
     @Test
     void testToString() {
+        BigDecimal testCharge = new BigDecimal("75.00");
+        lawyer.setHourlyCharge(testCharge);
+        lawyer.setCompleteProfile(true);
+        
         String toString = lawyer.toString();
         
         assertTrue(toString.contains("id=" + testId));
@@ -235,6 +299,19 @@ class LawyerTest {
         assertTrue(toString.contains("division=DHAKA"));
         assertTrue(toString.contains("district=DHAKA"));
         assertTrue(toString.contains("verificationStatus=PENDING"));
+        assertTrue(toString.contains("hourlyCharge=" + testCharge));
+        assertTrue(toString.contains("completeProfile=true"));
+    }
+
+    @Test
+    void testToStringWithNullHourlyCharge() {
+        lawyer.setHourlyCharge(null);
+        lawyer.setCompleteProfile(false);
+        
+        String toString = lawyer.toString();
+        
+        assertTrue(toString.contains("hourlyCharge=null"));
+        assertTrue(toString.contains("completeProfile=false"));
     }
 
     @Test
@@ -319,5 +396,91 @@ class LawyerTest {
         
         lawyer.setDistrict(District.MYMENSINGH);
         assertEquals(District.MYMENSINGH, lawyer.getDistrict());
+    }
+
+    @Test
+    void testEqualsAndHashCodeWithNewFields() {
+        BigDecimal hourlyCharge = new BigDecimal("100.00");
+        
+        Lawyer lawyer1 = new Lawyer();
+        lawyer1.setId(testId);
+        lawyer1.setUser(user);
+        lawyer1.setFirm("Test Law Firm");
+        lawyer1.setHourlyCharge(hourlyCharge);
+        lawyer1.setCompleteProfile(true);
+        
+        Lawyer lawyer2 = new Lawyer();
+        lawyer2.setId(testId);
+        lawyer2.setUser(user);
+        lawyer2.setFirm("Test Law Firm");
+        lawyer2.setHourlyCharge(hourlyCharge);
+        lawyer2.setCompleteProfile(true);
+        
+        Lawyer lawyer3 = new Lawyer();
+        lawyer3.setId(testId);
+        lawyer3.setUser(user);
+        lawyer3.setFirm("Test Law Firm");
+        lawyer3.setHourlyCharge(new BigDecimal("200.00"));
+        lawyer3.setCompleteProfile(false);
+        
+        // Test equals with new fields - objects with same values should be equal
+        assertEquals(lawyer1, lawyer2);
+        // Objects with different field values should not be equal (Lombok @Data generates equals based on all fields)
+        assertNotEquals(lawyer1, lawyer3);
+        
+        // Test hashCode with new fields - objects with same values should have same hashCode
+        assertEquals(lawyer1.hashCode(), lawyer2.hashCode());
+        // Objects with different field values should have different hashCode
+        assertNotEquals(lawyer1.hashCode(), lawyer3.hashCode());
+    }
+
+    @Test
+    void testHourlyChargeDecimalPrecision() {
+        // Test various decimal precisions
+        BigDecimal charge1 = new BigDecimal("99.99");
+        BigDecimal charge2 = new BigDecimal("100.00");
+        BigDecimal charge3 = new BigDecimal("0.01");
+        
+        lawyer.setHourlyCharge(charge1);
+        assertEquals(charge1, lawyer.getHourlyCharge());
+        
+        lawyer.setHourlyCharge(charge2);
+        assertEquals(charge2, lawyer.getHourlyCharge());
+        
+        lawyer.setHourlyCharge(charge3);
+        assertEquals(charge3, lawyer.getHourlyCharge());
+    }
+
+    @Test
+    void testCompleteProfileFieldHandling() {
+        // Test that completeProfile field behaves correctly as a computed field
+        // Since it's marked as insertable=false, updatable=false, it should handle null gracefully
+        
+        // Test initial state
+        assertNull(lawyer.getCompleteProfile());
+        
+        // Test setting values
+        lawyer.setCompleteProfile(true);
+        assertEquals(true, lawyer.getCompleteProfile());
+        
+        lawyer.setCompleteProfile(false);
+        assertEquals(false, lawyer.getCompleteProfile());
+        
+        lawyer.setCompleteProfile(null);
+        assertNull(lawyer.getCompleteProfile());
+    }
+
+    @Test
+    void testNewFieldsInConstructorWithNullValues() {
+        OffsetDateTime now = OffsetDateTime.now();
+        Lawyer constructedLawyer = new Lawyer(
+            testId, user, "Test Firm", 10, "BAR789012",
+            PracticingCourt.HIGH_COURT_DIVISION, Division.CHATTOGRAM, District.CHATTOGRAM,
+            "Test bio", "https://test.com/cert.pdf", VerificationStatus.APPROVED,
+            null, null, now, now
+        );
+        
+        assertNull(constructedLawyer.getHourlyCharge());
+        assertNull(constructedLawyer.getCompleteProfile());
     }
 } 

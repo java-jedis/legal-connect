@@ -1,33 +1,23 @@
 package com.javajedis.legalconnect.admin;
 
-import java.util.UUID;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @Slf4j
 @Tag(name = "10. Admin", description = "Admin endpoints for system management")
 @RestController
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class AdminController {
-
     private final AdminService adminService;
-
-    public AdminController(AdminService adminService) {
-        this.adminService = adminService;
-    }
 
     /**
      * Get all lawyers with PENDING verification status with pagination.
@@ -37,11 +27,11 @@ public class AdminController {
     public ResponseEntity<ApiResponse<AdminLawyerListResponseDTO>> getPendingLawyers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         log.info("GET /admin/lawyers/pending called with page={}, size={}", page, size);
-        
+
         return adminService.getLawyersByVerificationStatus(
-            VerificationStatus.PENDING, page, size);
+                VerificationStatus.PENDING, page, size);
     }
 
     /**
@@ -53,9 +43,9 @@ public class AdminController {
             @RequestParam(required = false) VerificationStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         log.info("GET /admin/lawyers called with status={}, page={}, size={}", status, page, size);
-        
+
         return adminService.getLawyersByVerificationStatus(status, page, size);
     }
 
