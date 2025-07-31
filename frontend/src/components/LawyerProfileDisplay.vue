@@ -59,6 +59,59 @@
             <span class="status-text">Verified Lawyer</span>
           </div>
         </div>
+        
+        <!-- Chat Action Button -->
+        <div class="profile-actions">
+          <button 
+            @click="handleStartChat" 
+            class="chat-button"
+            :disabled="isStartingChat || !canStartChat"
+            :aria-label="`Start chat with ${getDisplayName(profile.firstName, profile.lastName)}`"
+            type="button"
+          >
+            <svg 
+              v-if="!isStartingChat" 
+              class="chat-icon" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path 
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              />
+            </svg>
+            <svg 
+              v-else 
+              class="loading-spinner" 
+              viewBox="0 0 24 24" 
+              aria-hidden="true"
+            >
+              <circle 
+                cx="12" 
+                cy="12" 
+                r="10" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                fill="none" 
+                opacity="0.3"
+              />
+              <path 
+                d="M12 2a10 10 0 0 1 10 10" 
+                stroke="currentColor" 
+                stroke-width="2" 
+                fill="none"
+              />
+            </svg>
+            <span class="chat-button-text">
+              {{ isStartingChat ? 'Starting...' : 'Start Chat' }}
+            </span>
+          </button>
+        </div>
       </div>
 
       <!-- Profile Details Row (all in one row) -->
@@ -73,6 +126,14 @@
           <div class="detail-item">
             <span class="detail-label">Bar Certificate:</span>
             <span class="detail-value">{{ profile.barCertificateNumber || 'Not specified' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Hourly Charge (BDT):</span>
+            <span class="detail-value">
+              {{ profile.hourlyCharge != null
+                ? Number(profile.hourlyCharge).toLocaleString('en-BD', { style: 'currency', currency: 'BDT', minimumFractionDigits: 2 })
+                : 'Not specified' }}
+            </span>
           </div>
         </div>
 
@@ -143,6 +204,11 @@
 </template>
 
 <script>
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { useChatStore } from '../stores/chat'
+
 export default {
   name: 'LawyerProfileDisplay',
   props: {
@@ -160,6 +226,96 @@ export default {
     }
   },
   emits: ['retry'],
+  setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
+    const chatStore = useChatStore()
+    
+    // Chat state
+    const isStartingChat = ref(false)
+    
+    // Computed properties
+    const canStartChat = computed(() => {
+      return authStore.isLoggedIn && authStore.userInfo?.id
+    })
+    
+    // Chat methods
+    const startChat = async (profile) => {
+      // Check authentication first
+      if (!authStore.isLoggedIn) {
+        // Redirect to login
+        router.push('/login')
+        return
+      }
+      
+      if (!authStore.userInfo?.id) {
+        console.error('User information not available')
+        return
+      }
+      
+      if (!profile?.id) {
+        console.error('Lawyer profile information not available')
+        return
+      }
+      
+      // Prevent starting chat with yourself
+      if (authStore.userInfo.id === profile.id) {
+        console.warn('Cannot start chat with yourself')
+        return
+      }
+      
+      isStartingChat.value = true
+      
+      try {
+        // Start conversation with initial message
+        const initialMessage = `Hi ${profile.firstName || 'there'}, I would like to discuss my legal needs with you.`
+        
+        const result = await chatStore.startConversation(profile.id, initialMessage)
+        
+        if (result.success && result.data) {
+          // Navigate to the conversation
+          const conversationId = result.data.conversationId
+          if (conversationId) {
+            // Try to navigate to specific conversation, fallback to inbox if route doesn't exist
+            try {
+              await router.push(`/chat/${conversationId}`)
+            } catch (routeError) {
+              console.warn('Chat conversation route not available, navigating to inbox')
+              try {
+                await router.push('/chat')
+              } catch (inboxError) {
+                console.warn('Chat inbox route not available yet')
+                // For now, just log success - routes will be implemented in later tasks
+                console.log('Chat conversation started successfully. Conversation ID:', conversationId)
+              }
+            }
+          } else {
+            // If no conversation ID, try to navigate to inbox
+            try {
+              await router.push('/chat')
+            } catch (routeError) {
+              console.warn('Chat inbox route not available yet')
+              console.log('Chat conversation started successfully')
+            }
+          }
+        } else {
+          console.error('Failed to start conversation:', result.message)
+          // Could show a toast notification here
+        }
+      } catch (error) {
+        console.error('Error starting chat:', error)
+        // Could show a toast notification here
+      } finally {
+        isStartingChat.value = false
+      }
+    }
+    
+    return {
+      isStartingChat,
+      canStartChat,
+      startChat
+    }
+  },
   data() {
     return {
       bioExpanded: false
@@ -191,6 +347,10 @@ export default {
     },
     getFirm(firm) {
       return firm || 'Not specified'
+    },
+    // Chat method that uses the setup function
+    async handleStartChat() {
+      await this.startChat(this.profile)
     }
   }
 }
@@ -460,6 +620,78 @@ export default {
   height: 18px;
 }
 
+/* Profile Actions */
+.profile-actions {
+  margin-left: 1.5rem;
+  flex-shrink: 0;
+}
+
+.chat-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
+  );
+  color: var(--color-background);
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius-lg);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  min-width: 140px;
+  justify-content: center;
+}
+
+.chat-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.chat-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  animation: spin 1s linear infinite;
+}
+
+.chat-button-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .profile-details-row {
   display: flex;
   flex-wrap: wrap;
@@ -609,6 +841,19 @@ export default {
     font-size: 1rem;
   }
 
+  .profile-actions {
+    margin-left: 0;
+    margin-top: 1rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .chat-button {
+    min-width: 160px;
+    padding: 0.875rem 1.5rem;
+  }
+
   .profile-details-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -684,6 +929,22 @@ export default {
     height: 14px;
   }
 
+  .chat-button {
+    min-width: 140px;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .chat-icon,
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+  }
+
+  .chat-button-text {
+    font-size: 0.875rem;
+  }
+
   .detail-card h3 {
     font-size: 1rem;
   }
@@ -704,6 +965,30 @@ export default {
 
   .bio-toggle {
     font-size: 0.8125rem;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .chat-button,
+  .loading-spinner {
+    transition: none;
+    animation: none;
+  }
+
+  .chat-button:hover:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .chat-button {
+    border: 2px solid var(--color-background);
+  }
+
+  .chat-button:disabled {
+    border-color: var(--color-text-muted);
   }
 }
 </style>

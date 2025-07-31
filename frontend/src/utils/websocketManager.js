@@ -26,6 +26,7 @@ class WebSocketManager {
     this.onDisconnectCallback = null;
     this.onErrorCallback = null;
     this.onReconnectCallback = null;
+    this.onConnectionChange = null;
   }
 
   /**
@@ -88,6 +89,9 @@ class WebSocketManager {
             if (this.onConnectCallback) {
               this.onConnectCallback();
             }
+            if (this.onConnectionChange) {
+              this.onConnectionChange(true);
+            }
 
             resolve();
           },
@@ -98,6 +102,9 @@ class WebSocketManager {
 
             if (this.onDisconnectCallback) {
               this.onDisconnectCallback();
+            }
+            if (this.onConnectionChange) {
+              this.onConnectionChange(false);
             }
 
             // Attempt reconnection if not manually disconnected
@@ -308,6 +315,7 @@ class WebSocketManager {
     this.onDisconnectCallback = callbacks.onDisconnect || null;
     this.onErrorCallback = callbacks.onError || null;
     this.onReconnectCallback = callbacks.onReconnect || null;
+    this.onConnectionChange = callbacks.onConnectionChange || null;
   }
 
   /**

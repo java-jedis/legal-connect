@@ -73,6 +73,9 @@
         <div class="nav-actions">
           <ThemeToggle />
           
+          <!-- Chat inbox dropdown (only for authenticated users) -->
+          <ChatInboxDropdown v-if="authStore.isLoggedIn" />
+          
           <!-- Notification dropdown (only for authenticated users) -->
           <NotificationDropdown v-if="authStore.isLoggedIn" />
 
@@ -166,19 +169,23 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationStore } from '../stores/notification'
+import { useChatStore } from '../stores/chat'
 import ThemeToggle from './ThemeToggle.vue'
 import NotificationDropdown from './NotificationDropdown.vue'
+import ChatInboxDropdown from './ChatInboxDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const chatStore = useChatStore()
 const isMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 
-// Initialize notification store when component is mounted
+// Initialize notification and chat stores when component is mounted
 onMounted(() => {
   if (authStore.isLoggedIn) {
     notificationStore.initialize()
+    chatStore.initialize()
   }
 })
 
@@ -209,8 +216,9 @@ const toggleUserMenu = () => {
 }
 
 const logout = async () => {
-  // Clean up notification store before logout
+  // Clean up notification and chat stores before logout
   await notificationStore.cleanup()
+  await chatStore.cleanup()
   
   // Perform logout
   await authStore.logout()

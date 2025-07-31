@@ -113,238 +113,277 @@
             <span class="status-value">{{ formatDate(lawyerInfo.lawyerUpdatedAt) }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Action Buttons -->
-      <div class="profile-actions">
-        <button 
-          v-if="isVerified" 
-          @click="editProfile" 
-          class="btn btn-primary"
-        >
-          Edit Profile
-        </button>
-        <button 
-          v-if="isVerified" 
-          @click="viewCredentials" 
-          class="btn btn-outline"
-        >
-          View Bar Certificate
-        </button>
-        <button 
-          v-if="!isVerified" 
-          @click="refreshStatus" 
-          class="btn btn-outline"
-        >
-          Refresh Status
-        </button>
-      </div>
-    </div>
-
-    <!-- Edit Profile Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Edit Lawyer Profile</h3>
-          <button @click="closeEditModal" class="modal-close">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+        <!-- Action Buttons -->
+        <div class="profile-actions-container">
+          <div class="profile-actions">
+            <template v-if="isVerified">
+              <button 
+                @click="editProfile" 
+                class="btn btn-primary"
+              >
+                Edit Profile
+              </button>
+              <button 
+                @click="viewCredentials" 
+                class="btn btn-outline"
+              >
+                View Bar Certificate
+              </button>
+            </template>
+            <template v-else>
+              <button 
+                @click="refreshStatus" 
+                class="btn btn-outline"
+              >
+                Refresh Status
+              </button>
+            </template>
+          </div>
         </div>
-        
-        <form @submit.prevent="submitUpdate" class="edit-form">
-          <!-- Professional Information -->
-          <div class="form-section">
-            <h4>Professional Information</h4>
-            <div class="form-row">
+
+        <!-- Hourly Charge Update Section (only for verified lawyers) -->
+        <div v-if="isVerified" class="info-card full-width hourly-charge-card">
+          <h3>Hourly Charge</h3>
+          <div class="info-item">
+            <span class="info-label">Current Rate:</span>
+            <span class="info-value">
+              {{
+                lawyerInfo?.hourlyCharge != null
+                  ? Number(lawyerInfo.hourlyCharge).toLocaleString('en-BD', { style: 'currency', currency: 'BDT', minimumFractionDigits: 2 })
+                  : 'Not specified'
+              }}
+            </span>
+          </div>
+          <form @submit.prevent="submitHourlyChargeUpdate" class="hourly-charge-form-row">
+            <div class="form-group form-group-row">
+              <label for="hourlyChargeInput">Set New Hourly Charge (BDT)</label>
+              <input
+                id="hourlyChargeInput"
+                v-model.number="hourlyChargeInput"
+                type="number"
+                min="0.01"
+                step="0.01"
+                class="form-input"
+                :disabled="isUpdatingHourlyCharge"
+                required
+              />
+              <button type="submit" class="btn btn-primary" :disabled="isUpdatingHourlyCharge">
+                <span v-if="isUpdatingHourlyCharge" class="loading-spinner"></span>
+                {{ isUpdatingHourlyCharge ? 'Updating...' : 'Update Hourly Charge' }}
+              </button>
+            </div>
+            <div v-if="hourlyChargeError" class="error-message">{{ hourlyChargeError }}</div>
+            <div v-if="hourlyChargeSuccess" class="success-message">{{ hourlyChargeSuccess }}</div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Edit Profile Modal -->
+      <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>Edit Lawyer Profile</h3>
+            <button @click="closeEditModal" class="modal-close">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          <form @submit.prevent="submitUpdate" class="edit-form">
+            <!-- Professional Information -->
+            <div class="form-section">
+              <h4>Professional Information</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-firm">Law Firm Name *</label>
+                  <input
+                    id="edit-firm"
+                    v-model="editForm.firm"
+                    type="text"
+                    class="form-input"
+                    :class="{ 'error': editErrors.firm }"
+                    placeholder="Enter your law firm name"
+                    required
+                  />
+                  <span v-if="editErrors.firm" class="error-message">{{ editErrors.firm }}</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="edit-yearsOfExperience">Years of Experience *</label>
+                  <input
+                    id="edit-yearsOfExperience"
+                    v-model.number="editForm.yearsOfExperience"
+                    type="number"
+                    min="0"
+                    max="50"
+                    class="form-input"
+                    :class="{ 'error': editErrors.yearsOfExperience }"
+                    placeholder="Enter years of experience"
+                    required
+                  />
+                  <span v-if="editErrors.yearsOfExperience" class="error-message">{{ editErrors.yearsOfExperience }}</span>
+                </div>
+              </div>
+
               <div class="form-group">
-                <label for="edit-firm">Law Firm Name *</label>
+                <label for="edit-barCertificateNumber">Bar Certificate Number *</label>
                 <input
-                  id="edit-firm"
-                  v-model="editForm.firm"
+                  id="edit-barCertificateNumber"
+                  v-model="editForm.barCertificateNumber"
                   type="text"
                   class="form-input"
-                  :class="{ 'error': editErrors.firm }"
-                  placeholder="Enter your law firm name"
+                  :class="{ 'error': editErrors.barCertificateNumber }"
+                  placeholder="Enter your bar certificate number"
                   required
+                  readonly
                 />
-                <span v-if="editErrors.firm" class="error-message">{{ editErrors.firm }}</span>
-              </div>
-
-              <div class="form-group">
-                <label for="edit-yearsOfExperience">Years of Experience *</label>
-                <input
-                  id="edit-yearsOfExperience"
-                  v-model.number="editForm.yearsOfExperience"
-                  type="number"
-                  min="0"
-                  max="50"
-                  class="form-input"
-                  :class="{ 'error': editErrors.yearsOfExperience }"
-                  placeholder="Enter years of experience"
-                  required
-                />
-                <span v-if="editErrors.yearsOfExperience" class="error-message">{{ editErrors.yearsOfExperience }}</span>
+                <small class="help-text">Bar certificate number cannot be changed after profile creation</small>
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="edit-barCertificateNumber">Bar Certificate Number *</label>
-              <input
-                id="edit-barCertificateNumber"
-                v-model="editForm.barCertificateNumber"
-                type="text"
-                class="form-input"
-                :class="{ 'error': editErrors.barCertificateNumber }"
-                placeholder="Enter your bar certificate number"
-                required
-                readonly
-              />
-              <small class="help-text">Bar certificate number cannot be changed after profile creation</small>
-            </div>
-          </div>
+            <!-- Location Information -->
+            <div class="form-section">
+              <h4>Practice Location</h4>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-practicingCourt">Practicing Court *</label>
+                  <select
+                    id="edit-practicingCourt"
+                    v-model="editForm.practicingCourt"
+                    class="form-select"
+                    :class="{ 'error': editErrors.practicingCourt }"
+                    required
+                  >
+                    <option value="">Select practicing court</option>
+                    <option v-for="court in practicingCourts" :key="court.value" :value="court.value">
+                      {{ court.label }}
+                    </option>
+                  </select>
+                  <span v-if="editErrors.practicingCourt" class="error-message">{{ editErrors.practicingCourt }}</span>
+                </div>
 
-          <!-- Location Information -->
-          <div class="form-section">
-            <h4>Practice Location</h4>
-            <div class="form-row">
+                <div class="form-group">
+                  <label for="edit-division">Division *</label>
+                  <select
+                    id="edit-division"
+                    v-model="editForm.division"
+                    class="form-select"
+                    :class="{ 'error': editErrors.division }"
+                    required
+                  >
+                    <option value="">Select division</option>
+                    <option v-for="div in divisions" :key="div.value" :value="div.value">
+                      {{ div.label }}
+                    </option>
+                  </select>
+                  <span v-if="editErrors.division" class="error-message">{{ editErrors.division }}</span>
+                </div>
+              </div>
+
               <div class="form-group">
-                <label for="edit-practicingCourt">Practicing Court *</label>
+                <label for="edit-district">District *</label>
                 <select
-                  id="edit-practicingCourt"
-                  v-model="editForm.practicingCourt"
+                  id="edit-district"
+                  v-model="editForm.district"
                   class="form-select"
-                  :class="{ 'error': editErrors.practicingCourt }"
+                  :class="{ 'error': editErrors.district }"
                   required
                 >
-                  <option value="">Select practicing court</option>
-                  <option v-for="court in practicingCourts" :key="court.value" :value="court.value">
-                    {{ court.label }}
+                  <option value="">Select district</option>
+                  <option v-for="dist in districts" :key="dist.value" :value="dist.value">
+                    {{ dist.label }}
                   </option>
                 </select>
-                <span v-if="editErrors.practicingCourt" class="error-message">{{ editErrors.practicingCourt }}</span>
+                <span v-if="editErrors.district" class="error-message">{{ editErrors.district }}</span>
               </div>
+            </div>
 
-              <div class="form-group">
-                <label for="edit-division">Division *</label>
-                <select
-                  id="edit-division"
-                  v-model="editForm.division"
-                  class="form-select"
-                  :class="{ 'error': editErrors.division }"
-                  required
+            <!-- Specializations -->
+            <div class="form-section">
+              <h4>Specializations *</h4>
+              <p class="section-description">Select all areas of law you specialize in</p>
+              
+              <div class="specializations-grid">
+                <label
+                  v-for="spec in specializations"
+                  :key="spec.value"
+                  class="specialization-checkbox"
+                  :class="{ 'checked': editForm.specializations.includes(spec.value) }"
                 >
-                  <option value="">Select division</option>
-                  <option v-for="div in divisions" :key="div.value" :value="div.value">
-                    {{ div.label }}
-                  </option>
-                </select>
-                <span v-if="editErrors.division" class="error-message">{{ editErrors.division }}</span>
+                  <input
+                    type="checkbox"
+                    :value="spec.value"
+                    v-model="editForm.specializations"
+                    class="checkbox-input"
+                  />
+                  <span class="checkbox-label">{{ spec.label }}</span>
+                </label>
+              </div>
+              <span v-if="editErrors.specializations" class="error-message">{{ editErrors.specializations }}</span>
+            </div>
+
+            <!-- Bio -->
+            <div class="form-section">
+              <h4>Professional Bio</h4>
+              <p class="section-description">Tell clients about your expertise and experience (optional)</p>
+              
+              <div class="form-group">
+                <textarea
+                  v-model="editForm.bio"
+                  class="form-textarea"
+                  :class="{ 'error': editErrors.bio }"
+                  placeholder="Describe your legal expertise, notable cases, and professional achievements..."
+                  rows="6"
+                  maxlength="2000"
+                ></textarea>
+                <div class="textarea-footer">
+                  <span v-if="editErrors.bio" class="error-message">{{ editErrors.bio }}</span>
+                  <span class="char-count">{{ editForm.bio.length }}/2000</span>
+                </div>
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="edit-district">District *</label>
-              <select
-                id="edit-district"
-                v-model="editForm.district"
-                class="form-select"
-                :class="{ 'error': editErrors.district }"
-                required
+            <!-- Form Actions -->
+            <div class="form-actions">
+              <button type="button" @click="closeEditModal" class="btn btn-outline">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                :disabled="isUpdating"
               >
-                <option value="">Select district</option>
-                <option v-for="dist in districts" :key="dist.value" :value="dist.value">
-                  {{ dist.label }}
-                </option>
-              </select>
-              <span v-if="editErrors.district" class="error-message">{{ editErrors.district }}</span>
+                <span v-if="isUpdating" class="loading-spinner"></span>
+                {{ isUpdating ? 'Updating...' : 'Update Profile' }}
+              </button>
             </div>
-          </div>
-
-          <!-- Specializations -->
-          <div class="form-section">
-            <h4>Specializations *</h4>
-            <p class="section-description">Select all areas of law you specialize in</p>
-            
-            <div class="specializations-grid">
-              <label
-                v-for="spec in specializations"
-                :key="spec.value"
-                class="specialization-checkbox"
-                :class="{ 'checked': editForm.specializations.includes(spec.value) }"
-              >
-                <input
-                  type="checkbox"
-                  :value="spec.value"
-                  v-model="editForm.specializations"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-label">{{ spec.label }}</span>
-              </label>
-            </div>
-            <span v-if="editErrors.specializations" class="error-message">{{ editErrors.specializations }}</span>
-          </div>
-
-          <!-- Bio -->
-          <div class="form-section">
-            <h4>Professional Bio</h4>
-            <p class="section-description">Tell clients about your expertise and experience (optional)</p>
-            
-            <div class="form-group">
-              <textarea
-                v-model="editForm.bio"
-                class="form-textarea"
-                :class="{ 'error': editErrors.bio }"
-                placeholder="Describe your legal expertise, notable cases, and professional achievements..."
-                rows="6"
-                maxlength="2000"
-              ></textarea>
-              <div class="textarea-footer">
-                <span v-if="editErrors.bio" class="error-message">{{ editErrors.bio }}</span>
-                <span class="char-count">{{ editForm.bio.length }}/2000</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Form Actions -->
-          <div class="form-actions">
-            <button type="button" @click="closeEditModal" class="btn btn-outline">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              :disabled="isUpdating"
-            >
-              <span v-if="isUpdating" class="loading-spinner"></span>
-              {{ isUpdating ? 'Updating...' : 'Update Profile' }}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
 
-    <!-- Document Viewer for Certificate -->
-    <DocumentViewer
-      :show="showCertificateModal"
-      title="Bar Certificate"
-      :document-data="certificateData"
-      document-type="application/pdf"
-      :file-name="`bar-certificate-${lawyerInfo?.lastName || 'lawyer'}`"
-      :auto-load="true"
-      :show-load-button="true"
-      load-button-text="Load Certificate"
-      @close="closeCertificateModal"
-      @load="loadCertificate"
-      @download="downloadCertificate"
-    />
+      <!-- Document Viewer for Certificate -->
+      <DocumentViewer
+        :show="showCertificateModal"
+        title="Bar Certificate"
+        :document-data="certificateData"
+        document-type="application/pdf"
+        :file-name="`bar-certificate-${lawyerInfo?.lastName || 'lawyer'}`"
+        :auto-load="true"
+        :show-load-button="true"
+        load-button-text="Load Certificate"
+        @close="closeCertificateModal"
+        @load="loadCertificate"
+        @download="downloadCertificate"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { lawyerAPI } from '../services/api'
 import { useLawyerStore } from '../stores/lawyer'
@@ -352,6 +391,9 @@ import DocumentViewer from './DocumentViewer.vue'
 
 const router = useRouter()
 const lawyerStore = useLawyerStore()
+
+// Computed properties
+const lawyerInfo = computed(() => lawyerStore.lawyerInfo)
 
 // State
 const isLoading = ref(false)
@@ -361,10 +403,21 @@ const editErrors = reactive({})
 const showCertificateModal = ref(false)
 const certificateData = ref(null)
 
+const hourlyChargeInput = ref(lawyerInfo.value?.hourlyCharge || null)
+const isUpdatingHourlyCharge = ref(false)
+const hourlyChargeError = ref('')
+const hourlyChargeSuccess = ref('')
+
+watch(
+  () => lawyerInfo.value?.hourlyCharge,
+  (newVal) => {
+    hourlyChargeInput.value = newVal
+  }
+)
+
 // Computed properties
 const hasProfile = computed(() => lawyerStore.hasProfile)
 const isVerified = computed(() => lawyerStore.isVerified)
-const lawyerInfo = computed(() => lawyerStore.lawyerInfo)
 
 const verificationStatusClass = computed(() => {
   const status = lawyerInfo.value?.verificationStatus
@@ -664,6 +717,25 @@ const refreshStatus = async () => {
   }
 }
 
+const submitHourlyChargeUpdate = async () => {
+  hourlyChargeError.value = ''
+  hourlyChargeSuccess.value = ''
+  if (hourlyChargeInput.value == null || isNaN(hourlyChargeInput.value) || Number(hourlyChargeInput.value) < 0.01) {
+    hourlyChargeError.value = 'Please enter a valid hourly charge (minimum 0.01 BDT).'
+    return
+  }
+  isUpdatingHourlyCharge.value = true
+  try {
+    await lawyerAPI.updateHourlyCharge(hourlyChargeInput.value)
+    await lawyerStore.fetchLawyerInfo()
+    hourlyChargeSuccess.value = 'Hourly charge updated successfully.'
+  } catch (err) {
+    hourlyChargeError.value = err?.response?.data?.error?.message || 'Failed to update hourly charge.'
+  } finally {
+    isUpdatingHourlyCharge.value = false
+  }
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   
@@ -790,6 +862,36 @@ onMounted(async () => {
     grid-column: 1 / -1;
   }
 
+.hourly-charge-card {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.hourly-charge-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.form-group-row label {
+  margin-bottom: 0;
+  min-width: 180px;
+}
+
+.form-group-row input.form-input {
+  flex: 1 1 120px;
+  margin-bottom: 0;
+}
+
+.form-group-row button {
+  margin-bottom: 0;
+}
 
 
 .info-card h3 {
@@ -861,6 +963,13 @@ onMounted(async () => {
 .bio-text {
   line-height: 1.6;
   color: var(--color-text);
+}
+
+.profile-actions-container {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
 }
 
 .profile-actions {
@@ -1139,6 +1248,12 @@ onMounted(async () => {
     border: none;
     background: white;
   }
+
+.success-message {
+  color: var(--color-success);
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+}
 
 @media (max-width: 768px) {
   .profile-info-grid {
