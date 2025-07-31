@@ -77,14 +77,14 @@ public interface PaymentRepo extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByTransactionId(String transactionId);
     
     /**
-     * Find all payments by reference ID
+     * Find payment by meeting ID
      */
-    List<Payment> findByRefId(UUID refId);
+    Payment findBymeetingId(UUID meetingId);
     
     /**
-     * Find all payments by reference ID and status
+     * Find payments by meeting ID and status
      */
-    List<Payment> findByRefIdAndStatus(UUID refId, PaymentStatus status);
+    Payment findBymeetingIdAndStatus(UUID meetingId, PaymentStatus status);
     
     /**
      * Custom query to find payments for a user (as either payer or payee)

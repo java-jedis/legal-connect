@@ -18,6 +18,7 @@ import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
 import com.javajedis.legalconnect.payment.dto.CompletePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
+import com.javajedis.legalconnect.payment.dto.StripeSessionResponseDTO;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -98,6 +99,17 @@ public class PaymentController {
     public ResponseEntity<ApiResponse<PaymentResponseDTO>> releasePayment(@PathVariable UUID paymentId) {
         log.info("PUT /payments/{}/release called", paymentId);
         return paymentService.releasePayment(paymentId);
+    }
+
+    /**
+     * Creates a Stripe checkout session for a payment.
+     */
+    @Operation(summary = "Create Stripe session", description = "Creates a Stripe checkout session for a payment.")
+    @RequireUserOrVerifiedLawyer
+    @PostMapping("/{paymentId}/stripe-session")
+    public ResponseEntity<ApiResponse<StripeSessionResponseDTO>> createStripeSession(@PathVariable UUID paymentId) {
+        log.info("POST /payments/{}/stripe-session called", paymentId);
+        return paymentService.createStripeSession(paymentId);
     }
 
     /**

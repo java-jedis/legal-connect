@@ -28,7 +28,7 @@ class CreatePaymentDTOTest {
     private CreatePaymentDTO createPaymentDTO;
     private UUID testPayerId;
     private UUID testPayeeId;
-    private UUID testRefId;
+    private UUID testmeetingId;
     private BigDecimal testAmount;
 
     @BeforeEach
@@ -39,7 +39,7 @@ class CreatePaymentDTOTest {
         createPaymentDTO = new CreatePaymentDTO();
         testPayerId = UUID.randomUUID();
         testPayeeId = UUID.randomUUID();
-        testRefId = UUID.randomUUID();
+        testmeetingId = UUID.randomUUID();
         testAmount = new BigDecimal("100.00");
     }
 
@@ -53,11 +53,11 @@ class CreatePaymentDTOTest {
     @Test
     @DisplayName("Should create DTO with all-args constructor")
     void testAllArgsConstructor() {
-        CreatePaymentDTO dto = new CreatePaymentDTO(testPayerId, testPayeeId, testRefId, testAmount);
+        CreatePaymentDTO dto = new CreatePaymentDTO(testPayerId, testPayeeId, testmeetingId, testAmount);
         
         assertEquals(testPayerId, dto.getPayerId());
         assertEquals(testPayeeId, dto.getPayeeId());
-        assertEquals(testRefId, dto.getRefId());
+        assertEquals(testmeetingId, dto.getMeetingId());
         assertEquals(testAmount, dto.getAmount());
     }
 
@@ -77,9 +77,9 @@ class CreatePaymentDTOTest {
 
     @Test
     @DisplayName("Should set and get reference ID")
-    void testRefIdGetterSetter() {
-        createPaymentDTO.setRefId(testRefId);
-        assertEquals(testRefId, createPaymentDTO.getRefId());
+    void testmeetingIdGetterSetter() {
+        createPaymentDTO.setMeetingId(testmeetingId);
+        assertEquals(testmeetingId, createPaymentDTO.getMeetingId());
     }
 
     @Test
@@ -94,7 +94,7 @@ class CreatePaymentDTOTest {
     void testValidData_NoViolations() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(testAmount);
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -107,7 +107,7 @@ class CreatePaymentDTOTest {
     void testNullPayerId_ValidationError() {
         createPaymentDTO.setPayerId(null);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(testAmount);
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -123,7 +123,7 @@ class CreatePaymentDTOTest {
     void testNullPayeeId_ValidationError() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(null);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(testAmount);
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -136,17 +136,17 @@ class CreatePaymentDTOTest {
 
     @Test
     @DisplayName("Should fail validation when reference ID is null")
-    void testNullRefId_ValidationError() {
+    void testNullmeetingId_ValidationError() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(null);
+        createPaymentDTO.setMeetingId(null);
         createPaymentDTO.setAmount(testAmount);
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
         
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream().anyMatch(v -> 
-            v.getPropertyPath().toString().equals("refId") && 
+            v.getPropertyPath().toString().equals("meetingId") && 
             v.getMessage().equals("Reference ID is required")));
     }
 
@@ -155,7 +155,7 @@ class CreatePaymentDTOTest {
     void testNullAmount_ValidationError() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(null);
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -172,7 +172,7 @@ class CreatePaymentDTOTest {
     void testInvalidAmount_ValidationError(String amountValue) {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal(amountValue));
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -188,7 +188,7 @@ class CreatePaymentDTOTest {
     void testMinimumValidAmount_NoViolations() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("0.01"));
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -201,7 +201,7 @@ class CreatePaymentDTOTest {
     void testTooManyDecimalPlaces_ValidationError() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("100.123")); // 3 decimal places
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -217,7 +217,7 @@ class CreatePaymentDTOTest {
     void testTooManyIntegerDigits_ValidationError() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("12345678901.00")); // 11 integer digits
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -233,7 +233,7 @@ class CreatePaymentDTOTest {
     void testMaximumValidAmount_NoViolations() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("9999999999.99")); // 10 integer digits, 2 decimal places
 
         Set<ConstraintViolation<CreatePaymentDTO>> violations = validator.validate(createPaymentDTO);
@@ -244,9 +244,9 @@ class CreatePaymentDTOTest {
     @Test
     @DisplayName("Should test equals and hashCode methods")
     void testEqualsAndHashCode() {
-        CreatePaymentDTO dto1 = new CreatePaymentDTO(testPayerId, testPayeeId, testRefId, testAmount);
-        CreatePaymentDTO dto2 = new CreatePaymentDTO(testPayerId, testPayeeId, testRefId, testAmount);
-        CreatePaymentDTO dto3 = new CreatePaymentDTO(UUID.randomUUID(), testPayeeId, testRefId, testAmount);
+        CreatePaymentDTO dto1 = new CreatePaymentDTO(testPayerId, testPayeeId, testmeetingId, testAmount);
+        CreatePaymentDTO dto2 = new CreatePaymentDTO(testPayerId, testPayeeId, testmeetingId, testAmount);
+        CreatePaymentDTO dto3 = new CreatePaymentDTO(UUID.randomUUID(), testPayeeId, testmeetingId, testAmount);
 
         assertEquals(dto1, dto2);
         assertEquals(dto1.hashCode(), dto2.hashCode());
@@ -258,7 +258,7 @@ class CreatePaymentDTOTest {
     void testToString() {
         createPaymentDTO.setPayerId(testPayerId);
         createPaymentDTO.setPayeeId(testPayeeId);
-        createPaymentDTO.setRefId(testRefId);
+        createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(testAmount);
 
         String toString = createPaymentDTO.toString();
@@ -267,7 +267,7 @@ class CreatePaymentDTOTest {
         assertTrue(toString.contains("CreatePaymentDTO"));
         assertTrue(toString.contains(testPayerId.toString()));
         assertTrue(toString.contains(testPayeeId.toString()));
-        assertTrue(toString.contains(testRefId.toString()));
+        assertTrue(toString.contains(testmeetingId.toString()));
         assertTrue(toString.contains(testAmount.toString()));
     }
 }
