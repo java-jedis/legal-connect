@@ -35,9 +35,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.utility.EmailVerificationFilter;
 import com.javajedis.legalconnect.common.utility.JWTFilter;
-import com.javajedis.legalconnect.payment.dto.CompletePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
+import com.javajedis.legalconnect.payment.dto.StripeSessionResponseDTO;
 
 @WebMvcTest(controllers = PaymentController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, 
@@ -59,12 +59,12 @@ class PaymentControllerTest {
     private ObjectMapper objectMapper;
 
     private CreatePaymentDTO createPaymentDTO;
-    private CompletePaymentDTO completePaymentDTO;
     private PaymentResponseDTO paymentResponseDTO;
     private UUID testPaymentId;
     private UUID testPayerId;
     private UUID testPayeeId;
     private UUID testmeetingId;
+    private String testSessionId;
 
     @TestConfiguration
     static class TestConfig {
@@ -87,12 +87,7 @@ class PaymentControllerTest {
         createPaymentDTO.setMeetingId(testmeetingId);
         createPaymentDTO.setAmount(new BigDecimal("100.00"));
 
-        completePaymentDTO = new CompletePaymentDTO();
-        completePaymentDTO.setId(testPaymentId);
-        completePaymentDTO.setPaymentMethod(PaymentMethod.CARD);
-        completePaymentDTO.setTransactionId("TXN123456");
-        completePaymentDTO.setPaymentDate(OffsetDateTime.now());
-        completePaymentDTO.setReleaseAt(OffsetDateTime.now().plusDays(7));
+        testSessionId = "cs_test_session_123";
 
         paymentResponseDTO = new PaymentResponseDTO();
         paymentResponseDTO.setId(testPaymentId);
@@ -205,95 +200,17 @@ class PaymentControllerTest {
 
     // Task 5.2: Create payment completion endpoint tests
     @Test
-    @DisplayName("Should complete payment successfully with valid data")
-    void completePayment_ValidData_Success() throws Exception {
+    @DisplayName("Should complete payment successfully with valid session ID")
+    void completePayment_ValidSessionId_Success() throws Exception {
         ResponseEntity<ApiResponse<PaymentResponseDTO>> responseEntity = 
             ApiResponse.success(paymentResponseDTO, HttpStatus.CREATED, "Payment completed successfully");
-        when(paymentService.completePayment(any(CompletePaymentDTO.class))).thenReturn(responseEntity);
+        when(paymentService.completePayment(testSessionId)).thenReturn(responseEntity);
 
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
+        mockMvc.perform(put("/payments/complete/{sessionId}", testSessionId)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.id").value(testPaymentId.toString()))
                 .andExpect(jsonPath("$.message").value("Payment completed successfully"));
-    }
-
-    @Test
-    @DisplayName("Should return bad request when payment ID is null")
-    void completePayment_NullPaymentId_BadRequest() throws Exception {
-        completePaymentDTO.setId(null);
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when payment method is null")
-    void completePayment_NullPaymentMethod_BadRequest() throws Exception {
-        completePaymentDTO.setPaymentMethod(null);
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when transaction ID is null")
-    void completePayment_NullTransactionId_BadRequest() throws Exception {
-        completePaymentDTO.setTransactionId(null);
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when transaction ID is blank")
-    void completePayment_BlankTransactionId_BadRequest() throws Exception {
-        completePaymentDTO.setTransactionId("");
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when transaction ID is too long")
-    void completePayment_TooLongTransactionId_BadRequest() throws Exception {
-        completePaymentDTO.setTransactionId("A".repeat(256)); // 256 characters, exceeds max of 255
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when payment date is null")
-    void completePayment_NullPaymentDate_BadRequest() throws Exception {
-        completePaymentDTO.setPaymentDate(null);
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when release date is null")
-    void completePayment_NullReleaseDate_BadRequest() throws Exception {
-        completePaymentDTO.setReleaseAt(null);
-
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
-                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -301,22 +218,12 @@ class PaymentControllerTest {
     void completePayment_ServiceError_ErrorResponse() throws Exception {
         ResponseEntity<ApiResponse<PaymentResponseDTO>> errorResponse = 
             ApiResponse.error("Payment not found", HttpStatus.NOT_FOUND);
-        when(paymentService.completePayment(any(CompletePaymentDTO.class))).thenReturn(errorResponse);
+        when(paymentService.completePayment(testSessionId)).thenReturn(errorResponse);
 
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(completePaymentDTO)))
+        mockMvc.perform(put("/payments/complete/{sessionId}", testSessionId)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.message").value("Payment not found"));
-    }
-
-    @Test
-    @DisplayName("Should return bad request when request body is empty")
-    void completePayment_EmptyRequestBody_BadRequest() throws Exception {
-        mockMvc.perform(put("/payments/complete")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest());
     }
 
     // Task 5.3: Create payment retrieval endpoint tests
@@ -609,5 +516,108 @@ class PaymentControllerTest {
 
         mockMvc.perform(put("/payments/{paymentId}/cancel", testPaymentId))
                 .andExpect(status().isInternalServerError());
+    }
+
+    // Task 5.7: Create Stripe session endpoint tests
+    @Test
+    @DisplayName("Should create Stripe session successfully with valid payment ID")
+    void createStripeSession_ValidPaymentId_Success() throws Exception {
+        StripeSessionResponseDTO stripeResponse = new StripeSessionResponseDTO();
+        stripeResponse.setSessionId("cs_test_session_123");
+        stripeResponse.setSessionUrl("https://checkout.stripe.com/pay/cs_test_session_123");
+        
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> responseEntity = 
+            ApiResponse.success(stripeResponse, HttpStatus.CREATED, "Stripe session created successfully");
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(responseEntity);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.sessionId").value("cs_test_session_123"))
+                .andExpect(jsonPath("$.data.sessionUrl").value("https://checkout.stripe.com/pay/cs_test_session_123"))
+                .andExpect(jsonPath("$.message").value("Stripe session created successfully"));
+    }
+
+    @Test
+    @DisplayName("Should return not found when payment does not exist for Stripe session")
+    void createStripeSession_NonExistentPayment_NotFound() throws Exception {
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> errorResponse = 
+            ApiResponse.error("Payment with this id not found", HttpStatus.NOT_FOUND);
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(errorResponse);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.message").value("Payment with this id not found"));
+    }
+
+    @Test
+    @DisplayName("Should return forbidden when user is not authorized for Stripe session")
+    void createStripeSession_Unauthorized_Forbidden() throws Exception {
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> errorResponse = 
+            ApiResponse.error("You are not authorized to create Stripe session", HttpStatus.FORBIDDEN);
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(errorResponse);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.message").value("You are not authorized to create Stripe session"));
+    }
+
+    @Test
+    @DisplayName("Should return unauthorized when user is not authenticated for Stripe session")
+    void createStripeSession_NotAuthenticated_Unauthorized() throws Exception {
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> errorResponse = 
+            ApiResponse.error("User is not authenticated", HttpStatus.UNAUTHORIZED);
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(errorResponse);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.message").value("User is not authenticated"));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when payment is not in pending status")
+    void createStripeSession_PaymentNotPending_BadRequest() throws Exception {
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> errorResponse = 
+            ApiResponse.error("Payment is not in pending status", HttpStatus.BAD_REQUEST);
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(errorResponse);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.message").value("Payment is not in pending status"));
+    }
+
+    @Test
+    @DisplayName("Should return internal server error when payment ID is invalid UUID format for Stripe session")
+    void createStripeSession_InvalidUuidFormat_InternalServerError() throws Exception {
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", "invalid-uuid")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @DisplayName("Should handle service exceptions gracefully for Stripe session")
+    void createStripeSession_ServiceException_InternalServerError() throws Exception {
+        when(paymentService.createStripeSession(testPaymentId)).thenThrow(new RuntimeException("Stripe service error"));
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @DisplayName("Should return internal server error when Stripe API fails")
+    void createStripeSession_StripeApiError_InternalServerError() throws Exception {
+        ResponseEntity<ApiResponse<StripeSessionResponseDTO>> errorResponse = 
+            ApiResponse.error("Failed to create Stripe session: API error", HttpStatus.INTERNAL_SERVER_ERROR);
+        when(paymentService.createStripeSession(testPaymentId)).thenReturn(errorResponse);
+
+        mockMvc.perform(post("/payments/{paymentId}/stripe-session", testPaymentId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error.message").value("Failed to create Stripe session: API error"));
     }
 }
