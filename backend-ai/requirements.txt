@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+sqlalchemy
+psycopg2-binary
+google-generativeai
+numpy
+requests
+python-multipart
+tenacity
+qdrant-client
+asyncpg
