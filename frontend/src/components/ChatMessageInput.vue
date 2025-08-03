@@ -430,7 +430,6 @@ defineExpose({
 <style scoped>
 .chat-message-input {
   background: var(--color-background);
-  border-top: 1px solid var(--color-border);
   padding: 1rem 1.5rem;
   flex-shrink: 0;
 }
