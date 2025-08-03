@@ -58,7 +58,12 @@
   --color-success: #00d084; /* Green */
   --color-warning: #fcb900; /* Yellow */
   --color-error: #cf2e2e; /* Red */
+  --color-danger: #cf2e2e; /* Red (alias for error) */
   --color-info: #40d9f1; /* Cyan */
+
+  /* RGB values for rgba usage */
+  --color-primary-rgb: 6, 147, 227; /* RGB values for primary color */
+  --color-primary-dark: #0578c7; /* Darker shade of primary */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);

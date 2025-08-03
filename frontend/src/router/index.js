@@ -128,6 +128,24 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresEmailVerification: true },
       props: true,
     },
+        {
+      path: "/ai-chat",
+      name: "ai-chat",
+      component: () => import("../views/AIChatView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+        {
+      path: "/document-search",
+      name: "document-search",
+      component: () => import("../views/DocumentSearchView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
+      path: "/chat-history",
+      name: "chat-history",
+      component: () => import("../views/ChatHistoryView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
   ],
 });
 
