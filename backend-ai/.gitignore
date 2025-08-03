@@ -144,8 +144,8 @@ bdcode_json/
 .env
 DEVELOPMENT.md
 IMPLEMENTATION_GUIDE.md
-preprocessing.log
-start.sh
-test_rag_simple.py
-test_rag.py
-validate_env.py
+# preprocessing.log
+# start.sh
+# test_rag_simple.py
+# test_rag.py
+# validate_env.py

@@ -10,3 +10,4 @@ python-multipart
 tenacity
 qdrant-client
 asyncpg
+psycopg2

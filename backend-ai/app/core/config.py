@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 30
     
     # CORS
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
+    cors_origins: List[str] = ["http://localhost:5173", "http://api.legalconnect.live"]
     
     # RAG Configuration
     chunk_size: int = 1000
