@@ -1,13 +1,12 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Legal Connect Application..."
+echo "🚀 Starting Legal Connect RAG Backend..."
 
 # Function to kill all background processes on exit
 cleanup() {
-    echo "🛑 Shutting down services..."
+    echo "🛑 Shutting down backend services..."
     pkill -f "python.*main.py" || true
-    pkill -f "npm.*run.*dev" || true
     exit 0
 }
 
@@ -16,48 +15,58 @@ trap cleanup SIGINT SIGTERM
 
 # Check if we're in the right directory
 if [[ ! -f "main.py" ]]; then
-    echo "❌ Error: Please run this script from the legal-connect root directory"
+    echo "❌ Error: Please run this script from the backend-ai directory"
     exit 1
 fi
 
-# Check if backend dependencies are installed
-if [[ ! -d "venv" && ! -d ".venv" ]]; then
+# Check for .env file
+if [[ ! -f ".env" ]]; then
+    echo "⚠️  Warning: .env file not found. Please copy .env.example to .env and configure it."
+    echo "   cp .env.example .env"
+    echo ""
+fi
+
+# Check if virtual environment exists
+if [[ -d "venv" ]]; then
+    echo "🐍 Activating virtual environment..."
+    source venv/bin/activate
+elif [[ -d ".venv" ]]; then
+    echo "🐍 Activating virtual environment..."
+    source .venv/bin/activate
+else
     echo "⚠️  Warning: No virtual environment found. Make sure Python dependencies are installed."
 fi
 
-# Check if frontend dependencies are installed
-if [[ ! -d "frontend/node_modules" ]]; then
-    echo "📦 Installing frontend dependencies..."
-    cd frontend
-    npm install
-    cd ..
+# Check if requirements are installed
+echo "📦 Checking dependencies..."
+if ! python -c "import fastapi, uvicorn, google.generativeai, qdrant_client" 2>/dev/null; then
+    echo "❌ Missing dependencies. Installing..."
+    pip install -r requirements.txt
 fi
 
-echo "🐍 Starting backend server..."
-# Start backend in background
-python main.py &
-BACKEND_PID=$!
-
-# Wait a moment for backend to start
-sleep 3
-
-echo "⚛️  Starting frontend development server..."
-# Start frontend in background
-cd frontend
-npm run dev &
-FRONTEND_PID=$!
-cd ..
+# Validate environment
+echo "� Validating environment configuration..."
+if [[ -f "validate_env.py" ]]; then
+    python validate_env.py
+    if [[ $? -ne 0 ]]; then
+        echo "❌ Environment validation failed. Please check your .env configuration."
+        exit 1
+    fi
+fi
 
 echo ""
-echo "🎉 Application is starting up!"
-echo ""
-echo "📋 Service URLs:"
-echo "   Frontend: http://localhost:3000"
-echo "   Backend API: http://localhost:8000"
-echo "   API Docs: http://localhost:8000/docs"
-echo ""
-echo "💡 Press Ctrl+C to stop all services"
+echo "🐍 Starting Legal Connect RAG Backend..."
 echo ""
 
-# Wait for any process to exit
-wait $BACKEND_PID $FRONTEND_PID
+# Start the main application
+python main.py
+
+echo ""
+echo "📋 Backend URLs:"
+echo "   API: http://localhost:8000"
+echo "   Swagger UI: http://localhost:8000/docs"
+echo "   ReDoc: http://localhost:8000/redoc"
+echo "   Health Check: http://localhost:8000/health"
+echo ""
+echo "💡 Press Ctrl+C to stop the server"
+echo ""

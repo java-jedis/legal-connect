@@ -1,0 +1,38 @@
+
+# Legal Connect RAG Backend - Python 3.12.3 Compatible Dependencies
+
+# Core Framework and API
+fastapi>=0.104.0,<0.110.0
+uvicorn[standard]>=0.24.0,<0.30.0
+pydantic>=2.5.0,<3.0.0
+python-dotenv>=1.0.0,<2.0.0
+
+# Database Dependencies
+sqlalchemy>=2.0.0,<3.0.0
+psycopg2-binary>=2.9.0,<3.0.0
+
+# Vector Database
+qdrant-client>=1.6.0,<2.0.0
+
+# AI and Machine Learning
+google-generativeai>=0.3.0,<1.0.0
+
+# Utility Libraries
+numpy>=1.24.0,<2.0.0
+tenacity>=8.2.0,<9.0.0
+requests>=2.31.0,<3.0.0
+
+# Optional Dependencies
+redis>=5.0.0,<6.0.0
+python-jose[cryptography]>=3.3.0,<4.0.0
+passlib[bcrypt]>=1.7.4,<2.0.0
+python-multipart>=0.0.6,<1.0.0
+
+# Development and Testing
+pytest>=7.4.0,<8.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+black>=23.0.0,<25.0.0
+flake8>=6.0.0,<7.0.0
+
+# Database Migration
+alembic>=1.13.0,<2.0.0
