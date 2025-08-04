@@ -11,3 +11,4 @@ application.yml
 # IDE directories
 .idea/
 .vscode/
+jaas-key.pk
