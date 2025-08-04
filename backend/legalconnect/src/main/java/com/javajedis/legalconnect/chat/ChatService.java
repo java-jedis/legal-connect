@@ -1,12 +1,11 @@
 package com.javajedis.legalconnect.chat;
 
-import com.javajedis.legalconnect.chat.dto.*;
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.WebSocketService;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,11 +14,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import com.javajedis.legalconnect.chat.dto.ConversationListResponseDTO;
+import com.javajedis.legalconnect.chat.dto.ConversationResponseDTO;
+import com.javajedis.legalconnect.chat.dto.MessageListResponseDTO;
+import com.javajedis.legalconnect.chat.dto.MessageResponseDTO;
+import com.javajedis.legalconnect.chat.dto.SendMessageDTO;
+import com.javajedis.legalconnect.chat.dto.UnreadCountResponseDTO;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.WebSocketService;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -126,6 +133,17 @@ public class ChatService {
             UUID conversationId, UUID userId, int page, int size) {
         log.debug("Retrieving messages for conversation {} by user {}, page {}, size {}",
                 conversationId, userId, page, size);
+
+        // Validate pagination parameters
+        if (page < 0) {
+            log.warn("Invalid page number: {}", page);
+            return ApiResponse.error("Page number cannot be negative", HttpStatus.BAD_REQUEST);
+        }
+
+        if (size < 1 || size > 100) {
+            log.warn("Invalid page size: {}", size);
+            return ApiResponse.error("Page size must be between 1 and 100", HttpStatus.BAD_REQUEST);
+        }
 
         if (!userRepo.existsById(userId)) {
             log.warn(USER_NOT_FOUND_LOG_MSG, userId);

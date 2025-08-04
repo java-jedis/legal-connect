@@ -27,6 +27,7 @@ import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
 import com.javajedis.legalconnect.payment.dto.StripeSessionResponseDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+import com.javajedis.legalconnect.videocall.MeetingRepo;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -55,6 +56,7 @@ public class PaymentService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final JobSchedulerService jobSchedulerService;
+    private final MeetingRepo meetingRepo;
     
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -63,6 +65,21 @@ public class PaymentService {
     @SuppressWarnings("java:S2696") // This method is from Stripe dependency can not enclose it in static
     public void initializeStripe() {
         Stripe.apiKey = stripeSecretKey;
+    }
+
+    /**
+     * Parses payment ID from Stripe session metadata.
+     *
+     * @param paymentIdStr the payment ID string from metadata
+     * @return UUID if parsing is successful, null otherwise
+     */
+    private UUID parsePaymentIdFromMetadata(String paymentIdStr) {
+        try {
+            return UUID.fromString(paymentIdStr);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid payment ID format in session metadata: {}", paymentIdStr);
+            return null;
+        }
     }
 
 
@@ -149,11 +166,8 @@ public class PaymentService {
                 return ApiResponse.error("Payment ID not found in session metadata", HttpStatus.BAD_REQUEST);
             }
 
-            UUID paymentId;
-            try {
-                paymentId = UUID.fromString(paymentIdStr);
-            } catch (IllegalArgumentException e) {
-                log.error("Invalid payment ID format in session metadata: {}", paymentIdStr);
+            UUID paymentId = parsePaymentIdFromMetadata(paymentIdStr);
+            if (paymentId == null) {
                 return ApiResponse.error("Invalid payment ID format", HttpStatus.BAD_REQUEST);
             }
 
@@ -165,10 +179,17 @@ public class PaymentService {
                 return (ResponseEntity<ApiResponse<PaymentResponseDTO>>) (ResponseEntity<?>) validationResult;
             }
 
+            com.javajedis.legalconnect.videocall.Meeting meeting = meetingRepo.findById(payment.getMeetingId()).orElse(null);
+            if (meeting == null) {
+                log.warn("Meeting not found with id: {}", payment.getMeetingId());
+                return ApiResponse.error("Meeting not found with this id", HttpStatus.NOT_FOUND);
+            }
+            
+            
             payment.setPaymentMethod(PaymentMethod.CARD);
             payment.setTransactionId(session.getPaymentIntent());
             payment.setPaymentDate(OffsetDateTime.now());
-            payment.setReleaseAt(OffsetDateTime.now().plusDays(7));
+            payment.setReleaseAt(meeting.getEndTimestamp().plusHours(6));
             payment.setStatus(PaymentStatus.PAID);
 
             Payment updatedPayment = paymentRepo.save(payment);
@@ -489,5 +510,67 @@ public class PaymentService {
         paymentResponseDTO.setPayeeEmail(paymentData.getPayee().getEmail());
 
         return paymentResponseDTO;
+    }
+
+    /**
+     * Updates payment amount for a meeting when meeting duration changes.
+     * Only updates if payment is still in PENDING status.
+     *
+     * @param meetingId the meeting ID
+     * @param newAmount the new amount to set
+     * @return true if payment was updated successfully, false otherwise
+     */
+    @Transactional
+    public boolean updatePaymentAmount(UUID meetingId, java.math.BigDecimal newAmount) {
+        log.debug("Updating payment amount for meeting id: {} to amount: {}", meetingId, newAmount);
+
+        Payment payment = paymentRepo.findBymeetingId(meetingId);
+        
+        if (payment == null) {
+            log.warn("No payment found for meeting id: {}", meetingId);
+            return false;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Cannot update payment amount for meeting id: {} - payment status is not PENDING. Current status: {}", 
+                    meetingId, payment.getStatus());
+            return false;
+        }
+
+        payment.setAmount(newAmount);
+        paymentRepo.save(payment);
+        
+        log.info("Payment amount updated successfully for meeting id: {} to amount: {}", meetingId, newAmount);
+        return true;
+    }
+
+    /**
+     * Deletes payment for a meeting when meeting is deleted.
+     * Only deletes if payment is still in PENDING status.
+     *
+     * @param meetingId the meeting ID
+     * @return true if payment was deleted successfully, false otherwise
+     */
+    @Transactional
+    public boolean deletePaymentByMeetingId(UUID meetingId) {
+        log.debug("Deleting payment for meeting id: {}", meetingId);
+
+        Payment payment = paymentRepo.findBymeetingId(meetingId);
+        
+        if (payment == null) {
+            log.warn("No payment found for meeting id: {}", meetingId);
+            return false;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Cannot delete payment for meeting id: {} - payment status is not PENDING. Current status: {}", 
+                    meetingId, payment.getStatus());
+            return false;
+        }
+
+        paymentRepo.delete(payment);
+        
+        log.info("Payment deleted successfully for meeting id: {}", meetingId);
+        return true;
     }
 }

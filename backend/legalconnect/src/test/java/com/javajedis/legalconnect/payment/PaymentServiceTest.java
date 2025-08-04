@@ -1,6 +1,7 @@
 package com.javajedis.legalconnect.payment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -72,7 +75,6 @@ class PaymentServiceTest {
     private User testPayee;
     private Payment testPayment;
     private CreatePaymentDTO createPaymentDTO;
-    private String testSessionId;
 
     @BeforeEach
     void setUp() {
@@ -110,8 +112,6 @@ class PaymentServiceTest {
         createPaymentDTO.setPayeeId(testPayee.getId());
         createPaymentDTO.setMeetingId(UUID.randomUUID());
         createPaymentDTO.setAmount(new BigDecimal("100.00"));
-
-        testSessionId = "cs_test_session_123";
     }
 
     // ========== Payment Creation Tests (Task 4.1) ==========
@@ -213,35 +213,24 @@ class PaymentServiceTest {
         assertTrue(true, "Stripe session completion requires integration testing");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    @DisplayName("Should return bad request when session ID is invalid")
+    void completePayment_InvalidSessionId_ReturnsBadRequest(String sessionId) {
+        // Act
+        ResponseEntity<ApiResponse<PaymentResponseDTO>> response = paymentService.completePayment(sessionId);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Session ID is required", response.getBody().getError().getMessage());
+    }
+
     @Test
     @DisplayName("Should return bad request when session ID is null")
     void completePayment_NullSessionId_ReturnsBadRequest() {
         // Act
         ResponseEntity<ApiResponse<PaymentResponseDTO>> response = paymentService.completePayment(null);
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Session ID is required", response.getBody().getError().getMessage());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when session ID is empty")
-    void completePayment_EmptySessionId_ReturnsBadRequest() {
-        // Act
-        ResponseEntity<ApiResponse<PaymentResponseDTO>> response = paymentService.completePayment("");
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Session ID is required", response.getBody().getError().getMessage());
-    }
-
-    @Test
-    @DisplayName("Should return bad request when session ID is whitespace")
-    void completePayment_WhitespaceSessionId_ReturnsBadRequest() {
-        // Act
-        ResponseEntity<ApiResponse<PaymentResponseDTO>> response = paymentService.completePayment("   ");
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -1076,5 +1065,290 @@ class PaymentServiceTest {
         assertEquals(false, result.get("success"));
         assertEquals("You are not authorized to test operation", result.get("message"));
         assertEquals(HttpStatus.FORBIDDEN.value(), result.get("httpCode"));
+    }
+
+    // ========== Payment Amount Update Tests ==========
+
+    @Test
+    @DisplayName("Should update payment amount successfully for pending payment")
+    void updatePaymentAmount_PendingPayment_Success() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("150.00");
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+        when(paymentRepo.save(any(Payment.class))).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, times(1)).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment not found for meeting")
+    void updatePaymentAmount_PaymentNotFound_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = UUID.randomUUID();
+        BigDecimal newAmount = new BigDecimal("150.00");
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(null);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is not in pending status")
+    void updatePaymentAmount_PaymentNotPending_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("150.00");
+        testPayment.setStatus(PaymentStatus.PAID);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is in released status")
+    void updatePaymentAmount_PaymentReleased_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("150.00");
+        testPayment.setStatus(PaymentStatus.RELEASED);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is in canceled status")
+    void updatePaymentAmount_PaymentCanceled_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("150.00");
+        testPayment.setStatus(PaymentStatus.CANCELED);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should update payment amount to zero successfully")
+    void updatePaymentAmount_ZeroAmount_Success() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = BigDecimal.ZERO;
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+        when(paymentRepo.save(any(Payment.class))).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, times(1)).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should update payment amount with large decimal value")
+    void updatePaymentAmount_LargeAmount_Success() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("999999.99");
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+        when(paymentRepo.save(any(Payment.class))).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, times(1)).save(any(Payment.class));
+    }
+
+    // ========== Payment Deletion Tests ==========
+
+    @Test
+    @DisplayName("Should delete payment successfully for pending payment")
+    void deletePaymentByMeetingId_PendingPayment_Success() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, times(1)).delete(testPayment);
+    }
+
+    @Test
+    @DisplayName("Should return false when payment not found for meeting")
+    void deletePaymentByMeetingId_PaymentNotFound_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = UUID.randomUUID();
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(null);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).delete(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is not in pending status")
+    void deletePaymentByMeetingId_PaymentNotPending_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        testPayment.setStatus(PaymentStatus.PAID);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).delete(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is in released status")
+    void deletePaymentByMeetingId_PaymentReleased_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        testPayment.setStatus(PaymentStatus.RELEASED);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).delete(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when payment is in canceled status")
+    void deletePaymentByMeetingId_PaymentCanceled_ReturnsFalse() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        testPayment.setStatus(PaymentStatus.CANCELED);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(meetingId);
+        verify(paymentRepo, never()).delete(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should handle null meeting ID gracefully")
+    void deletePaymentByMeetingId_NullMeetingId_ReturnsFalse() {
+        // Arrange
+        when(paymentRepo.findBymeetingId(null)).thenReturn(null);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(null);
+
+        // Assert
+        assertFalse(result);
+        verify(paymentRepo, times(1)).findBymeetingId(null);
+        verify(paymentRepo, never()).delete(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should verify payment amount is updated correctly in database")
+    void updatePaymentAmount_ValidPayment_UpdatesAmountCorrectly() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        BigDecimal newAmount = new BigDecimal("200.50");
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+        when(paymentRepo.save(any(Payment.class))).thenAnswer(invocation -> {
+            Payment savedPayment = invocation.getArgument(0);
+            assertEquals(newAmount, savedPayment.getAmount());
+            assertEquals(meetingId, savedPayment.getMeetingId());
+            assertEquals(PaymentStatus.PENDING, savedPayment.getStatus());
+            return savedPayment;
+        });
+
+        // Act
+        boolean result = paymentService.updatePaymentAmount(meetingId, newAmount);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).save(any(Payment.class));
+    }
+
+    @Test
+    @DisplayName("Should verify payment is deleted correctly from database")
+    void deletePaymentByMeetingId_ValidPayment_DeletesCorrectPayment() {
+        // Arrange
+        UUID meetingId = testPayment.getMeetingId();
+        testPayment.setStatus(PaymentStatus.PENDING);
+        
+        when(paymentRepo.findBymeetingId(meetingId)).thenReturn(testPayment);
+
+        // Act
+        boolean result = paymentService.deletePaymentByMeetingId(meetingId);
+
+        // Assert
+        assertTrue(result);
+        verify(paymentRepo, times(1)).delete(testPayment);
     }
 }
