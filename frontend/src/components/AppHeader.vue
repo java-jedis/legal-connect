@@ -51,6 +51,7 @@
             <router-link to="/dashboard/user" class="nav-link">Dashboard</router-link>
             <router-link to="/cases" class="nav-link">My Cases</router-link>
             <router-link to="/find-lawyer" class="nav-link">Find Lawyers</router-link>
+            <router-link to="/ai-chat" class="nav-link">AIChatBox</router-link>
             <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
 
@@ -58,6 +59,7 @@
           <template v-else-if="authStore.isLawyer()">
             <router-link to="/dashboard/lawyer" class="nav-link">Dashboard</router-link>
             <router-link to="/cases" class="nav-link">Client Cases</router-link>
+            <router-link to="/ai-chat" class="nav-link">AIChatBox</router-link>
             <router-link to="/profile" class="nav-link">Profile</router-link>
           </template>
 

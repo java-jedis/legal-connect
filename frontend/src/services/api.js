@@ -665,4 +665,89 @@ export const chatAPI = {
   },
 };
 
+// Meeting/Video Call API methods
+export const meetingAPI = {
+  // Get all meetings for authenticated user
+  getMeetings: async () => {
+    const response = await api.get("/videocalls/");
+    return response.data;
+  },
+
+  // Get single meeting by ID
+  getMeeting: async (meetingId) => {
+    const response = await api.get(`/videocalls/${meetingId}`);
+    return response.data;
+  },
+
+  // Schedule new meeting (lawyer only)
+  scheduleMeeting: async (meetingData) => {
+    const response = await api.post("/videocalls/", meetingData);
+    return response.data;
+  },
+
+  // Update meeting (lawyer only)
+  updateMeeting: async (meetingData) => {
+    const response = await api.put("/videocalls/", meetingData);
+    return response.data;
+  },
+
+  // Delete meeting (lawyer only)
+  deleteMeeting: async (meetingId) => {
+    const response = await api.delete(`/videocalls/${meetingId}`);
+    return response.data;
+  },
+
+  // Generate meeting token for joining video call
+  generateMeetingToken: async (meetingId) => {
+    const response = await api.get(`/videocalls/${meetingId}/token`);
+    return response.data;
+  },
+};
+
+// Payment API methods
+export const paymentAPI = {
+  // Create a new payment (internal testing only)
+  createPayment: async (paymentData) => {
+    const response = await api.post("/payments/", paymentData);
+    return response.data;
+  },
+
+  // Create Stripe checkout session for a payment
+  createStripeSession: async (paymentId) => {
+    const response = await api.post(`/payments/${paymentId}/stripe-session`);
+    return response.data;
+  },
+
+  // Complete payment using Stripe session ID
+  completePayment: async (sessionId) => {
+    const response = await api.put(`/payments/complete/${sessionId}`);
+    return response.data;
+  },
+
+  // Get payment by ID
+  getPayment: async (paymentId) => {
+    const response = await api.get(`/payments/${paymentId}`);
+    return response.data;
+  },
+
+  // Get all payments for authenticated user
+  getAllPayments: async (page = 0, size = 10, sortDirection = "DESC") => {
+    const params = { page, size, sortDirection };
+    const response = await api.get("/payments/", { params });
+    return response.data;
+  },
+
+  // Release payment to payee
+  releasePayment: async (paymentId) => {
+    const response = await api.put(`/payments/${paymentId}/release`);
+    return response.data;
+  },
+
+  // Cancel payment
+  cancelPayment: async (paymentId) => {
+    const response = await api.put(`/payments/${paymentId}/cancel`);
+    return response.data;
+  },
+};
+
 export default api;

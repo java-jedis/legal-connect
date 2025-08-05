@@ -128,6 +128,42 @@ const router = createRouter({
       meta: { requiresAuth: true, requiresEmailVerification: true },
       props: true,
     },
+        {
+      path: "/ai-chat",
+      name: "ai-chat",
+      component: () => import("../views/AIChatView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+        {
+      path: "/document-search",
+      name: "document-search",
+      component: () => import("../views/DocumentSearchView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
+      path: "/chat-history",
+      name: "chat-history",
+      component: () => import("../views/ChatHistoryView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
+    {
+      path: "/meetings",
+      name: "meetings",
+      component: () => import("../views/MeetingsView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true, requiresRole: "LAWYER" },
+    },
+    {
+      path: "/my-meetings",
+      name: "client-meetings",
+      component: () => import("../views/ClientMeetingsView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true, requiresRole: "USER" },
+    },
+    {
+      path: "/payment/success",
+      name: "payment-success",
+      component: () => import("../views/PaymentSuccessView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+    },
   ],
 });
 
@@ -152,6 +188,19 @@ router.beforeEach(async (to, from, next) => {
     !userInfo.emailVerified
   ) {
     next("/email-verification");
+    return;
+  }
+
+  // Check if route requires specific role
+  if (to.meta.requiresRole && userInfo && userInfo.role !== to.meta.requiresRole) {
+    // Redirect to appropriate dashboard based on user role
+    if (userInfo.role === "LAWYER") {
+      next("/dashboard/lawyer");
+    } else if (userInfo.role === "USER") {
+      next("/dashboard/user");
+    } else {
+      next("/dashboard/admin");
+    }
     return;
   }
 

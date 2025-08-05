@@ -2,25 +2,67 @@
   <div class="lawyer-dashboard">
     <!-- Show verification status if not verified -->
     <LawyerVerificationStatus v-if="!canAccessDashboard" />
-    
+
     <!-- Show dashboard content if verified -->
     <div v-else>
       <!-- Success message for newly created profile -->
       <div v-if="showSuccessMessage" class="success-message">
         <div class="container">
           <div class="success-content">
-            <svg class="success-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22 11.08V12A10 10 0 1 1 5.68 3.57" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <svg
+              class="success-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M22 11.08V12A10 10 0 1 1 5.68 3.57"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M22 4L12 14.01L9 11.01"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
             <div class="success-text">
               <h3>Profile Created Successfully!</h3>
-              <p>Your lawyer profile has been submitted for verification. You'll be notified once it's approved.</p>
+              <p>
+                Your lawyer profile has been submitted for verification. You'll
+                be notified once it's approved.
+              </p>
             </div>
             <button @click="dismissSuccessMessage" class="dismiss-btn">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="18"
+                  y1="6"
+                  x2="6"
+                  y2="18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <line
+                  x1="6"
+                  y1="6"
+                  x2="18"
+                  y2="18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
           </div>
@@ -33,369 +75,553 @@
           <div class="header-content">
             <div class="welcome-section">
               <h1 class="welcome-title">Welcome back, {{ lawyerName }}!</h1>
-              <p class="welcome-subtitle">Manage your practice and serve your clients effectively</p>
+              <p class="welcome-subtitle">
+                Manage your practice and serve your clients effectively
+              </p>
             </div>
             <div class="header-actions">
-              <button @click="router.push('/cases')" class="btn btn-primary">View Cases</button>
+              <button @click="router.push('/cases')" class="btn btn-primary">
+                View Cases
+              </button>
               <button class="btn btn-secondary">Schedule Consultation</button>
             </div>
           </div>
         </div>
       </section>
 
-    <!-- Quick Actions -->
-    <section class="quick-actions-section section">
-      <div class="container">
-        <h2 class="section-title">Quick Actions</h2>
-        <div class="quick-actions-grid grid grid-4">
-          <div class="quick-action-card" @click="addNewClient">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M16 21V19A4 4 0 0 0 12 15H8A4 4 0 0 0 4 19V21"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" />
-                <line x1="19" y1="8" x2="19" y2="14" stroke="currentColor" stroke-width="2" />
-                <line x1="16" y1="11" x2="22" y2="11" stroke="currentColor" stroke-width="2" />
-              </svg>
+      <!-- Quick Actions -->
+      <section class="quick-actions-section section">
+        <div class="container">
+          <h2 class="section-title">Quick Actions</h2>
+          <div class="quick-actions-grid grid grid-4">
+            <div class="quick-action-card" @click="goToMeetings">
+              <div class="action-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    x="2"
+                    y="3"
+                    width="20"
+                    height="14"
+                    rx="2"
+                    ry="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="8"
+                    y1="21"
+                    x2="16"
+                    y2="21"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="12"
+                    y1="17"
+                    x2="12"
+                    y2="21"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <circle
+                    cx="8"
+                    cy="9"
+                    r="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <path
+                    d="M16 7v2a2 2 0 0 1-2 2H10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <h3>Schedule Meetings</h3>
+              <p>Manage video consultations</p>
             </div>
-            <h3>Add New Client</h3>
-            <p>Register a new client</p>
-          </div>
 
-          <div class="quick-action-card" @click="createCase">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <polyline
-                  points="14,2 14,8 20,8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" />
-                <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" />
-                <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" />
-              </svg>
+            <div class="quick-action-card" @click="createCase">
+              <div class="action-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <polyline
+                    points="14,2 14,8 20,8"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <line
+                    x1="16"
+                    y1="13"
+                    x2="8"
+                    y2="13"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="16"
+                    y1="17"
+                    x2="8"
+                    y2="17"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <polyline
+                    points="10,9 9,9 8,9"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <h3>Create Case</h3>
+              <p>Start a new legal case</p>
             </div>
-            <h3>Create Case</h3>
-            <p>Start a new legal case</p>
-          </div>
 
-          <div class="quick-action-card" @click="goToCalendar">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  ry="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
-              </svg>
+            <div class="quick-action-card" @click="goToCalendar">
+              <div class="action-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    x="3"
+                    y="4"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    ry="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="16"
+                    y1="2"
+                    x2="16"
+                    y2="6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="8"
+                    y1="2"
+                    x2="8"
+                    y2="6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="3"
+                    y1="10"
+                    x2="21"
+                    y2="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <h3>My Calendar</h3>
+              <p>View your schedule</p>
             </div>
-            <h3>My Calendar</h3>
-            <p>View your schedule</p>
-          </div>
 
-          <div class="quick-action-card" @click="manageAvailability">
-            <div class="action-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  ry="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="14" x2="8" y2="14" stroke="currentColor" stroke-width="2" />
-                <line x1="12" y1="14" x2="12" y2="14" stroke="currentColor" stroke-width="2" />
-                <line x1="16" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="18" x2="8" y2="18" stroke="currentColor" stroke-width="2" />
-                <line x1="12" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2" />
-                <line x1="16" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2" />
-              </svg>
+            <div class="quick-action-card" @click="manageAvailability">
+              <div class="action-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect
+                    x="3"
+                    y="4"
+                    width="18"
+                    height="18"
+                    rx="2"
+                    ry="2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="16"
+                    y1="2"
+                    x2="16"
+                    y2="6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="8"
+                    y1="2"
+                    x2="8"
+                    y2="6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="3"
+                    y1="10"
+                    x2="21"
+                    y2="10"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="8"
+                    y1="14"
+                    x2="8"
+                    y2="14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="12"
+                    y1="14"
+                    x2="12"
+                    y2="14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="16"
+                    y1="14"
+                    x2="16"
+                    y2="14"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="8"
+                    y1="18"
+                    x2="8"
+                    y2="18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="12"
+                    y1="18"
+                    x2="12"
+                    y2="18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="16"
+                    y1="18"
+                    x2="16"
+                    y2="18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <h3>Manage Availability</h3>
+              <p>Set your consultation hours</p>
             </div>
-            <h3>Manage Availability</h3>
-            <p>Set your consultation hours</p>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Main Dashboard Content -->
-    <section class="dashboard-content section">
-      <div class="container">
-        <div class="dashboard-row">
-          <!-- Recent Clients -->
-          <div class="dashboard-card">
-            <div class="card-header">
-              <h3>Recent Clients</h3>
-              <button class="btn btn-outline btn-sm">View All</button>
-            </div>
-            <div class="clients-list">
-              <div v-for="client in recentClients" :key="client.id" class="client-item">
-                <div class="client-avatar">
-                  <span>{{ client.name.charAt(0) }}</span>
+      <!-- Main Dashboard Content -->
+      <section class="dashboard-content section">
+        <div class="container">
+          <div class="dashboard-row">
+            <!-- Recent Clients -->
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3>Recent Clients</h3>
+                <button class="btn btn-outline btn-sm">View All</button>
+              </div>
+              <div class="clients-list">
+                <div
+                  v-for="client in recentClients"
+                  :key="client.id"
+                  class="client-item"
+                >
+                  <div class="client-avatar">
+                    <span>{{ client.name.charAt(0) }}</span>
+                  </div>
+                  <div class="client-info">
+                    <h4 class="client-name">{{ client.name }}</h4>
+                    <p class="client-case">{{ client.caseType }}</p>
+                    <p class="client-status" :class="client.status">
+                      {{ client.status }}
+                    </p>
+                  </div>
+                  <div class="client-actions">
+                    <button class="btn btn-outline btn-sm">View Profile</button>
+                  </div>
                 </div>
-                <div class="client-info">
-                  <h4 class="client-name">{{ client.name }}</h4>
-                  <p class="client-case">{{ client.caseType }}</p>
-                  <p class="client-status" :class="client.status">{{ client.status }}</p>
-                </div>
-                <div class="client-actions">
-                  <button class="btn btn-outline btn-sm">View Profile</button>
+                <div v-if="recentClients.length === 0" class="empty-state">
+                  <p>No clients yet</p>
+                  <button class="btn btn-primary btn-sm">Add Client</button>
                 </div>
               </div>
-              <div v-if="recentClients.length === 0" class="empty-state">
-                <p>No clients yet</p>
-                <button class="btn btn-primary btn-sm">Add Client</button>
-              </div>
             </div>
-          </div>
 
-          <!-- Active Cases -->
-          <div class="dashboard-card">
-            <div class="card-header">
-              <h3>Active Cases</h3>
-              <button @click="router.push('/cases')" class="btn btn-outline btn-sm">View All</button>
-            </div>
-            <div class="cases-list">
-              <div v-for="legalCase in activeCases" :key="legalCase.id" class="case-item">
-                <div class="case-info">
-                  <h4 class="case-title">{{ legalCase.title }}</h4>
-                  <p class="case-client">Client: {{ legalCase.client }}</p>
-                  <p class="case-status" :class="legalCase.status">{{ legalCase.status }}</p>
+            <!-- Active Cases -->
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3>Active Cases</h3>
+                <button
+                  @click="router.push('/cases')"
+                  class="btn btn-outline btn-sm"
+                >
+                  View All
+                </button>
+              </div>
+              <div class="cases-list">
+                <div
+                  v-for="legalCase in activeCases"
+                  :key="legalCase.id"
+                  class="case-item"
+                >
+                  <div class="case-info">
+                    <h4 class="case-title">{{ legalCase.title }}</h4>
+                    <p class="case-client">Client: {{ legalCase.client }}</p>
+                    <p class="case-status" :class="legalCase.status">
+                      {{ legalCase.status }}
+                    </p>
+                  </div>
+                  <div class="case-actions">
+                    <button class="btn btn-outline btn-sm">View Details</button>
+                  </div>
                 </div>
-                <div class="case-actions">
-                  <button class="btn btn-outline btn-sm">View Details</button>
+                <div v-if="activeCases.length === 0" class="empty-state">
+                  <p>No active cases</p>
+                  <button class="btn btn-primary btn-sm">Create Case</button>
                 </div>
               </div>
-              <div v-if="activeCases.length === 0" class="empty-state">
-                <p>No active cases</p>
-                <button class="btn btn-primary btn-sm">Create Case</button>
-              </div>
             </div>
-          </div>
 
-          <!-- Recent Documents -->
-          <div class="dashboard-card">
-            <div class="card-header">
-              <h3>Recent Documents</h3>
-              <button class="btn btn-outline btn-sm">View All</button>
-            </div>
-            <div class="documents-list">
-              <div v-for="doc in recentDocuments" :key="doc.id" class="document-item">
-                <div class="document-icon">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <polyline
-                      points="14,2 14,8 20,8"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div class="document-info">
-                  <h4 class="document-title">{{ doc.name }}</h4>
-                  <p class="document-client">Client: {{ doc.client }}</p>
-                  <p class="document-date">{{ doc.date }}</p>
-                </div>
-                <button class="btn btn-outline btn-sm">View</button>
+            <!-- Recent Documents -->
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3>Recent Documents</h3>
+                <button class="btn btn-outline btn-sm">View All</button>
               </div>
-              <div v-if="recentDocuments.length === 0" class="empty-state">
-                <p>No documents yet</p>
-                <button class="btn btn-primary btn-sm">Generate Document</button>
+              <div class="documents-list">
+                <div
+                  v-for="doc in recentDocuments"
+                  :key="doc.id"
+                  class="document-item"
+                >
+                  <div class="document-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <polyline
+                        points="14,2 14,8 20,8"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div class="document-info">
+                    <h4 class="document-title">{{ doc.name }}</h4>
+                    <p class="document-client">Client: {{ doc.client }}</p>
+                    <p class="document-date">{{ doc.date }}</p>
+                  </div>
+                  <button class="btn btn-outline btn-sm">View</button>
+                </div>
+                <div v-if="recentDocuments.length === 0" class="empty-state">
+                  <p>No documents yet</p>
+                  <button class="btn btn-primary btn-sm">
+                    Generate Document
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Earnings Overview (side by side) -->
+            <div class="dashboard-card earnings-card">
+              <div class="card-header">
+                <h3>Earnings Overview</h3>
+                <button class="btn btn-outline btn-sm">View Details</button>
+              </div>
+              <div class="earnings-content">
+                <div class="earnings-chart">
+                  <div
+                    class="chart-bar"
+                    v-for="(earning, month) in monthlyEarnings"
+                    :key="month"
+                  >
+                    <div
+                      class="bar"
+                      :style="{ height: (earning / maxEarning) * 100 + '%' }"
+                    ></div>
+                    <span class="month">{{ month }}</span>
+                  </div>
+                </div>
+                <div class="earnings-summary">
+                  <div class="summary-item">
+                    <span class="label">This Month</span>
+                    <span class="amount">${{ stats.monthlyEarnings }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="label">Last Month</span>
+                    <span class="amount">${{ stats.lastMonthEarnings }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="label">Total This Year</span>
+                    <span class="amount">${{ stats.yearlyEarnings }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <!-- Earnings Overview (side by side) -->
-          <div class="dashboard-card earnings-card">
-            <div class="card-header">
-              <h3>Earnings Overview</h3>
-              <button class="btn btn-outline btn-sm">View Details</button>
+          <!-- My Calendar -->
+          <MyCalendarSection class="my-calendar-section" />
+          <!-- Availability Slots Section -->
+          <section class="availability-section section">
+            <div class="container">
+              <LawyerAvailabilitySlots />
             </div>
-            <div class="earnings-content">
-              <div class="earnings-chart">
-                <div class="chart-bar" v-for="(earning, month) in monthlyEarnings" :key="month">
-                  <div class="bar" :style="{ height: (earning / maxEarning) * 100 + '%'} "></div>
-                  <span class="month">{{ month }}</span>
-                </div>
-              </div>
-              <div class="earnings-summary">
-                <div class="summary-item">
-                  <span class="label">This Month</span>
-                  <span class="amount">${{ stats.monthlyEarnings }}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="label">Last Month</span>
-                  <span class="amount">${{ stats.lastMonthEarnings }}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="label">Total This Year</span>
-                  <span class="amount">${{ stats.yearlyEarnings }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
-        <!-- My Calendar -->
-        <MyCalendarSection class="my-calendar-section" />
-        <!-- Availability Slots Section -->
-        <section class="availability-section section">
-          <div class="container">
-            <LawyerAvailabilitySlots />
-          </div>
-        </section>
-      </div>
-    </section>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import LawyerAvailabilitySlots from '../components/LawyerAvailabilitySlots.vue'
-import LawyerVerificationStatus from '../components/LawyerVerificationStatus.vue'
-import MyCalendarSection from '../components/MyCalendarSection.vue'
-import { useAuthStore } from '../stores/auth'
-import { useLawyerStore } from '../stores/lawyer'
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import LawyerAvailabilitySlots from "../components/LawyerAvailabilitySlots.vue";
+import LawyerVerificationStatus from "../components/LawyerVerificationStatus.vue";
+import MyCalendarSection from "../components/MyCalendarSection.vue";
+import { useAuthStore } from "../stores/auth";
+import { useLawyerStore } from "../stores/lawyer";
 
-const route = useRoute()
-const router = useRouter()
-const authStore = useAuthStore()
-const lawyerStore = useLawyerStore()
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const lawyerStore = useLawyerStore();
 
 const lawyerName = computed(() => {
   if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
-    return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`
+    return `${authStore.userInfo.firstName} ${authStore.userInfo.lastName}`;
   }
-  return authStore.userInfo?.firstName || authStore.userInfo?.email || 'Lawyer'
-})
+  return authStore.userInfo?.firstName || authStore.userInfo?.email || "Lawyer";
+});
 
 // Computed properties for verification status
-const canAccessDashboard = computed(() => lawyerStore.canAccessDashboard)
-const showSuccessMessage = ref(false)
+const canAccessDashboard = computed(() => lawyerStore.canAccessDashboard);
+const showSuccessMessage = ref(false);
 
 // Check if profile was just created and fetch lawyer info
 onMounted(async () => {
-  if (route.query.profileCreated === 'true') {
-    showSuccessMessage.value = true
+  if (route.query.profileCreated === "true") {
+    showSuccessMessage.value = true;
     // Remove the query parameter
-    window.history.replaceState({}, document.title, window.location.pathname)
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
-  
+
   // Fetch lawyer info to check verification status
-  await lawyerStore.fetchLawyerInfo()
-})
+  await lawyerStore.fetchLawyerInfo();
+});
 
 const dismissSuccessMessage = () => {
-  showSuccessMessage.value = false
-}
+  showSuccessMessage.value = false;
+};
 
 const stats = ref({
   activeClients: 24,
   activeCases: 18,
   appointmentsToday: 5,
-  monthlyEarnings: '12,450',
-  lastMonthEarnings: '11,200',
-  yearlyEarnings: '145,800',
-})
+  monthlyEarnings: "12,450",
+  lastMonthEarnings: "11,200",
+  yearlyEarnings: "145,800",
+});
 
 const recentClients = ref([
   {
     id: 1,
-    name: 'John Smith',
-    caseType: 'Contract Dispute',
-    status: 'active',
+    name: "John Smith",
+    caseType: "Contract Dispute",
+    status: "active",
   },
   {
     id: 2,
-    name: 'Emily Davis',
-    caseType: 'Employment Law',
-    status: 'pending',
+    name: "Emily Davis",
+    caseType: "Employment Law",
+    status: "pending",
   },
   {
     id: 3,
-    name: 'Michael Brown',
-    caseType: 'Real Estate',
-    status: 'active',
+    name: "Michael Brown",
+    caseType: "Real Estate",
+    status: "active",
   },
-])
+]);
 
 const activeCases = ref([
   {
     id: 1,
-    title: 'Contract Dispute - ABC Corp',
-    client: 'John Smith',
-    status: 'active',
+    title: "Contract Dispute - ABC Corp",
+    client: "John Smith",
+    status: "active",
   },
   {
     id: 2,
-    title: 'Employment Agreement Review',
-    client: 'Emily Davis',
-    status: 'pending',
+    title: "Employment Agreement Review",
+    client: "Emily Davis",
+    status: "pending",
   },
   {
     id: 3,
-    title: 'Property Purchase Agreement',
-    client: 'Michael Brown',
-    status: 'active',
+    title: "Property Purchase Agreement",
+    client: "Michael Brown",
+    status: "active",
   },
-])
+]);
 
 const recentDocuments = ref([
   {
     id: 1,
-    name: 'Contract_Review_ABC_Corp.pdf',
-    client: 'John Smith',
-    date: '2 days ago',
+    name: "Contract_Review_ABC_Corp.pdf",
+    client: "John Smith",
+    date: "2 days ago",
   },
   {
     id: 2,
-    name: 'Employment_Agreement_Draft.docx',
-    client: 'Emily Davis',
-    date: '1 week ago',
+    name: "Employment_Agreement_Draft.docx",
+    client: "Emily Davis",
+    date: "1 week ago",
   },
   {
     id: 3,
-    name: 'Property_Closing_Documents.pdf',
-    client: 'Michael Brown',
-    date: '2 weeks ago',
+    name: "Property_Closing_Documents.pdf",
+    client: "Michael Brown",
+    date: "2 weeks ago",
   },
-])
+]);
 
 const monthlyEarnings = ref({
   Jan: 8500,
@@ -404,32 +630,32 @@ const monthlyEarnings = ref({
   Apr: 11200,
   May: 12450,
   Jun: 11800,
-})
+});
 
 const maxEarning = computed(() => {
-  return Math.max(...Object.values(monthlyEarnings.value))
-})
+  return Math.max(...Object.values(monthlyEarnings.value));
+});
 
-const addNewClient = () => {
-  alert('Opening new client registration...')
-}
+const goToMeetings = () => {
+  router.push("/meetings");
+};
 
 const createCase = () => {
-  router.push({ path: '/cases', query: { openCreateModal: 'true' } })
-}
+  router.push({ path: "/cases", query: { openCreateModal: "true" } });
+};
 
 const manageAvailability = () => {
   // Scroll to availability section
-  const availabilitySection = document.querySelector('.availability-section')
+  const availabilitySection = document.querySelector(".availability-section");
   if (availabilitySection) {
-    availabilitySection.scrollIntoView({ behavior: 'smooth' })
+    availabilitySection.scrollIntoView({ behavior: "smooth" });
   }
-}
+};
 
 const goToCalendar = () => {
-  const calendarSection = document.querySelector('.my-calendar-section');
+  const calendarSection = document.querySelector(".my-calendar-section");
   if (calendarSection) {
-    calendarSection.scrollIntoView({ behavior: 'smooth' });
+    calendarSection.scrollIntoView({ behavior: "smooth" });
   }
 };
 </script>
@@ -496,7 +722,11 @@ const goToCalendar = () => {
 }
 
 .dashboard-header {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   color: var(--color-background);
   padding: 2rem 0;
 }
@@ -545,7 +775,11 @@ const goToCalendar = () => {
 .stat-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -602,7 +836,11 @@ const goToCalendar = () => {
   width: 48px;
   height: 48px;
   margin: 0 auto 1rem;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -826,7 +1064,11 @@ const goToCalendar = () => {
 
 .bar {
   width: 100%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary)
+  );
   border-radius: 4px 4px 0 0;
   min-height: 4px;
   transition: all var(--transition-normal);

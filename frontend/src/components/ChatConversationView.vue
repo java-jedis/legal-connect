@@ -3,6 +3,11 @@
     <!-- Conversation Header -->
     <div class="conversation-header">
       <div class="participant-info">
+        <router-link to="/chat" class="back-button" title="Back to Messages">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </router-link>
         <div class="participant-avatar">
           <svg
             class="avatar-icon"
@@ -896,9 +901,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: 100%;
   background: var(--color-background);
-  overflow: hidden; /* Prevent any overflow from affecting parent layout */
+  overflow: hidden;
 }
 
 /* Conversation Header */
@@ -907,6 +911,27 @@ onUnmounted(() => {
   background: var(--color-background-soft);
   border-bottom: 1px solid var(--color-border);
   padding: 1rem 1.5rem;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: 50%;
+  transition: background-color var(--transition-fast);
+}
+
+.back-button:hover {
+  background-color: var(--color-background-mute);
+}
+
+.back-button svg {
+  width: 22px;
+  height: 22px;
 }
 
 .participant-info {
@@ -1024,8 +1049,7 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 1rem 0;
   scroll-behavior: smooth;
-  min-height: 0; /* Prevent flex item from growing beyond allocated space */
-  max-height: 100%; /* Ensure it doesn't exceed parent height */
+  min-height: 0;
 }
 
 /* Load More Messages */
@@ -1153,8 +1177,9 @@ onUnmounted(() => {
 /* Messages List */
 .messages-list {
   padding: 0 1.5rem;
-  min-height: 0; /* Prevent flex item from growing */
-  overflow: visible; /* Allow content to be visible */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 /* Date Separator */
