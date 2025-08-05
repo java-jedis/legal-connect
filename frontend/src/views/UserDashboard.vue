@@ -90,26 +90,18 @@
             <p>View your schedule</p>
           </div>
 
-          <div class="quick-action-card stagger-item" @click="scheduleAppointment">
+          <div class="quick-action-card stagger-item" @click="goToMeetings">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="18"
-                  rx="2"
-                  ry="2"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2" />
-                <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2" />
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8" cy="9" r="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 7v2a2 2 0 0 1-2 2H10" stroke="currentColor" stroke-width="2"/>
               </svg>
             </div>
-            <h3>Schedule Meeting</h3>
-            <p>Book consultation time</p>
+            <h3>My Meetings</h3>
+            <p>View video consultations</p>
           </div>
         </div>
       </div>
@@ -514,8 +506,8 @@ const searchLawyersFromDashboard = () => {
 };
 
 
-const scheduleAppointment = () => {
-  alert('Opening appointment scheduler...')
+const goToMeetings = () => {
+  router.push('/my-meetings')
 }
 
 const goToCalendar = () => {

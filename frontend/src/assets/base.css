@@ -64,6 +64,8 @@
   /* RGB values for rgba usage */
   --color-primary-rgb: 6, 147, 227; /* RGB values for primary color */
   --color-primary-dark: #0578c7; /* Darker shade of primary */
+  --color-error-rgb: 207, 46, 46; /* RGB values for error color */
+  --color-warning-rgb: 252, 185, 0; /* RGB values for warning color */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
