@@ -26,4 +26,10 @@ public class PaymentResponseDTO {
     private OffsetDateTime paymentDate;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String payerFirstName;
+    private String payerLastName;
+    private String payerEmail;
+    private String payeeFirstName;
+    private String payeeLastName;
+    private String payeeEmail;
 }

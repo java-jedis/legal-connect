@@ -368,11 +368,6 @@ class ChatServiceTest {
 
     @Test
     void getConversationMessages_InvalidPagination() {
-        // Arrange
-        when(userRepo.existsById(senderId)).thenReturn(true);
-        when(conversationRepo.existsById(conversationId)).thenReturn(true);
-        when(conversationRepo.isUserParticipant(conversationId, senderId)).thenReturn(true);
-
         // Act & Assert - Negative page
         ResponseEntity<ApiResponse<MessageListResponseDTO>> response1 =
                 chatService.getConversationMessages(conversationId, senderId, -1, 20);

@@ -22,12 +22,12 @@ import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.jobscheduler.JobSchedulerService;
 import com.javajedis.legalconnect.notifications.NotificationService;
-import com.javajedis.legalconnect.payment.dto.CompletePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.CreatePaymentDTO;
 import com.javajedis.legalconnect.payment.dto.PaymentResponseDTO;
 import com.javajedis.legalconnect.payment.dto.StripeSessionResponseDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+import com.javajedis.legalconnect.videocall.MeetingRepo;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -56,6 +56,7 @@ public class PaymentService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final JobSchedulerService jobSchedulerService;
+    private final MeetingRepo meetingRepo;
     
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
@@ -64,6 +65,21 @@ public class PaymentService {
     @SuppressWarnings("java:S2696") // This method is from Stripe dependency can not enclose it in static
     public void initializeStripe() {
         Stripe.apiKey = stripeSecretKey;
+    }
+
+    /**
+     * Parses payment ID from Stripe session metadata.
+     *
+     * @param paymentIdStr the payment ID string from metadata
+     * @return UUID if parsing is successful, null otherwise
+     */
+    private UUID parsePaymentIdFromMetadata(String paymentIdStr) {
+        try {
+            return UUID.fromString(paymentIdStr);
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid payment ID format in session metadata: {}", paymentIdStr);
+            return null;
+        }
     }
 
 
@@ -103,44 +119,97 @@ public class PaymentService {
     }
 
     /**
-     * Completes a payment with transaction details and schedules payment release.
+     * Validates payment authorization and status for operations requiring PENDING status.
      */
-    public ResponseEntity<ApiResponse<PaymentResponseDTO>> completePayment(@Valid CompletePaymentDTO paymentData) {
-        log.debug("Completing payment with id: {} and transaction id: {}",
-                paymentData.getId(), paymentData.getTransactionId());
-
-        Payment payment = paymentRepo.findById(paymentData.getId()).orElse(null);
-        User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
-
-        Map<String, Object> checkAuth = checkAuthorization(currentUser, payment, "complete payment");
+    private ResponseEntity<ApiResponse<Object>> validatePaymentForOperation(Payment payment, User currentUser, String operation) {
+        Map<String, Object> checkAuth = checkAuthorization(currentUser, payment, operation);
 
         if (Boolean.FALSE.equals(checkAuth.get(SUCCESS_STRING))) {
             HttpStatus status = HttpStatus.valueOf((int) checkAuth.get(HTTP_CODE_STRING));
-            log.warn("Payment completion failed for payment id: {} - {}",
-                    paymentData.getId(), checkAuth.get(MESSAGE_STRING));
+            log.warn("{} failed for payment id: {} - {}",
+                    operation, payment != null ? payment.getId() : "null", checkAuth.get(MESSAGE_STRING));
             return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
         }
 
         assert payment != null; // At this point, payment cannot be null due to checkAuthorization logic
-        payment.setPaymentMethod(paymentData.getPaymentMethod());
-        payment.setTransactionId(paymentData.getTransactionId());
-        payment.setPaymentDate(paymentData.getPaymentDate());
-        payment.setReleaseAt(paymentData.getReleaseAt());
-        payment.setStatus(PaymentStatus.PAID);
 
-        Payment updatedPayment = paymentRepo.save(payment);
-        log.info("Payment completed successfully with id: {} and transaction id: {}",
-                updatedPayment.getId(), updatedPayment.getTransactionId());
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Payment {} is not in PENDING status. Current status: {}", payment.getId(), payment.getStatus());
+            return ApiResponse.error("Payment is not in pending status", HttpStatus.BAD_REQUEST);
+        }
 
-        jobSchedulerService.schedulePaymentRelease(payment.getId(), payment.getReleaseAt());
-        log.debug("Payment release scheduled for payment id: {} at: {}",
-                payment.getId(), payment.getReleaseAt());
+        return null; // No error, validation passed
+    }
 
-        return ApiResponse.success(
-                mapToPaymentResponseDTO(updatedPayment),
-                HttpStatus.CREATED,
-                "Payment completed successfully"
-        );
+    /**
+     * Completes a payment using session ID verification and schedules payment release.
+     */
+    public ResponseEntity<ApiResponse<PaymentResponseDTO>> completePayment(String sessionId) {
+        log.debug("Completing payment with session id: {}", sessionId);
+
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            log.warn("Session ID is required for payment completion");
+            return ApiResponse.error("Session ID is required", HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            Session session = Session.retrieve(sessionId);
+            
+            if (!"complete".equals(session.getStatus()) || !"paid".equals(session.getPaymentStatus())) {
+                log.warn("Stripe session not completed or not paid. Session ID: {}", sessionId);
+                return ApiResponse.error("Payment not completed on Stripe", HttpStatus.BAD_REQUEST);
+            }
+
+            String paymentIdStr = session.getMetadata().get("payment_id");
+            if (paymentIdStr == null) {
+                log.error("Payment ID not found in session metadata");
+                return ApiResponse.error("Payment ID not found in session metadata", HttpStatus.BAD_REQUEST);
+            }
+
+            UUID paymentId = parsePaymentIdFromMetadata(paymentIdStr);
+            if (paymentId == null) {
+                return ApiResponse.error("Invalid payment ID format", HttpStatus.BAD_REQUEST);
+            }
+
+            Payment payment = paymentRepo.findById(paymentId).orElse(null);
+            User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
+
+            ResponseEntity<ApiResponse<Object>> validationResult = validatePaymentForOperation(payment, currentUser, "complete payment");
+            if (validationResult != null) {
+                return (ResponseEntity<ApiResponse<PaymentResponseDTO>>) (ResponseEntity<?>) validationResult;
+            }
+
+            com.javajedis.legalconnect.videocall.Meeting meeting = meetingRepo.findById(payment.getMeetingId()).orElse(null);
+            if (meeting == null) {
+                log.warn("Meeting not found with id: {}", payment.getMeetingId());
+                return ApiResponse.error("Meeting not found with this id", HttpStatus.NOT_FOUND);
+            }
+            
+            
+            payment.setPaymentMethod(PaymentMethod.CARD);
+            payment.setTransactionId(session.getPaymentIntent());
+            payment.setPaymentDate(OffsetDateTime.now());
+            payment.setReleaseAt(meeting.getEndTimestamp().plusHours(6));
+            payment.setStatus(PaymentStatus.PAID);
+
+            Payment updatedPayment = paymentRepo.save(payment);
+            log.info("Payment completed successfully with id: {} and session id: {}",
+                    updatedPayment.getId(), sessionId);
+
+            jobSchedulerService.schedulePaymentRelease(payment.getId(), payment.getReleaseAt());
+            log.debug("Payment release scheduled for payment id: {} at: {}",
+                    payment.getId(), payment.getReleaseAt());
+
+            return ApiResponse.success(
+                    mapToPaymentResponseDTO(updatedPayment),
+                    HttpStatus.CREATED,
+                    "Payment completed successfully"
+            );
+
+        } catch (StripeException e) {
+            log.error("Error verifying Stripe session: {}", sessionId, e);
+            return ApiResponse.error("Failed to verify payment: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -370,20 +439,9 @@ public class PaymentService {
         Payment payment = paymentRepo.findById(paymentId).orElse(null);
         User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
 
-        Map<String, Object> checkAuth = checkAuthorization(currentUser, payment, "create Stripe session");
-
-        if (Boolean.FALSE.equals(checkAuth.get(SUCCESS_STRING))) {
-            HttpStatus status = HttpStatus.valueOf((int) checkAuth.get(HTTP_CODE_STRING));
-            log.warn("Stripe session creation failed for payment id: {} - {}", 
-                    paymentId, checkAuth.get(MESSAGE_STRING));
-            return ApiResponse.error(checkAuth.get(MESSAGE_STRING).toString(), status);
-        }
-
-        assert payment != null; // At this point, payment cannot be null due to checkAuthorization logic
-
-        if (payment.getStatus() != PaymentStatus.PENDING) {
-            log.warn("Payment {} is not in PENDING status. Current status: {}", paymentId, payment.getStatus());
-            return ApiResponse.error("Payment is not in pending status", HttpStatus.BAD_REQUEST);
+        ResponseEntity<ApiResponse<Object>> validationResult = validatePaymentForOperation(payment, currentUser, "create Stripe session");
+        if (validationResult != null) {
+            return (ResponseEntity<ApiResponse<StripeSessionResponseDTO>>) (ResponseEntity<?>) validationResult;
         }
 
         try {
@@ -444,7 +502,75 @@ public class PaymentService {
         paymentResponseDTO.setTransactionId(paymentData.getTransactionId());
         paymentResponseDTO.setCreatedAt(paymentData.getCreatedAt());
         paymentResponseDTO.setUpdatedAt(paymentData.getUpdatedAt());
+        paymentResponseDTO.setPayerFirstName(paymentData.getPayer().getFirstName());
+        paymentResponseDTO.setPayerLastName(paymentData.getPayer().getLastName());
+        paymentResponseDTO.setPayerEmail(paymentData.getPayer().getEmail());
+        paymentResponseDTO.setPayeeFirstName(paymentData.getPayee().getFirstName());
+        paymentResponseDTO.setPayeeLastName(paymentData.getPayee().getLastName());
+        paymentResponseDTO.setPayeeEmail(paymentData.getPayee().getEmail());
 
         return paymentResponseDTO;
+    }
+
+    /**
+     * Updates payment amount for a meeting when meeting duration changes.
+     * Only updates if payment is still in PENDING status.
+     *
+     * @param meetingId the meeting ID
+     * @param newAmount the new amount to set
+     * @return true if payment was updated successfully, false otherwise
+     */
+    @Transactional
+    public boolean updatePaymentAmount(UUID meetingId, java.math.BigDecimal newAmount) {
+        log.debug("Updating payment amount for meeting id: {} to amount: {}", meetingId, newAmount);
+
+        Payment payment = paymentRepo.findBymeetingId(meetingId);
+        
+        if (payment == null) {
+            log.warn("No payment found for meeting id: {}", meetingId);
+            return false;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Cannot update payment amount for meeting id: {} - payment status is not PENDING. Current status: {}", 
+                    meetingId, payment.getStatus());
+            return false;
+        }
+
+        payment.setAmount(newAmount);
+        paymentRepo.save(payment);
+        
+        log.info("Payment amount updated successfully for meeting id: {} to amount: {}", meetingId, newAmount);
+        return true;
+    }
+
+    /**
+     * Deletes payment for a meeting when meeting is deleted.
+     * Only deletes if payment is still in PENDING status.
+     *
+     * @param meetingId the meeting ID
+     * @return true if payment was deleted successfully, false otherwise
+     */
+    @Transactional
+    public boolean deletePaymentByMeetingId(UUID meetingId) {
+        log.debug("Deleting payment for meeting id: {}", meetingId);
+
+        Payment payment = paymentRepo.findBymeetingId(meetingId);
+        
+        if (payment == null) {
+            log.warn("No payment found for meeting id: {}", meetingId);
+            return false;
+        }
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            log.warn("Cannot delete payment for meeting id: {} - payment status is not PENDING. Current status: {}", 
+                    meetingId, payment.getStatus());
+            return false;
+        }
+
+        paymentRepo.delete(payment);
+        
+        log.info("Payment deleted successfully for meeting id: {}", meetingId);
+        return true;
     }
 }

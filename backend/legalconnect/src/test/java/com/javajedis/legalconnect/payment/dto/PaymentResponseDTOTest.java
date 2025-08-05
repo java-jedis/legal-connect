@@ -32,6 +32,12 @@ class PaymentResponseDTOTest {
     private OffsetDateTime testPaymentDate;
     private OffsetDateTime testCreatedAt;
     private OffsetDateTime testUpdatedAt;
+    private String testPayerFirstName;
+    private String testPayerLastName;
+    private String testPayerEmail;
+    private String testPayeeFirstName;
+    private String testPayeeLastName;
+    private String testPayeeEmail;
 
     @BeforeEach
     void setUp() {
@@ -47,6 +53,12 @@ class PaymentResponseDTOTest {
         testPaymentDate = OffsetDateTime.now();
         testCreatedAt = OffsetDateTime.now().minusDays(1);
         testUpdatedAt = OffsetDateTime.now();
+        testPayerFirstName = "John";
+        testPayerLastName = "Doe";
+        testPayerEmail = "john.doe@example.com";
+        testPayeeFirstName = "Jane";
+        testPayeeLastName = "Smith";
+        testPayeeEmail = "jane.smith@example.com";
     }
 
     @Test
@@ -65,6 +77,12 @@ class PaymentResponseDTOTest {
         assertNull(dto.getPaymentDate());
         assertNull(dto.getCreatedAt());
         assertNull(dto.getUpdatedAt());
+        assertNull(dto.getPayerFirstName());
+        assertNull(dto.getPayerLastName());
+        assertNull(dto.getPayerEmail());
+        assertNull(dto.getPayeeFirstName());
+        assertNull(dto.getPayeeLastName());
+        assertNull(dto.getPayeeEmail());
     }
 
     @Test
@@ -73,7 +91,9 @@ class PaymentResponseDTOTest {
         PaymentResponseDTO dto = new PaymentResponseDTO(
             testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
-            testPaymentDate, testCreatedAt, testUpdatedAt
+            testPaymentDate, testCreatedAt, testUpdatedAt,
+            testPayerFirstName, testPayerLastName, testPayerEmail,
+            testPayeeFirstName, testPayeeLastName, testPayeeEmail
         );
         
         assertEquals(testId, dto.getId());
@@ -87,6 +107,12 @@ class PaymentResponseDTOTest {
         assertEquals(testPaymentDate, dto.getPaymentDate());
         assertEquals(testCreatedAt, dto.getCreatedAt());
         assertEquals(testUpdatedAt, dto.getUpdatedAt());
+        assertEquals(testPayerFirstName, dto.getPayerFirstName());
+        assertEquals(testPayerLastName, dto.getPayerLastName());
+        assertEquals(testPayerEmail, dto.getPayerEmail());
+        assertEquals(testPayeeFirstName, dto.getPayeeFirstName());
+        assertEquals(testPayeeLastName, dto.getPayeeLastName());
+        assertEquals(testPayeeEmail, dto.getPayeeEmail());
     }
 
     @Test
@@ -164,6 +190,48 @@ class PaymentResponseDTOTest {
     void testUpdatedAtGetterSetter() {
         paymentResponseDTO.setUpdatedAt(testUpdatedAt);
         assertEquals(testUpdatedAt, paymentResponseDTO.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("Should set and get payer first name")
+    void testPayerFirstNameGetterSetter() {
+        paymentResponseDTO.setPayerFirstName(testPayerFirstName);
+        assertEquals(testPayerFirstName, paymentResponseDTO.getPayerFirstName());
+    }
+
+    @Test
+    @DisplayName("Should set and get payer last name")
+    void testPayerLastNameGetterSetter() {
+        paymentResponseDTO.setPayerLastName(testPayerLastName);
+        assertEquals(testPayerLastName, paymentResponseDTO.getPayerLastName());
+    }
+
+    @Test
+    @DisplayName("Should set and get payer email")
+    void testPayerEmailGetterSetter() {
+        paymentResponseDTO.setPayerEmail(testPayerEmail);
+        assertEquals(testPayerEmail, paymentResponseDTO.getPayerEmail());
+    }
+
+    @Test
+    @DisplayName("Should set and get payee first name")
+    void testPayeeFirstNameGetterSetter() {
+        paymentResponseDTO.setPayeeFirstName(testPayeeFirstName);
+        assertEquals(testPayeeFirstName, paymentResponseDTO.getPayeeFirstName());
+    }
+
+    @Test
+    @DisplayName("Should set and get payee last name")
+    void testPayeeLastNameGetterSetter() {
+        paymentResponseDTO.setPayeeLastName(testPayeeLastName);
+        assertEquals(testPayeeLastName, paymentResponseDTO.getPayeeLastName());
+    }
+
+    @Test
+    @DisplayName("Should set and get payee email")
+    void testPayeeEmailGetterSetter() {
+        paymentResponseDTO.setPayeeEmail(testPayeeEmail);
+        assertEquals(testPayeeEmail, paymentResponseDTO.getPayeeEmail());
     }
 
     @Test
@@ -284,19 +352,25 @@ class PaymentResponseDTOTest {
         PaymentResponseDTO dto1 = new PaymentResponseDTO(
             testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
-            testPaymentDate, testCreatedAt, testUpdatedAt
+            testPaymentDate, testCreatedAt, testUpdatedAt,
+            testPayerFirstName, testPayerLastName, testPayerEmail,
+            testPayeeFirstName, testPayeeLastName, testPayeeEmail
         );
         
         PaymentResponseDTO dto2 = new PaymentResponseDTO(
             testId, testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
-            testPaymentDate, testCreatedAt, testUpdatedAt
+            testPaymentDate, testCreatedAt, testUpdatedAt,
+            testPayerFirstName, testPayerLastName, testPayerEmail,
+            testPayeeFirstName, testPayeeLastName, testPayeeEmail
         );
         
         PaymentResponseDTO dto3 = new PaymentResponseDTO(
             UUID.randomUUID(), testPayeeId, testPayerId, testmeetingId, testAmount, 
             testStatus, testPaymentMethod, testTransactionId, 
-            testPaymentDate, testCreatedAt, testUpdatedAt
+            testPaymentDate, testCreatedAt, testUpdatedAt,
+            testPayerFirstName, testPayerLastName, testPayerEmail,
+            testPayeeFirstName, testPayeeLastName, testPayeeEmail
         );
 
         assertEquals(dto1, dto2);
@@ -318,6 +392,12 @@ class PaymentResponseDTOTest {
         paymentResponseDTO.setPaymentDate(testPaymentDate);
         paymentResponseDTO.setCreatedAt(testCreatedAt);
         paymentResponseDTO.setUpdatedAt(testUpdatedAt);
+        paymentResponseDTO.setPayerFirstName(testPayerFirstName);
+        paymentResponseDTO.setPayerLastName(testPayerLastName);
+        paymentResponseDTO.setPayerEmail(testPayerEmail);
+        paymentResponseDTO.setPayeeFirstName(testPayeeFirstName);
+        paymentResponseDTO.setPayeeLastName(testPayeeLastName);
+        paymentResponseDTO.setPayeeEmail(testPayeeEmail);
 
         String toString = paymentResponseDTO.toString();
         
@@ -331,6 +411,12 @@ class PaymentResponseDTOTest {
         assertTrue(toString.contains(testStatus.toString()));
         assertTrue(toString.contains(testPaymentMethod.toString()));
         assertTrue(toString.contains(testTransactionId));
+        assertTrue(toString.contains(testPayerFirstName));
+        assertTrue(toString.contains(testPayerLastName));
+        assertTrue(toString.contains(testPayerEmail));
+        assertTrue(toString.contains(testPayeeFirstName));
+        assertTrue(toString.contains(testPayeeLastName));
+        assertTrue(toString.contains(testPayeeEmail));
     }
 
     @Test
@@ -349,6 +435,12 @@ class PaymentResponseDTOTest {
         sourceDTO.setPaymentDate(testPaymentDate);
         sourceDTO.setCreatedAt(testCreatedAt);
         sourceDTO.setUpdatedAt(testUpdatedAt);
+        sourceDTO.setPayerFirstName(testPayerFirstName);
+        sourceDTO.setPayerLastName(testPayerLastName);
+        sourceDTO.setPayerEmail(testPayerEmail);
+        sourceDTO.setPayeeFirstName(testPayeeFirstName);
+        sourceDTO.setPayeeLastName(testPayeeLastName);
+        sourceDTO.setPayeeEmail(testPayeeEmail);
 
         // Create target DTO using all-args constructor (simulating mapping)
         PaymentResponseDTO targetDTO = new PaymentResponseDTO(
@@ -362,7 +454,13 @@ class PaymentResponseDTOTest {
             sourceDTO.getTransactionId(),
             sourceDTO.getPaymentDate(),
             sourceDTO.getCreatedAt(),
-            sourceDTO.getUpdatedAt()
+            sourceDTO.getUpdatedAt(),
+            sourceDTO.getPayerFirstName(),
+            sourceDTO.getPayerLastName(),
+            sourceDTO.getPayerEmail(),
+            sourceDTO.getPayeeFirstName(),
+            sourceDTO.getPayeeLastName(),
+            sourceDTO.getPayeeEmail()
         );
 
         // Verify all data was transferred correctly
@@ -377,6 +475,12 @@ class PaymentResponseDTOTest {
         assertEquals(sourceDTO.getPaymentDate(), targetDTO.getPaymentDate());
         assertEquals(sourceDTO.getCreatedAt(), targetDTO.getCreatedAt());
         assertEquals(sourceDTO.getUpdatedAt(), targetDTO.getUpdatedAt());
+        assertEquals(sourceDTO.getPayerFirstName(), targetDTO.getPayerFirstName());
+        assertEquals(sourceDTO.getPayerLastName(), targetDTO.getPayerLastName());
+        assertEquals(sourceDTO.getPayerEmail(), targetDTO.getPayerEmail());
+        assertEquals(sourceDTO.getPayeeFirstName(), targetDTO.getPayeeFirstName());
+        assertEquals(sourceDTO.getPayeeLastName(), targetDTO.getPayeeLastName());
+        assertEquals(sourceDTO.getPayeeEmail(), targetDTO.getPayeeEmail());
     }
 
     @Test
@@ -394,6 +498,12 @@ class PaymentResponseDTOTest {
         paymentResponseDTO.setPaymentDate(testPaymentDate);
         paymentResponseDTO.setCreatedAt(testCreatedAt);
         paymentResponseDTO.setUpdatedAt(testUpdatedAt);
+        paymentResponseDTO.setPayerFirstName(testPayerFirstName);
+        paymentResponseDTO.setPayerLastName(testPayerLastName);
+        paymentResponseDTO.setPayerEmail(testPayerEmail);
+        paymentResponseDTO.setPayeeFirstName(testPayeeFirstName);
+        paymentResponseDTO.setPayeeLastName(testPayeeLastName);
+        paymentResponseDTO.setPayeeEmail(testPayeeEmail);
 
         // Verify all fields maintain their values
         assertEquals(testId, paymentResponseDTO.getId());
@@ -407,5 +517,11 @@ class PaymentResponseDTOTest {
         assertEquals(testPaymentDate, paymentResponseDTO.getPaymentDate());
         assertEquals(testCreatedAt, paymentResponseDTO.getCreatedAt());
         assertEquals(testUpdatedAt, paymentResponseDTO.getUpdatedAt());
+        assertEquals(testPayerFirstName, paymentResponseDTO.getPayerFirstName());
+        assertEquals(testPayerLastName, paymentResponseDTO.getPayerLastName());
+        assertEquals(testPayerEmail, paymentResponseDTO.getPayerEmail());
+        assertEquals(testPayeeFirstName, paymentResponseDTO.getPayeeFirstName());
+        assertEquals(testPayeeLastName, paymentResponseDTO.getPayeeLastName());
+        assertEquals(testPayeeEmail, paymentResponseDTO.getPayeeEmail());
     }
 }
