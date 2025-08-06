@@ -11,16 +11,34 @@ import asyncpg
 import asyncio
 from contextlib import asynccontextmanager
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, skip loading .env file
+    pass
+
 # Database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://username:password@localhost:5432/legal_connect_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./legal_connect.db")
 
 # SQLAlchemy setup
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    echo=False  # Set to True for SQL debugging
-)
+if DATABASE_URL.startswith("sqlite"):
+    # SQLite configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        echo=False,
+        connect_args={"check_same_thread": False}  # SQLite specific
+    )
+else:
+    # PostgreSQL configuration
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        echo=False  # Set to True for SQL debugging
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

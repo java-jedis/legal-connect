@@ -98,6 +98,7 @@ class DocumentProcessor:
         Returns:
             Processing result
         """
+        db = None
         try:
             # Load JSON content
             with open(json_file_path, 'r', encoding='utf-8') as f:
@@ -106,14 +107,17 @@ class DocumentProcessor:
             # Extract metadata
             metadata = self.text_processor.extract_metadata(json_content)
             
-            # Check if document already exists
+            # Get database session
             db = next(get_db())
+            
+            # Check if document already exists
             existing_doc = db.query(Document).filter(
                 Document.filename == json_content.get("filename", "")
             ).first()
             
             if existing_doc:
                 logger.info(f"Document {json_file_path.name} already exists, skipping")
+                db.close()
                 return {
                     "success": True,
                     "chunks_created": 0,
@@ -130,7 +134,7 @@ class DocumentProcessor:
                 extraction_date=json_content.get("extraction_date"),
                 ocr_language=json_content.get("ocr_language", "ben"),
                 text=self.text_processor.combine_full_text(json_content.get("pages", [])),
-                metadata=json_content.get("metadata", {}),
+                document_metadata=json_content.get("metadata", {}),
                 total_pages=len(json_content.get("pages", [])),
                 language=json_content.get("metadata", {}).get("language", "ben"),
                 extraction_method=json_content.get("metadata", {}).get("extraction_method", "OCR")
@@ -140,12 +144,18 @@ class DocumentProcessor:
             db.commit()
             db.refresh(document)
             
+            # Store document ID for later use
+            document_id = document.id
+            document_name = document.name
+            document_filename = document.filename
+            
             # Process pages into chunks
             pages = json_content.get("pages", [])
             all_chunks = self.text_processor.process_pages(pages)
             
             if not all_chunks:
                 logger.warning(f"No text chunks created for {json_file_path.name}")
+                db.close()
                 return {
                     "success": True,
                     "chunks_created": 0,
@@ -164,21 +174,21 @@ class DocumentProcessor:
             for i, (chunk, embedding) in enumerate(zip(all_chunks, embeddings)):
                 # Create document chunk record
                 chunk_record = DocumentChunk(
-                    document_id=document.id,
+                    document_id=document_id,
                     chunk_text=chunk["text"],
                     chunk_index=chunk["chunk_index"],
                     page_number=chunk["metadata"].get("page_number")
                 )
                 chunk_records.append(chunk_record)
                 
-                # Prepare for vector database
+                # Prepare for vector database (use stored values instead of document object)
                 vector_doc = {
-                    "document_id": document.id,
-                    "chunk_id": chunk_record.id,
+                    "document_id": document_id,
+                    "chunk_id": None,  # Will be updated after database commit
                     "text": chunk["text"],
                     "page_number": chunk["metadata"].get("page_number"),
-                    "document_name": document.name,
-                    "filename": document.filename,
+                    "document_name": document_name,
+                    "filename": document_filename,
                     "metadata": {
                         "chunk_index": chunk["chunk_index"],
                         "length": chunk["length"],
@@ -191,6 +201,10 @@ class DocumentProcessor:
             db.add_all(chunk_records)
             db.commit()
             
+            # Refresh all chunk records to get their IDs
+            for chunk_record in chunk_records:
+                db.refresh(chunk_record)
+            
             # Update vector document IDs
             for vector_doc, chunk_record in zip(vector_documents, chunk_records):
                 vector_doc["chunk_id"] = chunk_record.id
@@ -202,6 +216,7 @@ class DocumentProcessor:
             for chunk_record, vector_id in zip(chunk_records, vector_ids):
                 chunk_record.vector_id = vector_id
             
+            # Final commit and close
             db.commit()
             db.close()
             
@@ -209,11 +224,14 @@ class DocumentProcessor:
                 "success": True,
                 "chunks_created": len(all_chunks),
                 "embeddings_created": len(embeddings),
-                "document_id": document.id
+                "document_id": document_id
             }
             
         except Exception as e:
             logger.error(f"Error processing document {json_file_path}: {e}")
+            if db:
+                db.rollback()
+                db.close()
             return {
                 "success": False,
                 "error": str(e)

@@ -15,18 +15,19 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # Database
-    database_url: str = "postgresql://username:password@localhost:5432/legal_connect_db"
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://username:password@localhost:5432/legal_connect_db")
     
     # Vector Database
-    qdrant_host: str = "localhost"
-    qdrant_port: int = 6333
-    qdrant_api_key: str = ""
-    qdrant_collection_name: str = "legal_documents"
+    qdrant_url: str = os.getenv("QDRANT_URL", "")
+    qdrant_host: str = os.getenv("QDRANT_HOST", "localhost")
+    qdrant_port: int = int(os.getenv("QDRANT_PORT", "6333"))
+    qdrant_api_key: str = os.getenv("QDRANT_API_KEY", "")
+    qdrant_collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "legal_documents")
     
     # Google AI
-    google_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash-exp"
-    embedding_model: str = "models/embedding-001"
+    google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+    embedding_model: str = os.getenv("EMBEDDING_MODEL", "models/embedding-001")
     
     # Redis
     redis_url: str = "redis://localhost:6379/0"

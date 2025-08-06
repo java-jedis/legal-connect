@@ -12,7 +12,7 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables FIRST before any imports
 load_dotenv()
 
 # Import our modules
@@ -34,6 +34,15 @@ async def lifespan(app: FastAPI):
     
     # Startup
     print("🚀 Starting Legal Connect RAG API...")
+    
+    # Debug: Print DATABASE_URL (masked)
+    db_url = os.getenv("DATABASE_URL", "NOT_SET")
+    if db_url != "NOT_SET":
+        # Mask password for security
+        masked_url = db_url.split('://')[0] + '://' + db_url.split('://')[1].split(':')[0] + ':****@' + db_url.split('@')[1] if '@' in db_url else db_url
+        print(f"📊 Database URL: {masked_url}")
+    else:
+        print("❌ DATABASE_URL not found in environment variables!")
     
     # Initialize database
     await init_db()
