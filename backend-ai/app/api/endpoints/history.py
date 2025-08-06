@@ -6,7 +6,10 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime
+from sqlalchemy.orm import Session
 import logging
+
+from app.db.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -38,39 +41,56 @@ class CreateSessionRequest(BaseModel):
 async def list_chat_sessions(
     user_id: Optional[str] = None,
     limit: int = 50,
-    offset: int = 0
+    offset: int = 0,
+    db: Session = Depends(get_db)
 ):
     """
     List chat sessions for a user
     """
     try:
-        # TODO: Implement session listing from database
-        return {
-            "sessions": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset,
-            "message": "Session listing not yet implemented"
-        }
+        from app.services.chat_service import chat_service
+        
+        if user_id:
+            sessions = chat_service.get_user_sessions(db=db, user_id=user_id, limit=limit)
+            return {
+                "sessions": sessions,
+                "total": len(sessions),
+                "limit": limit,
+                "offset": offset
+            }
+        else:
+            # If no user_id provided, return empty for security
+            return {
+                "sessions": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "message": "User ID required for session listing"
+            }
         
     except Exception as e:
         logger.error(f"Error listing chat sessions: {e}")
         raise HTTPException(status_code=500, detail=f"Listing error: {str(e)}")
 
 @router.post("/sessions")
-async def create_chat_session(request: CreateSessionRequest):
+async def create_chat_session(request: CreateSessionRequest, db: Session = Depends(get_db)):
     """
     Create a new chat session
     """
     try:
-        # TODO: Implement session creation in database
-        session_id = "temp_session_id"  # Generate proper UUID
+        from app.services.chat_service import chat_service
+        
+        session_id = chat_service.create_session(
+            db=db, 
+            user_id=request.user_id, 
+            title=request.title
+        )
         
         return {
             "session_id": session_id,
             "title": request.title or "New Chat",
             "created_at": datetime.utcnow(),
-            "message": "Session creation not yet implemented"
+            "message": "Session created successfully"
         }
         
     except Exception as e:
@@ -81,22 +101,33 @@ async def create_chat_session(request: CreateSessionRequest):
 async def get_session_messages(
     session_id: str,
     limit: int = 100,
-    offset: int = 0
+    offset: int = 0,
+    db: Session = Depends(get_db)
 ):
     """
     Get messages for a specific session
     """
     try:
-        # TODO: Implement message retrieval from database
+        from app.services.chat_service import chat_service
+        
+        # Verify session exists
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        # Get messages
+        messages = chat_service.get_chat_history(db=db, session_id=session_id, limit=limit)
+        
         return {
             "session_id": session_id,
-            "messages": [],
-            "total": 0,
+            "messages": messages,
+            "total": len(messages),
             "limit": limit,
-            "offset": offset,
-            "message": "Message retrieval not yet implemented"
+            "offset": offset
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting session messages: {e}")
         raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
@@ -148,37 +179,44 @@ async def update_session(
         raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str):
+async def delete_session(session_id: str, db: Session = Depends(get_db)):
     """
     Delete a chat session and all its messages
     """
     try:
-        # TODO: Implement session deletion from database
+        from app.services.chat_service import chat_service
+        
+        deleted = chat_service.delete_session(db=db, session_id=session_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
         return {
             "session_id": session_id,
-            "message": "Session deleted successfully (not yet implemented)"
+            "message": "Session deleted successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error deleting session: {e}")
         raise HTTPException(status_code=500, detail=f"Deletion error: {str(e)}")
 
 @router.get("/sessions/{session_id}")
-async def get_session_details(session_id: str):
+async def get_session_details(session_id: str, db: Session = Depends(get_db)):
     """
     Get details of a specific chat session
     """
     try:
-        # TODO: Implement session details retrieval
-        return {
-            "session_id": session_id,
-            "title": "Sample Session",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "message_count": 0,
-            "message": "Session details not yet implemented"
-        }
+        from app.services.chat_service import chat_service
         
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        return session_info
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting session details: {e}")
         raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")

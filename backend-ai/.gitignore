@@ -144,6 +144,7 @@ bdcode_json/
 .env
 DEVELOPMENT.md
 IMPLEMENTATION_GUIDE.md
+SESSION_MANAGEMENT_SOLUTION.md
 # preprocessing.log
 # start.sh
 # test_rag_simple.py
