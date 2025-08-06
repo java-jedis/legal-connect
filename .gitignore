@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .venv/
 env/
+.env
 .mypy_cache/
 /application.yml
 application.yml

@@ -8,14 +8,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -31,10 +32,9 @@ import org.mockito.MockitoAnnotations;
 
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
+import com.javajedis.legalconnect.common.exception.GoogleCalendarException;
 import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
 import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
-
-import java.io.IOException;
 
 @DisplayName("GoogleCalendarService Tests")
 class GoogleCalendarServiceTest {
@@ -157,9 +157,9 @@ class GoogleCalendarServiceTest {
     @DisplayName("Should handle exception when creating event")
     void createEvent_Exception_ThrowsException() throws Exception {
         GoogleCalendarService spyService = spy(googleCalendarService);
-        doThrow(new IOException("API error")).when(spyService).getCalendar(anyString());
+        doThrow(new GoogleCalendarException("API error", new IOException("API error"))).when(spyService).getCalendar(anyString());
 
-        assertThrows(Exception.class, () -> spyService.createEvent(testCreateDTO));
+        assertThrows(GoogleCalendarException.class, () -> spyService.createEvent(testCreateDTO));
     }
 
     @Test
@@ -192,9 +192,9 @@ class GoogleCalendarServiceTest {
     @DisplayName("Should handle exception when updating event")
     void updateEvent_Exception_ThrowsException() throws Exception {
         GoogleCalendarService spyService = spy(googleCalendarService);
-        doThrow(new IOException("API error")).when(spyService).getCalendar(anyString());
+        doThrow(new GoogleCalendarException("API error", new IOException("API error"))).when(spyService).getCalendar(anyString());
 
-        assertThrows(Exception.class, () -> spyService.updateEvent(testUpdateDTO));
+        assertThrows(GoogleCalendarException.class, () -> spyService.updateEvent(testUpdateDTO));
     }
 
     @Test
@@ -219,9 +219,9 @@ class GoogleCalendarServiceTest {
     @DisplayName("Should handle exception when deleting event")
     void deleteEvent_Exception_ThrowsException() throws Exception {
         GoogleCalendarService spyService = spy(googleCalendarService);
-        doThrow(new IOException("API error")).when(spyService).getCalendar(anyString());
+        doThrow(new GoogleCalendarException("API error", new IOException("API error"))).when(spyService).getCalendar(anyString());
 
-        assertThrows(Exception.class, () -> spyService.deleteEvent(testAccessToken, testEventId));
+        assertThrows(GoogleCalendarException.class, () -> spyService.deleteEvent(testAccessToken, testEventId));
     }
 
     @Test
