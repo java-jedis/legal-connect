@@ -1,5 +1,20 @@
 package com.javajedis.legalconnect.scheduling;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.google.api.services.calendar.model.Event;
 import com.javajedis.legalconnect.caseassets.CaseAssetUtility;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
@@ -13,20 +28,18 @@ import com.javajedis.legalconnect.jobscheduler.WebPushJobDTO;
 import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
-import com.javajedis.legalconnect.scheduling.dto.*;
+import com.javajedis.legalconnect.scheduling.dto.CreateCalendarEventDTO;
+import com.javajedis.legalconnect.scheduling.dto.CreateScheduleDTO;
+import com.javajedis.legalconnect.scheduling.dto.ScheduleListResponseDTO;
+import com.javajedis.legalconnect.scheduling.dto.ScheduleResponseDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateCalendarEventDTO;
+import com.javajedis.legalconnect.scheduling.dto.UpdateScheduleDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
 
 @Slf4j
 @Service
@@ -264,6 +277,7 @@ public class SchedulingService {
     /**
      * Delete a schedule event.
      */
+    @Transactional
     public ResponseEntity<ApiResponse<String>> deleteSchedule(UUID scheduleId) {
         log.debug("Deleting schedule with ID: {}", scheduleId);
 
@@ -595,15 +609,30 @@ public class SchedulingService {
         log.debug("Attempting to delete Google Calendar event for schedule: {}", schedule.getId());
 
         executeGoogleCalendarOperation(schedule, currentUser, "delete", (accessToken, googleCalendarEventId) -> {
+            boolean googleCalendarDeleted = false;
             try {
                 googleCalendarService.deleteEvent(accessToken, googleCalendarEventId);
+                googleCalendarDeleted = true;
+                log.info("Successfully deleted Google Calendar event {} for schedule {}",
+                        googleCalendarEventId, schedule.getId());
 
                 scheduleGoogleCalendarEventRepo.deleteByScheduleId(schedule.getId());
 
-                log.info("Successfully deleted Google Calendar event {} for schedule {}",
-                        googleCalendarEventId, schedule.getId());
             } catch (Exception e) {
-                throw new GoogleCalendarException("Failed to delete Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
+                if (googleCalendarDeleted) {
+                    log.warn("Google Calendar event {} was successfully deleted, but database cleanup failed for schedule {}: {}",
+                            googleCalendarEventId, schedule.getId(), e.getMessage());
+                    
+                    try {
+                        scheduleGoogleCalendarEventRepo.deleteByScheduleId(schedule.getId());
+                    } catch (Exception dbException) {
+                        log.warn("Database cleanup failed on retry for schedule {}: {}. This may be cleaned up when the schedule is deleted.",
+                                schedule.getId(), dbException.getMessage());
+                    }
+                    return;
+                } else {
+                    throw new GoogleCalendarException("Failed to delete Google Calendar event " + googleCalendarEventId + " for schedule " + schedule.getId(), e);
+                }
             }
         });
     }
