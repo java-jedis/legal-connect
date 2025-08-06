@@ -514,9 +514,8 @@ const closeSessionDetail = () => {
 }
 
 const continueSession = (session) => {
-  // Store the session ID and navigate to AI chat
-  localStorage.setItem('continue_session_id', session.id)
-  router.push('/ai-chat')
+  // Navigate directly to the AI chat with session ID
+  router.push(`/ai-chat/${session.id}`)
 }
 
 const deleteSession = async (session) => {

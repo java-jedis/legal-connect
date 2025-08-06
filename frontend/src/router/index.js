@@ -134,6 +134,13 @@ const router = createRouter({
       component: () => import("../views/AIChatView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
+    {
+      path: "/ai-chat/:sessionId",
+      name: "ai-chat-session",
+      component: () => import("../views/AIChatView.vue"),
+      meta: { requiresAuth: true, requiresEmailVerification: true },
+      props: true,
+    },
         {
       path: "/document-search",
       name: "document-search",
@@ -241,6 +248,28 @@ router.beforeEach(async (to, from, next) => {
       console.warn(`Error or access denied for conversation ${to.params.id}:`, error.message);
       next("/chat");
       return;
+    }
+  }
+
+  // AI Chat session validation
+  if (to.name === "ai-chat-session" && to.params.sessionId) {
+    try {
+      // Import AI chat service dynamically to avoid circular dependencies
+      const { aiChatService } = await import("../services/aiChatService");
+      
+      // Validate session ID format (should be UUID or session_timestamp_id)
+      const sessionId = to.params.sessionId;
+      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
+      const isValidLegacyFormat = /^session_\d+_[a-z0-9]+$/i.test(sessionId);
+      
+      if (!isValidUUID && !isValidLegacyFormat) {
+        console.warn(`Invalid AI chat session ID format: ${sessionId}`);
+        next("/ai-chat");
+        return;
+      }
+    } catch (error) {
+      console.warn(`Error validating AI chat session ${to.params.sessionId}:`, error.message);
+      // Allow navigation to continue - the component will handle the error
     }
   }
 

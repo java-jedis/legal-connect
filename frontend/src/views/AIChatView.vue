@@ -507,12 +507,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { aiChatService } from '../services/aiChatService'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 // Reactive data
@@ -556,21 +557,38 @@ const filteredChatSessions = computed(() => {
   )
 })
 
-// Initialize session
-onMounted(() => {
-  sessionId.value = aiChatService.generateSessionId()
-  currentSessionId.value = sessionId.value
-  checkServiceHealth()
-  loadChatHistory()
-  
-  // Check for continuation from history page
-  const continueSessionId = localStorage.getItem('continue_session_id')
-  if (continueSessionId) {
-    const session = chatSessions.value.find(s => s.id === continueSessionId)
-    if (session) {
-      loadSession(session)
+// Watch for route changes to handle session navigation
+watch(() => route.params.sessionId, async (newSessionId, oldSessionId) => {
+  if (newSessionId && newSessionId !== oldSessionId) {
+    if (newSessionId !== currentSessionId.value) {
+      await loadSessionFromBackend(newSessionId)
     }
-    localStorage.removeItem('continue_session_id')
+  } else if (!newSessionId && oldSessionId) {
+    // Navigated to base AI chat route, create new session
+    await createNewSession()
+  }
+}, { immediate: true })
+
+// Initialize session
+onMounted(async () => {
+  checkServiceHealth()
+  await loadChatHistory()
+  
+  // Handle session from route or create new
+  const routeSessionId = route.params.sessionId
+  if (routeSessionId) {
+    await loadSessionFromBackend(routeSessionId)
+  } else {
+    // Check for continuation from history page
+    const continueSessionId = localStorage.getItem('continue_session_id')
+    if (continueSessionId) {
+      localStorage.removeItem('continue_session_id')
+      // Navigate to the session URL
+      await router.push(`/ai-chat/${continueSessionId}`)
+    } else {
+      // Create new session
+      await createNewSession()
+    }
   }
 })
 
@@ -595,7 +613,28 @@ const loadChatHistory = async () => {
   isLoadingHistory.value = true
   
   try {
-    // Load from localStorage for now (since backend doesn't store sessions yet)
+    // Try to load from backend first if user is authenticated
+    if (authStore.userInfo?.id) {
+      try {
+        const response = await aiChatService.getUserSessions(authStore.userInfo.id, 50)
+        if (response.sessions && response.sessions.length > 0) {
+          chatSessions.value = response.sessions.map(session => ({
+            id: session.id,
+            messages: [], // Messages will be loaded when session is selected
+            createdAt: new Date(session.created_at),
+            lastActivity: new Date(session.updated_at),
+            messageCount: session.message_count,
+            title: session.title,
+            isFromBackend: true
+          }))
+          return
+        }
+      } catch (error) {
+        console.warn('Failed to load sessions from backend, falling back to localStorage:', error)
+      }
+    }
+    
+    // Fallback to localStorage
     const storedSessions = localStorage.getItem('ai_chat_sessions')
     if (storedSessions) {
       chatSessions.value = JSON.parse(storedSessions)
@@ -606,6 +645,87 @@ const loadChatHistory = async () => {
     console.error('Error loading chat history:', error)
   } finally {
     isLoadingHistory.value = false
+  }
+}
+
+const createNewSession = async () => {
+  try {
+    // Clear current messages
+    messages.value = []
+    
+    // Create session on backend if user is authenticated
+    if (authStore.userInfo?.id) {
+      const response = await aiChatService.createSession(authStore.userInfo.id, 'New Chat Session')
+      sessionId.value = response.session_id
+      currentSessionId.value = response.session_id
+      
+      // Navigate to the new session URL
+      await router.push(`/ai-chat/${response.session_id}`)
+    } else {
+      // Create local session for anonymous users
+      sessionId.value = aiChatService.generateSessionId()
+      currentSessionId.value = sessionId.value
+      await router.push(`/ai-chat/${sessionId.value}`)
+    }
+  } catch (error) {
+    console.error('Error creating new session:', error)
+    // Fallback to local session
+    sessionId.value = aiChatService.generateSessionId()
+    currentSessionId.value = sessionId.value
+    messages.value = []
+    await router.push(`/ai-chat/${sessionId.value}`)
+  }
+}
+
+const loadSessionFromBackend = async (sessionIdToLoad) => {
+  try {
+    // Clear current messages first
+    messages.value = []
+    
+    // Try to get session info from backend
+    const sessionInfo = await aiChatService.getSessionInfo(sessionIdToLoad)
+    
+    // Get chat history for this session
+    const historyResponse = await aiChatService.getChatHistory(sessionIdToLoad)
+    
+    // Convert backend messages to frontend format
+    const backendMessages = historyResponse.messages || []
+    const convertedMessages = backendMessages.map(msg => ({
+      type: msg.role === 'user' ? 'user' : 'ai',
+      content: msg.content,
+      sources: msg.metadata?.sources || [],
+      metadata: msg.metadata || {},
+      timestamp: new Date(msg.created_at)
+    }))
+    
+    // Set current session
+    sessionId.value = sessionIdToLoad
+    currentSessionId.value = sessionIdToLoad
+    messages.value = convertedMessages
+    
+    // Update URL if needed
+    if (route.params.sessionId !== sessionIdToLoad) {
+      await router.replace(`/ai-chat/${sessionIdToLoad}`)
+    }
+    
+    // Scroll to bottom
+    await nextTick()
+    scrollToBottom()
+    
+  } catch (error) {
+    console.error('Error loading session from backend:', error)
+    
+    // Try to load from localStorage as fallback
+    const storedSessions = JSON.parse(localStorage.getItem('ai_chat_sessions') || '[]')
+    const localSession = storedSessions.find(s => s.id === sessionIdToLoad)
+    
+    if (localSession) {
+      loadSession(localSession)
+    } else {
+      // Session not found, redirect to new chat
+      errorMessage.value = 'Session not found. Starting a new chat.'
+      await createNewSession()
+    }
   }
 }
 
@@ -637,41 +757,62 @@ const saveCurrentSession = () => {
   localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value))
 }
 
-const startNewChat = () => {
+const startNewChat = async () => {
   if (messages.value.length > 0) {
     saveCurrentSession()
   }
   
-  messages.value = []
-  sessionId.value = aiChatService.generateSessionId()
-  currentSessionId.value = sessionId.value
+  await createNewSession()
   errorMessage.value = ''
   sidebarOpen.value = false
 }
 
-const loadSession = (session) => {
+const loadSession = async (session) => {
   if (messages.value.length > 0 && currentSessionId.value !== session.id) {
     saveCurrentSession()
   }
   
-  messages.value = [...session.messages]
-  sessionId.value = session.id
-  currentSessionId.value = session.id
-  sidebarOpen.value = false
+  // If session is from backend, load it properly
+  if (session.isFromBackend) {
+    await loadSessionFromBackend(session.id)
+  } else {
+    // Local session
+    messages.value = [...session.messages]
+    sessionId.value = session.id
+    currentSessionId.value = session.id
+    
+    // Navigate to session URL
+    if (route.params.sessionId !== session.id) {
+      await router.push(`/ai-chat/${session.id}`)
+    }
+    
+    nextTick(() => {
+      scrollToBottom()
+    })
+  }
   
-  nextTick(() => {
-    scrollToBottom()
-  })
+  sidebarOpen.value = false
 }
 
-const deleteSession = (session) => {
+const deleteSession = async (session) => {
   if (confirm('Are you sure you want to delete this chat session?')) {
-    chatSessions.value = chatSessions.value.filter(s => s.id !== session.id)
-    localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value))
-    
-    // If we're deleting the current session, start a new one
-    if (currentSessionId.value === session.id) {
-      startNewChat()
+    try {
+      // Try to delete from backend if it's a backend session
+      if (session.isFromBackend || (authStore.userInfo?.id && session.id.includes('-'))) {
+        await aiChatService.deleteSession(session.id)
+      }
+      
+      // Remove from local storage and state
+      chatSessions.value = chatSessions.value.filter(s => s.id !== session.id)
+      localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value.filter(s => !s.isFromBackend)))
+      
+      // If we're deleting the current session, start a new one
+      if (currentSessionId.value === session.id) {
+        await startNewChat()
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error)
+      errorMessage.value = 'Failed to delete session. Please try again.'
     }
   }
 }
@@ -681,12 +822,24 @@ const toggleSidebar = () => {
 }
 
 const getSessionTitle = (session) => {
+  // If session has a custom title, use it
+  if (session.title && session.title !== 'New Chat Session') {
+    return session.title
+  }
+  
   if (session.messages && session.messages.length > 0) {
     const firstUserMessage = session.messages.find(msg => msg.type === 'user')
     if (firstUserMessage) {
       return truncateText(firstUserMessage.content, 40)
     }
   }
+  
+  // For UUID format, show a shorter identifier
+  if (session.id.includes('-')) {
+    return `Chat ${session.id.split('-')[0]}`
+  }
+  
+  // For old format sessions
   return `Chat ${session.id.split('_').pop()}`
 }
 

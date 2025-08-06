@@ -119,11 +119,65 @@ class AIChatService {
   }
 
   /**
-   * Generate a unique session ID
-   * @returns {string} Unique session ID
+   * Generate a unique session ID (UUID format)
+   * @returns {string} Unique session ID in UUID format
    */
   generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    // Generate a proper UUID v4
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c == 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
+
+  /**
+   * Create a new chat session on the backend
+   * @param {string} userId - Optional user ID
+   * @param {string} title - Optional session title
+   * @returns {Promise<Object>} Session creation response
+   */
+  async createSession(userId = null, title = null) {
+    try {
+      const response = await this.apiClient.post('/sessions', {
+        user_id: userId,
+        title: title
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Get session information
+   * @param {string} sessionId - Session ID
+   * @returns {Promise<Object>} Session information
+   */
+  async getSessionInfo(sessionId) {
+    try {
+      const response = await this.apiClient.get(`/sessions/${sessionId}`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Get user sessions
+   * @param {string} userId - User ID
+   * @param {number} limit - Maximum number of sessions to retrieve
+   * @returns {Promise<Object>} User sessions list
+   */
+  async getUserSessions(userId, limit = 20) {
+    try {
+      const response = await this.apiClient.get(`/users/${userId}/sessions`, {
+        params: { limit }
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
   }
 
   /**
