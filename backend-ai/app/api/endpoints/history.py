@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from app.db.database import get_db
+from app.core.auth import get_current_user_id, verify_session_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -35,88 +36,100 @@ class ChatSession(BaseModel):
 class CreateSessionRequest(BaseModel):
     """Create session request"""
     title: Optional[str] = None
-    user_id: Optional[str] = None
+    # Note: user_id removed - will be extracted from JWT token
 
 @router.get("/sessions")
 async def list_chat_sessions(
-    user_id: Optional[str] = None,
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
     """
-    List chat sessions for a user
+    List chat sessions for authenticated user
     """
     try:
         from app.services.chat_service import chat_service
         
-        if user_id:
-            sessions = chat_service.get_user_sessions(db=db, user_id=user_id, limit=limit)
-            return {
-                "sessions": sessions,
-                "total": len(sessions),
-                "limit": limit,
-                "offset": offset
-            }
-        else:
-            # If no user_id provided, return empty for security
-            return {
-                "sessions": [],
-                "total": 0,
-                "limit": limit,
-                "offset": offset,
-                "message": "User ID required for session listing"
-            }
+        # ✅ Use authenticated user_id from JWT token
+        sessions = chat_service.get_user_sessions(
+            db=db, 
+            user_id=current_user_id,  # ✅ Secure: from JWT token
+            limit=limit
+        )
+        
+        return {
+            "sessions": sessions,
+            "total": len(sessions),
+            "user_id": current_user_id,
+            "limit": limit,
+            "offset": offset
+        }
         
     except Exception as e:
-        logger.error(f"Error listing chat sessions: {e}")
+        logger.error(f"Error listing sessions for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Listing error: {str(e)}")
 
 @router.post("/sessions")
-async def create_chat_session(request: CreateSessionRequest, db: Session = Depends(get_db)):
+async def create_chat_session(
+    request: CreateSessionRequest, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
-    Create a new chat session
+    Create a new chat session for authenticated user
     """
     try:
         from app.services.chat_service import chat_service
         
         session_id = chat_service.create_session(
             db=db, 
-            user_id=request.user_id, 
+            user_id=current_user_id,  # ✅ Use authenticated user_id from JWT
             title=request.title
         )
         
         return {
             "session_id": session_id,
             "title": request.title or "New Chat",
+            "user_id": current_user_id,
             "created_at": datetime.utcnow(),
             "message": "Session created successfully"
         }
         
     except Exception as e:
-        logger.error(f"Error creating chat session: {e}")
+        logger.error(f"Error creating session for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Creation error: {str(e)}")
 
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(
     session_id: str,
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db)
 ):
     """
-    Get messages for a specific session
+    Get messages for a specific session (user must own the session)
     """
     try:
         from app.services.chat_service import chat_service
         
-        # Verify session exists
+        # Verify session exists and belongs to user
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
+        # ✅ Security check: Verify session ownership
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
         # Get messages
-        messages = chat_service.get_chat_history(db=db, session_id=session_id, limit=limit)
+        messages = chat_service.get_chat_history(
+            db=db, 
+            session_id=session_id, 
+            user_id=current_user_id,  # ✅ Add user_id for verification
+            limit=limit
+        )
         
         return {
             "session_id": session_id,
@@ -129,7 +142,7 @@ async def get_session_messages(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting session messages: {e}")
+        logger.error(f"Error getting session messages for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
 
 @router.post("/sessions/{session_id}/messages")
@@ -179,12 +192,24 @@ async def update_session(
         raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
 
 @router.delete("/sessions/{session_id}")
-async def delete_session(session_id: str, db: Session = Depends(get_db)):
+async def delete_session(
+    session_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
-    Delete a chat session and all its messages
+    Delete a chat session and all its messages (user must own the session)
     """
     try:
         from app.services.chat_service import chat_service
+        
+        # ✅ Security check: Verify session ownership before deletion
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
         
         deleted = chat_service.delete_session(db=db, session_id=session_id)
         if not deleted:
@@ -198,13 +223,17 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting session: {e}")
+        logger.error(f"Error deleting session for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Deletion error: {str(e)}")
 
 @router.get("/sessions/{session_id}")
-async def get_session_details(session_id: str, db: Session = Depends(get_db)):
+async def get_session_details(
+    session_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
-    Get details of a specific chat session
+    Get details of a specific chat session (user must own the session)
     """
     try:
         from app.services.chat_service import chat_service
@@ -213,12 +242,16 @@ async def get_session_details(session_id: str, db: Session = Depends(get_db)):
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
+        # ✅ Security check: Verify session ownership
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
         return session_info
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting session details: {e}")
+        logger.error(f"Error getting session details for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
 
 @router.get("/sessions/{session_id}/export")

@@ -5,7 +5,7 @@ Chat service for managing chat sessions and messages
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from app.db.models import ChatSession, ChatMessage, User
+from app.db.models import ChatSession, ChatMessage
 from app.db.database import get_db
 import uuid
 import logging
@@ -18,32 +18,34 @@ class ChatService:
     def __init__(self):
         pass
     
-    def create_session(self, db: Session, user_id: Optional[str] = None, title: Optional[str] = None) -> str:
+    def create_session(self, db: Session, user_id: str, title: Optional[str] = None) -> str:
         """
         Create a new chat session
         
         Args:
             db: Database session
-            user_id: Optional user ID (can be None for anonymous sessions)
+            user_id: User ID (REQUIRED - extracted from JWT token)
             title: Optional session title
             
         Returns:
             Session ID
+            
+        Raises:
+            ValueError: If user_id is None
         """
         try:
-            session_id = str(uuid.uuid4())
+            if not user_id:
+                raise ValueError("user_id is required - extracted from JWT token")
             
-            # If no user_id provided, create anonymous session without user reference
-            if user_id:
-                # Verify user exists
-                user = db.query(User).filter(User.id == user_id).first()
-                if not user:
-                    logger.warning(f"User {user_id} not found, creating anonymous session")
-                    user_id = None
+            # Note: Don't verify user exists in AI backend database
+            # User ID comes from authenticated JWT token from main backend
+            # This allows main backend users to use AI chat without separate registration
+            
+            session_id = str(uuid.uuid4())
             
             session = ChatSession(
                 id=session_id,
-                user_id=user_id,
+                user_id=user_id,  # ✅ Always required now from JWT
                 title=title or "New Chat Session"
             )
             
@@ -51,7 +53,7 @@ class ChatService:
             db.commit()
             db.refresh(session)
             
-            logger.info(f"Created chat session {session_id}")
+            logger.info(f"Created chat session {session_id} for user {user_id}")
             return session_id
             
         except Exception as e:
@@ -60,31 +62,40 @@ class ChatService:
             raise e
     
     def get_or_create_session(self, db: Session, session_id: Optional[str] = None, 
-                             user_id: Optional[str] = None) -> str:
+                             user_id: str = None) -> str:
         """
         Get existing session or create a new one
         
         Args:
             db: Database session
             session_id: Optional existing session ID
-            user_id: Optional user ID
+            user_id: User ID (REQUIRED)
             
         Returns:
             Session ID
+            
+        Raises:
+            ValueError: If user_id is None
         """
+        if not user_id:
+            raise ValueError("user_id is required")
+            
         if session_id:
-            # Check if session exists
-            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            # Check if session exists and belongs to user
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id
+            ).first()
             if session:
                 return session_id
             else:
-                logger.warning(f"Session {session_id} not found, creating new session")
+                logger.warning(f"Session {session_id} not found for user {user_id}, creating new session")
         
         # Create new session
         return self.create_session(db, user_id)
     
     def add_message(self, db: Session, session_id: str, role: str, content: str, 
-                   metadata: Optional[Dict[str, Any]] = None) -> str:
+                   user_id: str, metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Add a message to a chat session
         
@@ -93,16 +104,23 @@ class ChatService:
             session_id: Chat session ID
             role: Message role ('user' or 'assistant')
             content: Message content
+            user_id: User ID (for ownership verification)
             metadata: Optional metadata (sources, confidence, etc.)
             
         Returns:
             Message ID
+            
+        Raises:
+            ValueError: If session doesn't exist or doesn't belong to user
         """
         try:
-            # Verify session exists
-            session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            # Verify session exists and belongs to user
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id
+            ).first()
             if not session:
-                raise ValueError(f"Session {session_id} not found")
+                raise ValueError(f"Session {session_id} not found or not owned by user {user_id}")
             
             message_id = str(uuid.uuid4())
             message = ChatMessage(
@@ -125,7 +143,7 @@ class ChatService:
             db.rollback()
             raise e
     
-    def get_chat_history(self, db: Session, session_id: str, 
+    def get_chat_history(self, db: Session, session_id: str, user_id: str,
                         limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get chat history for a session
@@ -133,12 +151,24 @@ class ChatService:
         Args:
             db: Database session
             session_id: Chat session ID
+            user_id: User ID (for ownership verification)
             limit: Optional limit on number of messages to return
             
         Returns:
             List of messages with metadata
+            
+        Raises:
+            ValueError: If session doesn't exist or doesn't belong to user
         """
         try:
+            # Verify session exists and belongs to user
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id
+            ).first()
+            if not session:
+                raise ValueError(f"Session {session_id} not found or not owned by user {user_id}")
+                
             query = db.query(ChatMessage).filter(
                 ChatMessage.session_id == session_id
             ).order_by(ChatMessage.created_at)

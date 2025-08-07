@@ -6,6 +6,10 @@ Run this script to create database tables and initial setup
 import asyncio
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -50,19 +54,19 @@ async def main():
     
     try:
         from app.db.database import init_db
-        from app.db.models import Base, User, ChatSession, ChatMessage, Document, DocumentChunk
+        from app.db.models import Base, ChatSession, ChatMessage, Document, DocumentChunk
         
         # Initialize database tables
         await init_db()
         
         print("✅ Database initialization completed successfully!")
         print("\nCreated tables:")
-        print("- users")
         print("- chat_sessions") 
         print("- chat_messages")
         print("- documents")
         print("- document_chunks")
         print("- processing_jobs")
+        print("\n📝 Note: User data comes from main Spring Boot backend via JWT tokens")
         
         print("\n🎉 Your database is ready!")
         print("You can now run: python test_chat_history.py")

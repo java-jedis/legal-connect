@@ -20,7 +20,13 @@ except ImportError:
     pass
 
 # Database URL from environment
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./legal_connect.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError(
+        "DATABASE_URL environment variable is not set! "
+        "Please set it in your .env file or environment variables."
+    )
 
 # SQLAlchemy setup
 if DATABASE_URL.startswith("sqlite"):

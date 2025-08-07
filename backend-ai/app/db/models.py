@@ -10,20 +10,8 @@ import uuid
 
 Base = declarative_base()
 
-class User(Base):
-    """User model for authentication and chat history"""
-    __tablename__ = "users"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    username = Column(String(50), unique=True, nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    chat_sessions = relationship("ChatSession", back_populates="user")
+# Note: User data comes from main backend database
+# We don't replicate User model here - user_id comes from JWT tokens
 
 class Document(Base):
     """Document model for storing legal document metadata"""
@@ -67,13 +55,12 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("users.id"), nullable=True)  # Allow anonymous sessions
+    user_id = Column(String, nullable=False)  # ✅ Required - from JWT token (no FK to allow main backend users)
     title = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    user = relationship("User", back_populates="chat_sessions")
+    # Relationships - No user FK (user_id comes from main backend via JWT)
     messages = relationship("ChatMessage", back_populates="session")
 
 class ChatMessage(Base):

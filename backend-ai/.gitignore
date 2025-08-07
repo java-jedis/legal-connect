@@ -139,14 +139,11 @@ tmp/
 temp/
 .tmp/
 
-
+# self-ignore files
 bdcode_json/
 .env
 DEVELOPMENT.md
 IMPLEMENTATION_GUIDE.md
+JWT_AUTHENTICATION_FIX.md
 SESSION_MANAGEMENT_SOLUTION.md
-# preprocessing.log
-# start.sh
-# test_rag_simple.py
-# test_rag.py
-# validate_env.py
+SOLUTION_SUMMARY.md

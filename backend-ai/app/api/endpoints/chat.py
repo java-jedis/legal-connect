@@ -10,6 +10,7 @@ import logging
 
 from app.db.database import get_db
 from app.services.chat_service import chat_service
+from app.core.auth import get_current_user_id, verify_session_ownership
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,8 @@ class ChatRequest(BaseModel):
     """Chat request model"""
     message: str
     session_id: Optional[str] = None
-    user_id: Optional[str] = None
     context_limit: Optional[int] = 5
+    # Note: user_id removed - will be extracted from JWT token
 
 class ChatResponse(BaseModel):
     """Chat response model"""
@@ -63,8 +64,8 @@ class SearchResponse(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     """Session creation request model"""
-    user_id: Optional[str] = None
     title: Optional[str] = None
+    # Note: user_id removed - will be extracted from JWT token
 
 class SessionResponse(BaseModel):
     """Session response model"""
@@ -74,6 +75,7 @@ class SessionResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
     request: ChatRequest,
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
     db: Session = Depends(get_db),
     embedding_service = Depends(get_embedding_service),
     vectordb_service = Depends(get_vectordb_service),
@@ -81,27 +83,37 @@ async def chat_endpoint(
 ):
     """
     Main chat endpoint for RAG-based legal assistance
+    Requires authentication - user_id extracted from JWT token
     """
     try:
-        # Get or create chat session
+        # Get or create session
         session_id = chat_service.get_or_create_session(
-            db=db,
+            db=db, 
             session_id=request.session_id,
-            user_id=request.user_id
+            user_id=current_user_id  # ✅ Always pass user_id
         )
         
+        # Verify session ownership (security check)
+        if request.session_id:
+            session_info = chat_service.get_session_info(db=db, session_id=session_id)
+            if session_info and session_info.get("user_id"):
+                verify_session_ownership(session_info["user_id"], current_user_id)
+        
         # Save user message to database
-        chat_service.add_message(
+        # Store user message
+        user_message_id = chat_service.add_message(
             db=db,
             session_id=session_id,
             role="user",
-            content=request.message
+            content=request.message,
+            user_id=current_user_id  # ✅ Add user_id for verification
         )
         
         # Get chat history for context (limit to recent messages to avoid token overflow)
         chat_history = chat_service.get_chat_history(
             db=db,
             session_id=session_id,
+            user_id=current_user_id,  # ✅ Add user_id for verification
             limit=request.context_limit * 2  # Get more history for better context
         )
         
@@ -137,6 +149,7 @@ async def chat_endpoint(
             session_id=session_id,
             role="assistant",
             content=llm_response["response"],
+            user_id=current_user_id,  # ✅ Add user_id for verification
             metadata={
                 "sources": llm_response["metadata"]["sources"],
                 "model_metadata": llm_response["metadata"]
@@ -185,18 +198,27 @@ async def search_endpoint(
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
 
 @router.get("/sessions/{session_id}/history")
-async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
+async def get_chat_history(
+    session_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
     Get chat history for a session
+    Only the session owner can access the history
     """
     try:
-        # Get session info to verify it exists
+        # Get session info to verify it exists and ownership
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
+        # ✅ Security check: Verify session ownership
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
         # Get chat history
-        messages = chat_service.get_chat_history(db=db, session_id=session_id)
+        messages = chat_service.get_chat_history(db=db, session_id=session_id, user_id=current_user_id)
         
         return {
             "session_id": session_id,
@@ -208,15 +230,28 @@ async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting chat history: {e}")
+        logger.error(f"Error getting chat history for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving history: {str(e)}")
 
 @router.delete("/sessions/{session_id}")
-async def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
+async def delete_chat_session(
+    session_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
     Delete a chat session and its history
+    Only the session owner can delete the session
     """
     try:
+        # ✅ Security check: Verify session ownership before deletion
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
         # Attempt to delete the session
         deleted = chat_service.delete_session(db=db, session_id=session_id)
         
@@ -231,7 +266,7 @@ async def delete_chat_session(session_id: str, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error deleting session: {e}")
+        logger.error(f"Error deleting session for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
 
 @router.get("/health")
@@ -244,27 +279,47 @@ async def chat_health_check():
     }
 
 @router.get("/users/{user_id}/sessions")
-async def get_user_sessions(user_id: str, limit: int = 20, db: Session = Depends(get_db)):
+async def get_user_sessions(
+    user_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    limit: int = 20, 
+    db: Session = Depends(get_db)
+):
     """
     Get all chat sessions for a user
+    Users can only access their own sessions
     """
     try:
-        sessions = chat_service.get_user_sessions(db=db, user_id=user_id, limit=limit)
+        # ✅ Security check: Users can only access their own sessions
+        if user_id != current_user_id:
+            raise HTTPException(
+                status_code=403, 
+                detail="Access denied: You can only access your own sessions"
+            )
+        
+        sessions = chat_service.get_user_sessions(db=db, user_id=current_user_id, limit=limit)
         
         return {
-            "user_id": user_id,
+            "user_id": current_user_id,
             "sessions": sessions,
             "total_sessions": len(sessions)
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting user sessions: {e}")
+        logger.error(f"Error getting user sessions for {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving user sessions: {str(e)}")
 
 @router.get("/sessions/{session_id}")
-async def get_session_info(session_id: str, db: Session = Depends(get_db)):
+async def get_session_info(
+    session_id: str, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    db: Session = Depends(get_db)
+):
     """
     Get information about a specific chat session
+    Only the session owner can access the information
     """
     try:
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
@@ -272,26 +327,31 @@ async def get_session_info(session_id: str, db: Session = Depends(get_db)):
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
+        # ✅ Security check: Verify session ownership
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
         return session_info
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting session info: {e}")
+        logger.error(f"Error getting session info for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving session info: {str(e)}")
 
 @router.post("/sessions", response_model=SessionResponse)
 async def create_chat_session(
     request: SessionCreateRequest, 
+    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
     db: Session = Depends(get_db)
 ):
     """
-    Create a new chat session
+    Create a new chat session for the authenticated user
     """
     try:
         session_id = chat_service.create_session(
             db=db, 
-            user_id=request.user_id, 
+            user_id=current_user_id,  # ✅ Use authenticated user ID
             title=request.title
         )
         
@@ -301,5 +361,5 @@ async def create_chat_session(
         )
         
     except Exception as e:
-        logger.error(f"Error creating session: {e}")
+        logger.error(f"Error creating session for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating session: {str(e)}")

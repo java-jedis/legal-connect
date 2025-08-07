@@ -4,7 +4,10 @@ Application configuration and settings
 
 import os
 from typing import List
-from pydantic import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     """Application settings from environment variables"""
@@ -15,7 +18,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # Database
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://username:password@localhost:5432/legal_connect_db")
+    database_url: str = os.getenv("DATABASE_URL", "")
     
     # Vector Database
     qdrant_url: str = os.getenv("QDRANT_URL", "")
@@ -30,12 +33,12 @@ class Settings(BaseSettings):
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "models/embedding-001")
     
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     
     # JWT
-    jwt_secret_key: str = "your_secret_key_here"
-    jwt_algorithm: str = "HS256"
-    jwt_access_token_expire_minutes: int = 30
+    jwt_secret_key: str = os.getenv("JWT_SECRET_KEY", "")
+    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
+    jwt_access_token_expire_minutes: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
     # CORS
     cors_origins: List[str] = ["http://localhost:5173", "http://api.legalconnect.live"]
@@ -50,9 +53,11 @@ class Settings(BaseSettings):
     # File paths
     json_documents_path: str = "bdcode_json"
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore"  # ✅ Allow extra environment variables
+    }
 
 # Global settings instance
 settings = Settings()
