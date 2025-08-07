@@ -1,0 +1,13 @@
+node_modules/
+*.pyc
+__pycache__/
+venv/
+.venv/
+env/
+.mypy_cache/
+/application.yml
+application.yml
+
+# IDE directories
+.idea/
+.vscode/
