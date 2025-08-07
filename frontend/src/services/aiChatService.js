@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { v4 as uuidv4 } from 'uuid'
 import { API_CONFIG } from '../config/api'
 
 // AI Chat service for communicating with the RAG backend
@@ -16,9 +17,11 @@ class AIChatService {
     // Add request interceptor for authentication if needed
     this.apiClient.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('auth_token')
+        const token = localStorage.getItem('auth_token') // ✅ Correct key used by auth store
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
+        } else {
+          console.warn('⚠️ No JWT token found for AI chat request. Please log in first.')
         }
         return config
       },
@@ -29,7 +32,12 @@ class AIChatService {
     this.apiClient.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.error('AI Chat API Error:', error)
+        // Handle authentication errors specifically
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.error('🔒 AI Chat authentication failed. Please log in to use AI chat features.')
+        } else {
+          console.error('🚨 AI Chat API Error:', error.response?.status, error.response?.statusText)
+        }
         return Promise.reject(error)
       }
     )
@@ -120,15 +128,11 @@ class AIChatService {
 
   /**
    * Generate a unique session ID (UUID format)
-   * @returns {string} Unique session ID in UUID format
+   * @returns {string} Unique session ID in UUID v4 format
    */
   generateSessionId() {
-    // Generate a proper UUID v4
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c == 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
+    // Generate a proper UUID v4 using uuid library
+    return uuidv4()
   }
 
   /**
