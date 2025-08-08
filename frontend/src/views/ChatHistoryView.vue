@@ -416,86 +416,78 @@ const refreshHistory = async () => {
 }
 
 const loadChatHistory = async () => {
-  // For now, we'll create mock sessions since the backend doesn't store session history yet
-  // In a real implementation, this would call aiChatService.getChatHistory()
-  
-  // Try to get sessions from localStorage first
-  const storedSessions = localStorage.getItem('ai_chat_sessions')
-  if (storedSessions) {
-    chatSessions.value = JSON.parse(storedSessions)
-  } else {
-    // Generate sample data for demonstration
-    chatSessions.value = generateSampleSessions()
+  try {
+    // Try to load from backend first if user is authenticated
+    if (authStore.userInfo?.id) {
+      try {
+        const response = await aiChatService.getUserSessions(authStore.userInfo.id, 50)
+        if (response.sessions && response.sessions.length > 0) {
+          chatSessions.value = response.sessions.map(session => ({
+            id: session.id,
+            messages: [], // Messages will be loaded when session is selected
+            createdAt: new Date(session.created_at),
+            lastActivity: new Date(session.updated_at),
+            messageCount: session.message_count || 0,
+            title: session.title || 'New Chat Session',
+            isFromBackend: true,
+            // Try to get preview from session data if available
+            preview: session.preview || null
+          }))
+          
+          // Load preview messages for better display
+          await loadSessionPreviews()
+          return
+        }
+      } catch (error) {
+        console.warn('Failed to load sessions from backend, falling back to localStorage:', error)
+      }
+    }
+    
+    // Fallback to localStorage
+    const storedSessions = localStorage.getItem('ai_chat_sessions')
+    if (storedSessions) {
+      chatSessions.value = JSON.parse(storedSessions)
+    } else {
+      chatSessions.value = []
+    }
+  } catch (error) {
+    console.error('Error loading chat history:', error)
+    errorMessage.value = 'Failed to load chat history. Please try again.'
   }
 }
 
-const generateSampleSessions = () => {
-  const sampleSessions = []
-  const sampleQueries = [
-    "What are the marriage laws in Bangladesh?",
-    "Tell me about property rights",
-    "What is the legal age for employment?",
-    "How do I file a legal complaint?",
-    "What are the inheritance laws?",
-    "Labor law protections for workers",
-    "Consumer rights in Bangladesh",
-    "Legal procedures for business registration"
-  ]
+const loadSessionPreviews = async () => {
+  // Load preview messages for backend sessions to show better titles and summaries
+  const backendSessions = chatSessions.value.filter(session => session.isFromBackend && session.messageCount > 0)
   
-  const sampleResponses = [
-    "According to Bangladesh law, the legal marriage age is 18 for women and 21 for men...",
-    "Property rights in Bangladesh are governed by several acts including the Transfer of Property Act...",
-    "The minimum employment age in Bangladesh is 14 years for light work and 18 for hazardous work...",
-    "To file a legal complaint, you need to approach the appropriate court or tribunal...",
-    "Inheritance laws in Bangladesh are governed by personal laws based on religion...",
-    "The Labor Act of 2006 provides comprehensive protections for workers...",
-    "The Consumer Rights Protection Act of 2009 provides various protections...",
-    "Business registration in Bangladesh requires several steps and documents..."
-  ]
-  
-  for (let i = 0; i < 5; i++) {
-    const queryIndex = Math.floor(Math.random() * sampleQueries.length)
-    const responseIndex = Math.floor(Math.random() * sampleResponses.length)
-    const sessionDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) // Random date within last 30 days
-    
-    const session = {
-      id: `session_${Date.now()}_${i}`,
-      createdAt: sessionDate,
-      lastActivity: new Date(sessionDate.getTime() + Math.random() * 60 * 60 * 1000), // Random time after creation
-      messageCount: 4,
-      messages: [
-        {
-          type: 'user',
-          content: sampleQueries[queryIndex],
-          timestamp: sessionDate
-        },
-        {
-          type: 'ai',
-          content: sampleResponses[responseIndex],
-          timestamp: new Date(sessionDate.getTime() + 30000)
-        },
-        {
-          type: 'user',
-          content: "Can you provide more details?",
-          timestamp: new Date(sessionDate.getTime() + 120000)
-        },
-        {
-          type: 'ai',
-          content: "Certainly! Let me provide additional details about this topic...",
-          timestamp: new Date(sessionDate.getTime() + 150000)
-        }
-      ]
+  for (const session of backendSessions.slice(0, 5)) { // Only load for first 5 sessions to avoid too many requests
+    try {
+      const historyResponse = await aiChatService.getChatHistory(session.id)
+      const backendMessages = historyResponse.messages || []
+      
+      if (backendMessages.length > 0) {
+        // Load a few messages for preview
+        session.messages = backendMessages.slice(0, 3).map(msg => ({
+          type: msg.role === 'user' ? 'user' : 'ai',
+          content: msg.content,
+          timestamp: new Date(msg.created_at)
+        }))
+      }
+    } catch (error) {
+      console.warn(`Failed to load preview for session ${session.id}:`, error)
     }
-    
-    sampleSessions.push(session)
   }
-  
-  return sampleSessions
 }
 
 const clearAllHistory = async () => {
   if (confirm('Are you sure you want to clear all chat history? This action cannot be undone.')) {
     try {
+      // Try to clear from backend if user is authenticated
+      if (authStore.userInfo?.id) {
+        // Note: This would need a backend API to clear all user sessions
+        // For now, we'll just clear the local storage
+      }
+      
       chatSessions.value = []
       localStorage.removeItem('ai_chat_sessions')
     } catch (error) {
@@ -505,7 +497,24 @@ const clearAllHistory = async () => {
   }
 }
 
-const viewSession = (session) => {
+const viewSession = async (session) => {
+  // If session is from backend and doesn't have messages loaded, load them
+  if (session.isFromBackend && (!session.messages || session.messages.length === 0)) {
+    try {
+      const historyResponse = await aiChatService.getChatHistory(session.id)
+      const backendMessages = historyResponse.messages || []
+      session.messages = backendMessages.map(msg => ({
+        type: msg.role === 'user' ? 'user' : 'ai',
+        content: msg.content,
+        timestamp: new Date(msg.created_at)
+      }))
+    } catch (error) {
+      console.error('Error loading session messages:', error)
+      errorMessage.value = 'Failed to load session details.'
+      return
+    }
+  }
+  
   selectedSession.value = session
 }
 
@@ -514,16 +523,21 @@ const closeSessionDetail = () => {
 }
 
 const continueSession = (session) => {
-  // Store the session ID and navigate to AI chat
-  localStorage.setItem('continue_session_id', session.id)
-  router.push('/ai-chat')
+  // Navigate directly to the AI chat with session ID
+  router.push(`/ai-chat/${session.id}`)
 }
 
 const deleteSession = async (session) => {
   if (confirm('Are you sure you want to delete this chat session?')) {
     try {
+      // Try to delete from backend if it's a backend session
+      if (session.isFromBackend || (authStore.userInfo?.id && session.id.includes('-'))) {
+        await aiChatService.deleteSession(session.id)
+      }
+      
+      // Remove from local state and localStorage
       chatSessions.value = chatSessions.value.filter(s => s.id !== session.id)
-      localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value))
+      localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value.filter(s => !s.isFromBackend)))
       
       // If this was the selected session, close the modal
       if (selectedSession.value?.id === session.id) {
@@ -537,21 +551,51 @@ const deleteSession = async (session) => {
 }
 
 const getSessionTitle = (session) => {
+  // If session has a custom title, use it
+  if (session.title && session.title !== 'New Chat Session') {
+    return session.title
+  }
+  
+  // Show first user message as title (like ChatGPT)
   if (session.messages && session.messages.length > 0) {
     const firstUserMessage = session.messages.find(msg => msg.type === 'user')
     if (firstUserMessage) {
-      return truncateText(firstUserMessage.content, 50)
+      return truncateText(firstUserMessage.content, 60)
     }
   }
+  
+  // For backend sessions without loaded messages, try to create a meaningful title
+  if (session.isFromBackend) {
+    return `Chat Session`
+  }
+  
+  // For UUID format, show a shorter identifier
+  if (session.id.includes('-')) {
+    return `Chat ${session.id.split('-')[0]}`
+  }
+  
+  // For old format sessions
   return `Chat Session ${session.id.split('_').pop()}`
 }
 
 const getSessionSummary = (session) => {
   if (session.messages && session.messages.length > 0) {
+    // Show the AI's response or the conversation flow
+    const lastAIMessage = session.messages.slice().reverse().find(msg => msg.type === 'ai')
+    if (lastAIMessage) {
+      return truncateText(lastAIMessage.content, 100)
+    }
+    // Fallback to last message
     const lastMessage = session.messages[session.messages.length - 1]
-    return truncateText(lastMessage.content, 80)
+    return truncateText(lastMessage.content, 100)
   }
-  return 'No messages in this session'
+  
+  // For backend sessions without loaded messages
+  if (session.isFromBackend) {
+    return `${session.messageCount || 0} messages`
+  }
+  
+  return 'Empty conversation'
 }
 
 const truncateText = (text, maxLength) => {
@@ -563,13 +607,33 @@ const formatDate = (date) => {
   const d = new Date(date)
   const now = new Date()
   const diffTime = Math.abs(now - d)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffMinutes = Math.floor(diffTime / (1000 * 60))
   
-  if (diffDays === 1) return 'Today'
-  if (diffDays === 2) return 'Yesterday'
-  if (diffDays <= 7) return `${diffDays - 1} days ago`
+  // Same day
+  if (diffDays === 0) {
+    if (diffHours === 0) {
+      if (diffMinutes === 0) return 'Just now'
+      return `${diffMinutes}m ago`
+    }
+    return `${diffHours}h ago`
+  }
   
-  return d.toLocaleDateString()
+  // Yesterday
+  if (diffDays === 1) return 'Yesterday'
+  
+  // This week
+  if (diffDays <= 7) return `${diffDays}d ago`
+  
+  // This year
+  const isThisYear = d.getFullYear() === now.getFullYear()
+  if (isThisYear) {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+  
+  // Different year
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const formatDateTime = (date) => {
