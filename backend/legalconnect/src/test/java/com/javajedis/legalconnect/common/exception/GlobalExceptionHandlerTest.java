@@ -180,13 +180,13 @@ class GlobalExceptionHandlerTest {
         UserNotFoundException exception = new UserNotFoundException("User not found with ID: 123");
 
         // When
-        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleGenericException(exception);
+        ResponseEntity<ApiResponse<String>> response = exceptionHandler.handleUserNotFound(exception);
 
         // Then
         assertNotNull(response);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("An unexpected error occurred. Please try again later.", response.getBody().getError().getMessage());
+        assertEquals("User not found with ID: 123", response.getBody().getError().getMessage());
     }
 
     @Test

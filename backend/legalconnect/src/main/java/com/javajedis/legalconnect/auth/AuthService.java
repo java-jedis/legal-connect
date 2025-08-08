@@ -1,17 +1,7 @@
 package com.javajedis.legalconnect.auth;
 
-import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
-import com.javajedis.legalconnect.auth.dto.EmailVerifyDTO;
-import com.javajedis.legalconnect.auth.dto.ResetPasswordDTO;
-import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.EmailService;
-import com.javajedis.legalconnect.common.service.VerificationCodeService;
-import com.javajedis.legalconnect.common.utility.JWTUtil;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +10,20 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import com.javajedis.legalconnect.auth.dto.AuthResponseDTO;
+import com.javajedis.legalconnect.auth.dto.EmailVerifyDTO;
+import com.javajedis.legalconnect.auth.dto.ResetPasswordDTO;
+import com.javajedis.legalconnect.auth.dto.UserRegisterDTO;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.common.service.VerificationCodeService;
+import com.javajedis.legalconnect.common.utility.JWTUtil;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service for handling user authentication and registration operations.
@@ -37,6 +40,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final VerificationCodeService verificationCodeService;
+    private final NotificationPreferenceService notificationPreferenceService;
 
     /**
      * Registers a new user with the provided data and returns JWT token with user details.
@@ -58,6 +62,8 @@ public class AuthService {
 
         User savedUser = userRepo.save(user);
         log.info("User registered successfully: {}", savedUser.getEmail());
+
+        notificationPreferenceService.initializeDefaultPreferencesForUser(savedUser.getId());
 
         String token = jwtUtil.generateToken(savedUser);
 

@@ -1,5 +1,18 @@
 package com.javajedis.legalconnect.lawyerdirectory;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.javajedis.legalconnect.casemanagement.Case;
 import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.casemanagement.CaseStatus;
@@ -10,24 +23,18 @@ import com.javajedis.legalconnect.lawyer.LawyerRepo;
 import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
-import com.javajedis.legalconnect.lawyerdirectory.dto.*;
+import com.javajedis.legalconnect.lawyerdirectory.dto.CreateLawyerReviewDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.FindLawyersDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewListResponseDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
+import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -80,18 +87,19 @@ public class LawyerDirectoryService {
                         .build()
         ).toList();
 
+        Map<String, Object> appliedFilters = new HashMap<>();
+        appliedFilters.put("minExperience", dto.getMinExperience());
+        appliedFilters.put("maxExperience", dto.getMaxExperience());
+        if (dto.getPracticingCourt() != null) appliedFilters.put("practicingCourt", dto.getPracticingCourt());
+        if (dto.getDivision() != null) appliedFilters.put("division", dto.getDivision());
+        if (dto.getDistrict() != null) appliedFilters.put("district", dto.getDistrict());
+        if (dto.getSpecialization() != null) appliedFilters.put("specialization", dto.getSpecialization());
+
         Map<String, Object> metadata = buildPaginationMetadata(
                 rawResults,
                 sortDirection,
                 CREATED_AT_FIELD,
-                Map.of(
-                        "minExperience", dto.getMinExperience(),
-                        "maxExperience", dto.getMaxExperience(),
-                        "practicingCourt", dto.getPracticingCourt(),
-                        "division", dto.getDivision(),
-                        "district", dto.getDistrict(),
-                        "specialization", dto.getSpecialization()
-                )
+                appliedFilters
         );
 
         return ApiResponse.success(lawyerList, HttpStatus.OK, "Retrieved lawyers with the given filter", metadata);

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -32,6 +34,7 @@ import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.common.service.VerificationCodeService;
 import com.javajedis.legalconnect.common.utility.JWTUtil;
+import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
 import com.javajedis.legalconnect.user.Role;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
@@ -51,6 +54,8 @@ class AuthServiceTest {
     private EmailService emailService;
     @Mock
     private VerificationCodeService verificationCodeService;
+    @Mock
+    private NotificationPreferenceService notificationPreferenceService;
 
     @InjectMocks
     private AuthService authService;
@@ -91,6 +96,9 @@ class AuthServiceTest {
         assertNotNull(response.getBody());
         assertEquals("User Registered Successfully", response.getBody().getMessage());
         assertEquals("test_token", response.getBody().getData().getToken());
+
+        verify(notificationPreferenceService, times(1))
+                .initializeDefaultPreferencesForUser(user.getId());
     }
 
     @Test

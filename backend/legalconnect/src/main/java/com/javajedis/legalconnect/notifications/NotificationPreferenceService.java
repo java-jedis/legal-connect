@@ -1,5 +1,13 @@
 package com.javajedis.legalconnect.notifications;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.notifications.dto.NotificationPreferenceListResponseDTO;
@@ -7,15 +15,9 @@ import com.javajedis.legalconnect.notifications.dto.NotificationPreferenceRespon
 import com.javajedis.legalconnect.notifications.dto.UpdateNotificationPreferenceDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -144,5 +146,27 @@ public class NotificationPreferenceService {
                 preference.isEmailEnabled(),
                 preference.isWebPushEnabled()
         );
+    }
+
+    /**
+     * Initializes default notification preferences for the specified user.
+     * For each NotificationType, creates a preference with both email and web push enabled
+     * if it does not already exist.
+     *
+     */
+    public void initializeDefaultPreferencesForUser(UUID userId) {
+        for (NotificationType type : NotificationType.values()) {
+            Optional<NotificationPreference> existing = notificationPreferenceRepo
+                    .findByUserIdAndNotificationType(userId, type);
+            if (existing.isEmpty()) {
+                NotificationPreference preference = new NotificationPreference();
+                preference.setUserId(userId);
+                preference.setNotificationType(type);
+                preference.setEmailEnabled(true);
+                preference.setWebPushEnabled(true);
+                notificationPreferenceRepo.save(preference);
+            }
+        }
+        log.info("Initialized default notification preferences for user: {}", userId);
     }
 }

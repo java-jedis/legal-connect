@@ -1,18 +1,20 @@
 package com.javajedis.legalconnect.common.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.util.Map;
-import java.util.regex.Pattern;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -34,6 +36,7 @@ public class EmailService {
     /**
      * Send a simple text email (for OTP, notifications, etc.)
      */
+    @Async
     public void sendSimpleEmail(String to, String subject, String body) {
         if (to == null || to.isEmpty() || !EMAIL_PATTERN.matcher(to).matches()) {
             log.warn("Invalid email address: {}", to);
@@ -51,6 +54,7 @@ public class EmailService {
     /**
      * Send an email using a template (for OTP, notifications, etc.)
      */
+    @Async
     public void sendTemplateEmail(String to, String subject, String templateName, Map<String, Object> variables) {
         if (to == null || to.isEmpty() || !EMAIL_PATTERN.matcher(to).matches()) {
             log.warn("Invalid email address: {}", to);

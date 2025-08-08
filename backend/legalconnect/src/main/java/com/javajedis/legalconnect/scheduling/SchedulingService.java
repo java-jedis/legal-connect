@@ -120,6 +120,7 @@ public class SchedulingService {
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Created");
         templateVariables.put(CONTENT, content);
+        templateVariables.put("timestamp", savedSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
@@ -216,10 +217,10 @@ public class SchedulingService {
                 updatedSchedule.getEndTime(),
                 updatedSchedule.getCaseEntity().getTitle());
 
-        // Create template variables for both immediate and scheduled notifications
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Updated");
         templateVariables.put(CONTENT, content);
+        templateVariables.put("timestamp", updatedSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
@@ -234,10 +235,8 @@ public class SchedulingService {
             );
         }
 
-        // Delete existing scheduled notifications for this schedule
         jobSchedulerService.deleteAllJobsForTask(updatedSchedule.getId());
 
-        // Schedule new reminder notifications with updated time
         if (notificationPreferenceService.checkWebPushEnabled(client.getId(), NotificationType.SCHEDULE_REMINDER)) {
             jobSchedulerService.scheduleWebPushNotification(new WebPushJobDTO(updatedSchedule.getId(),
                     client.getId(), content,
@@ -294,7 +293,6 @@ public class SchedulingService {
             return validation.errorResponse();
         }
 
-        // Send notifications before deleting
         User client = existingSchedule.getCaseEntity().getClient();
         User lawyer = existingSchedule.getCaseEntity().getLawyer().getUser();
         User recipient = validation.user().getId().equals(client.getId()) ? lawyer : client;
@@ -308,10 +306,10 @@ public class SchedulingService {
                 existingSchedule.getDate(),
                 existingSchedule.getCaseEntity().getTitle());
 
-        // Create template variables for immediate notifications
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Cancelled");
         templateVariables.put(CONTENT, content);
+        templateVariables.put("timestamp", existingSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
@@ -326,7 +324,6 @@ public class SchedulingService {
             );
         }
 
-        // Delete all scheduled notifications for this schedule
         jobSchedulerService.deleteAllJobsForTask(existingSchedule.getId());
 
         deleteGoogleCalendarEvent(existingSchedule, validation.user());
