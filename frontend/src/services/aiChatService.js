@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { v4 as uuidv4 } from 'uuid'
 import { API_CONFIG } from '../config/api'
 
 // AI Chat service for communicating with the RAG backend
@@ -16,9 +17,11 @@ class AIChatService {
     // Add request interceptor for authentication if needed
     this.apiClient.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('auth_token')
+        const token = localStorage.getItem('auth_token') // ✅ Correct key used by auth store
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
+        } else {
+          console.warn('⚠️ No JWT token found for AI chat request. Please log in first.')
         }
         return config
       },
@@ -29,7 +32,12 @@ class AIChatService {
     this.apiClient.interceptors.response.use(
       (response) => response,
       (error) => {
-        console.error('AI Chat API Error:', error)
+        // Handle authentication errors specifically
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.error('🔒 AI Chat authentication failed. Please log in to use AI chat features.')
+        } else {
+          console.error('🚨 AI Chat API Error:', error.response?.status, error.response?.statusText)
+        }
         return Promise.reject(error)
       }
     )
@@ -119,11 +127,61 @@ class AIChatService {
   }
 
   /**
-   * Generate a unique session ID
-   * @returns {string} Unique session ID
+   * Generate a unique session ID (UUID format)
+   * @returns {string} Unique session ID in UUID v4 format
    */
   generateSessionId() {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    // Generate a proper UUID v4 using uuid library
+    return uuidv4()
+  }
+
+  /**
+   * Create a new chat session on the backend
+   * @param {string} userId - Optional user ID
+   * @param {string} title - Optional session title
+   * @returns {Promise<Object>} Session creation response
+   */
+  async createSession(userId = null, title = null) {
+    try {
+      const response = await this.apiClient.post('/sessions', {
+        user_id: userId,
+        title: title
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Get session information
+   * @param {string} sessionId - Session ID
+   * @returns {Promise<Object>} Session information
+   */
+  async getSessionInfo(sessionId) {
+    try {
+      const response = await this.apiClient.get(`/sessions/${sessionId}`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Get user sessions
+   * @param {string} userId - User ID
+   * @param {number} limit - Maximum number of sessions to retrieve
+   * @returns {Promise<Object>} User sessions list
+   */
+  async getUserSessions(userId, limit = 20) {
+    try {
+      const response = await this.apiClient.get(`/users/${userId}/sessions`, {
+        params: { limit }
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
   }
 
   /**

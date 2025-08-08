@@ -190,7 +190,16 @@ const handleSubmit = async () => {
     
   } catch (error) {
     console.error('Error creating case:', error)
-    submitError.value = error.response?.data?.message || 'Failed to create case. Please try again.'
+    const api = error?.response?.data
+    const backendMessage = api?.error?.message || api?.message || error?.message || 'Failed to create case. Please try again.'
+
+    // If backend indicates client not found, show it on the email field for clarity
+    if (error?.response?.status === 404 && typeof backendMessage === 'string' && backendMessage.toLowerCase().includes('client')) {
+      errors.clientEmail = backendMessage
+      submitError.value = ''
+    } else {
+      submitError.value = backendMessage
+    }
   } finally {
     loading.value = false
   }

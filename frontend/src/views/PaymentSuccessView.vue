@@ -309,11 +309,11 @@
 </template>
 
 <script setup>
+import jsPDF from "jspdf";
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { paymentAPI } from "../services/api";
 import { useAuthStore } from "../stores/auth";
-import jsPDF from "jspdf";
 
 const route = useRoute();
 const router = useRouter();
@@ -335,7 +335,8 @@ const completePayment = async () => {
 
   try {
     const response = await paymentAPI.completePayment(sessionId);
-    paymentData.value = response.data;
+    // Backend returns ApiResponse<T>; extract data safely
+    paymentData.value = response?.data?.data ?? response?.data ?? null;
   } catch (err) {
     console.error("Error completing payment:", err);
     error.value =
@@ -407,15 +408,51 @@ const retryPayment = () => {
   router.push("/my-meetings");
 };
 
+// Helpers to read CSS brand colors for consistent PDF styling
+const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const parseRgbTriplet = (value) => {
+  // Accepts formats like "34, 139, 34" or "rgb(34, 139, 34)" or hex like "#228B22"
+  if (!value) return null;
+  const rgbMatch = value.match(/(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/);
+  if (rgbMatch) return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+  const hexMatch = value.match(/^#([0-9a-fA-F]{6})$/);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    return [
+      parseInt(hex.substring(0, 2), 16),
+      parseInt(hex.substring(2, 4), 16),
+      parseInt(hex.substring(4, 6), 16),
+    ];
+  }
+  return null;
+};
+const getFirstAvailableCssRgb = (vars, fallback) => {
+  for (const v of vars) {
+    const raw = getCssVar(v);
+    const parsed = parseRgbTriplet(raw);
+    if (parsed) return parsed;
+  }
+  return fallback;
+};
+
 const downloadInvoice = () => {
   const authStore = useAuthStore();
   const doc = new jsPDF();
 
-  // Set up colors
-  const primaryColor = [34, 139, 34]; // Green
-  const secondaryColor = [70, 130, 180]; // Steel Blue
-  const textColor = [51, 51, 51]; // Dark Gray
-  const lightGray = [128, 128, 128];
+  // Brand-aligned colors pulled from CSS variables with sensible fallbacks
+  const primaryColor = getFirstAvailableCssRgb([
+    "--color-brand-rgb",
+    "--color-primary-rgb",
+  ], [34, 139, 34]);
+  const secondaryColor = getFirstAvailableCssRgb([
+    "--color-secondary-rgb",
+    "--color-accent-rgb",
+    "--color-primary-rgb",
+  ], [70, 130, 180]);
+  const textColor = getFirstAvailableCssRgb([
+    "--color-text-rgb",
+  ], [51, 51, 51]);
+  const lightGray = [160, 160, 160];
 
   // Header Section
   doc.setFillColor(...primaryColor);
@@ -461,7 +498,6 @@ const downloadInvoice = () => {
 
   doc.text(`Name: ${payerName}`, 20, 80);
   doc.text(`Email: ${payerEmail}`, 20, 87);
-  doc.text(`User ID: ${paymentData.value.payerId}`, 20, 94);
 
   // Payee Information Section
   doc.setFontSize(14);
@@ -475,13 +511,18 @@ const downloadInvoice = () => {
 
   doc.text(`Name: ${getLawyerName()}`, 20, 125);
   doc.text(`Email: ${paymentData.value.payeeEmail}`, 20, 132);
-  doc.text(`Lawyer ID: ${paymentData.value.payeeId}`, 20, 139);
 
   // Payment Details Table
   const tableStartY = 160;
 
   // Table Header
-  doc.setFillColor(240, 240, 240);
+  // Use subtle brand tint for header background
+  const headerTint = [
+    Math.min(primaryColor[0] + 200, 255),
+    Math.min(primaryColor[1] + 200, 255),
+    Math.min(primaryColor[2] + 200, 255),
+  ];
+  doc.setFillColor(...headerTint);
   doc.rect(20, tableStartY, 170, 10, "F");
 
   doc.setFontSize(12);

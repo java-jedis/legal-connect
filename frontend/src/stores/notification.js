@@ -99,10 +99,18 @@ export const useNotificationStore = defineStore("notification", () => {
         // Only use cached connection status if it's recent (within last 5 minutes)
         const isRecent =
           status.timestamp && Date.now() - status.timestamp < 5 * 60 * 1000;
-        console.log('NotificationStore: Loading cached connection status:', status, 'isRecent:', isRecent);
+        console.log(
+          "NotificationStore: Loading cached connection status:",
+          status,
+          "isRecent:",
+          isRecent
+        );
         if (isRecent) {
           isConnected.value = status.isConnected;
-          console.log('NotificationStore: Set isConnected from cache to:', status.isConnected);
+          console.log(
+            "NotificationStore: Set isConnected from cache to:",
+            status.isConnected
+          );
         }
       }
     } catch (err) {
@@ -129,7 +137,10 @@ export const useNotificationStore = defineStore("notification", () => {
     try {
       websocketManager.setEventCallbacks({
         onConnectionChange: (connected) => {
-          console.log('NotificationStore: Connection status changed to:', connected);
+          console.log(
+            "NotificationStore: Connection status changed to:",
+            connected
+          );
           isConnected.value = connected;
           if (connected) {
             error.value = null;
@@ -214,6 +225,28 @@ export const useNotificationStore = defineStore("notification", () => {
           "Successfully connected to notification service"
         ) {
           return;
+        }
+
+        // Normalize createdAt to a valid ISO timestamp
+        try {
+          let rawTs = notification.createdAt;
+          if (rawTs === null || rawTs === undefined || rawTs === "") {
+            notification.createdAt = new Date().toISOString();
+          } else if (typeof rawTs === "number") {
+            // If seconds precision, convert to ms
+            const ms = rawTs < 1e12 ? rawTs * 1000 : rawTs;
+            const d = new Date(ms);
+            notification.createdAt = isNaN(d.getTime())
+              ? new Date().toISOString()
+              : d.toISOString();
+          } else if (typeof rawTs === "string") {
+            const d = new Date(rawTs);
+            notification.createdAt = isNaN(d.getTime())
+              ? new Date().toISOString()
+              : d.toISOString();
+          }
+        } catch {
+          notification.createdAt = new Date().toISOString();
         }
 
         // Add notification to the beginning of the list
