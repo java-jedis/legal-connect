@@ -103,6 +103,16 @@
           <span>End time must be after start time</span>
         </div>
 
+        <!-- Server Error Banner -->
+        <div v-if="submitError" class="error-alert">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span>{{ submitError }}</span>
+        </div>
+
         <div class="form-actions">
           <button type="button" @click="closeModal" class="btn btn-outline">
             Cancel
@@ -130,6 +140,7 @@ const emit = defineEmits(['close', 'meeting-scheduled'])
 // State
 const isSubmitting = ref(false)
 const formErrors = reactive({})
+const submitError = ref('')
 
 // Form data
 const meetingForm = reactive({
@@ -211,6 +222,7 @@ const submitMeeting = async () => {
   }
 
   isSubmitting.value = true
+  submitError.value = ''
 
   try {
     // Convert to ISO format for API
@@ -225,19 +237,20 @@ const submitMeeting = async () => {
     emit('meeting-scheduled')
   } catch (err) {
     console.error('Error scheduling meeting:', err)
-    
-    if (err.response?.data?.error?.message) {
-      // Handle specific API errors
-      const errorMessage = err.response.data.error.message
-      if (errorMessage.includes('email')) {
-        formErrors.email = errorMessage
-      } else if (errorMessage.includes('time')) {
-        formErrors.startDateTime = errorMessage
-      } else {
-        alert(`Error: ${errorMessage}`)
-      }
+    const api = err?.response?.data
+    const backendMessage = api?.error?.message || api?.message || err?.message || 'Failed to schedule meeting. Please try again.'
+
+    // Map backend errors to inline field errors first
+    const status = err?.response?.status
+    const lowerMsg = (backendMessage || '').toLowerCase()
+    if (status === 404 && lowerMsg.includes('client')) {
+      formErrors.email = backendMessage
+    } else if (lowerMsg.includes('email')) {
+      formErrors.email = backendMessage
+    } else if (lowerMsg.includes('time')) {
+      formErrors.startDateTime = backendMessage
     } else {
-      alert('An error occurred while scheduling the meeting. Please try again.')
+      submitError.value = backendMessage
     }
   } finally {
     isSubmitting.value = false
@@ -423,5 +436,24 @@ label {
   .form-actions {
     flex-direction: column;
   }
+}
+
+.error-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.error-alert svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 </style>

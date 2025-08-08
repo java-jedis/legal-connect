@@ -157,7 +157,7 @@
             "
           >
             <div class="notification-content">
-              <p class="notification-text">{{ notification.content }}</p>
+              <p class="notification-text">{{ formatNotificationContent(notification.content) }}</p>
               <time
                 class="notification-time"
                 :datetime="notification.createdAt"
@@ -298,6 +298,56 @@ const errorMessage = computed(() => {
   }
 });
 
+// Format ISO-like date/time strings in notification content into human-readable text
+const formatNotificationContent = (content) => {
+  if (!content || typeof content !== "string") return content;
+
+  // Collect date-only occurrences to decide if we can show time-only for matching datetimes
+  const dateOnlyRegex = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
+  const dateSet = new Set();
+  let m;
+  while ((m = dateOnlyRegex.exec(content)) !== null) {
+    dateSet.add(`${m[1]}-${m[2]}-${m[3]}`);
+  }
+
+  const dateFormatter = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+  const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const timeFormatter = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  // Replace ISO datetime with Z (UTC), e.g., 2025-08-09T03:00Z or with seconds
+  const isoDateTimeRegex = /\b(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}(?::\d{2})?)Z\b/g;
+  let result = content.replace(isoDateTimeRegex, (match, datePart) => {
+    const d = new Date(match); // parse as UTC -> local
+    if (isNaN(d)) return match;
+    return dateSet.has(datePart) ? timeFormatter.format(d) : dateTimeFormatter.format(d);
+  });
+
+  // Replace date-only (treat as local date to avoid TZ off-by-one)
+  result = result.replace(dateOnlyRegex, (full, y, mo, d) => {
+    const year = parseInt(y, 10);
+    const month = parseInt(mo, 10) - 1;
+    const day = parseInt(d, 10);
+    const localDate = new Date(year, month, day);
+    if (isNaN(localDate)) return full;
+    return dateFormatter.format(localDate);
+  });
+
+  return result;
+};
+
 // Methods
 const toggleDropdown = async () => {
   isOpen.value = !isOpen.value;
@@ -381,42 +431,14 @@ const retryFetch = async () => {
   }
 };
 
-const reconnectWebSocket = async () => {
-  try {
-    // Set local reconnecting state
-    reconnectionStatus.value.reconnecting = true;
-    reconnectionStatus.value.error = null;
-
-    // Use the manual reconnect method from the notification store
-    const success = await notificationStore.manualReconnect();
-
-    if (success) {
-      // Refresh data after successful reconnection
-      await notificationStore.fetchUnreadCount();
-
-      // If dropdown is open, also refresh notifications
-      if (isOpen.value) {
-        await notificationStore.fetchNotifications(0, 10, false);
-      }
-      
-      // Reset reconnection status on success
-      reconnectionStatus.value.maxAttemptsReached = false;
-    }
-  } catch (error) {
-    console.error("Failed to reconnect WebSocket:", error);
-
-    // Update local reconnection status with error
-    reconnectionStatus.value.error = error.message;
-  } finally {
-    // Always reset reconnecting state
-    reconnectionStatus.value.reconnecting = false;
-  }
-};
-
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
   const now = new Date();
-  const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+  if (isNaN(date.getTime())) return "Just now";
+  let diffMs = now - date;
+  // Treat slight future timestamps (<= 1 minute ahead) as "Just now"
+  if (diffMs < 0 && Math.abs(diffMs) <= 60 * 1000) return "Just now";
+  const diffInMinutes = Math.floor(diffMs / (1000 * 60));
 
   if (diffInMinutes < 1) {
     return "Just now";

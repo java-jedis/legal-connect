@@ -89,104 +89,96 @@
       </div>
     </div>
 
-    <!-- Add/Edit Slot Modal -->
-    <div v-if="showAddModal || showEditModal" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>{{ showEditModal ? 'Edit' : 'Add' }} Availability Slot</h3>
-          <button @click="closeModal" class="modal-close">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+    <!-- Inline Add/Edit Slot Editor (in-place) -->
+    <div
+      v-if="showAddModal || showEditModal"
+      ref="inlineFormRef"
+      class="inline-editor"
+    >
+      <div class="inline-editor-header">
+        <h3>{{ showEditModal ? 'Edit' : 'Add' }} Availability Slot</h3>
+        <button @click="closeModal" class="btn-icon" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <form @submit.prevent="submitSlot" class="slot-form inline">
+        <div class="form-group">
+          <label for="day">Day of Week *</label>
+          <select
+            id="day"
+            v-model="slotForm.day"
+            class="form-select"
+            :class="{ 'error': formErrors.day }"
+            required
+          >
+            <option value="">Select a day</option>
+            <option v-for="day in daysOfWeek" :key="day.value" :value="day.value">
+              {{ day.label }}
+            </option>
+          </select>
+          <span v-if="formErrors.day" class="error-message">{{ formErrors.day }}</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="startTime">Start Time *</label>
+            <input
+              id="startTime"
+              v-model="slotForm.startTime"
+              type="time"
+              class="form-input"
+              :class="{ 'error': formErrors.startTime }"
+              placeholder="HH:MM"
+            />
+            <span v-if="formErrors.startTime" class="error-message">{{ formErrors.startTime }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="endTime">End Time *</label>
+            <input
+              id="endTime"
+              v-model="slotForm.endTime"
+              type="time"
+              class="form-input"
+              :class="{ 'error': formErrors.endTime }"
+              placeholder="HH:MM"
+            />
+            <span v-if="formErrors.endTime" class="error-message">{{ formErrors.endTime }}</span>
+          </div>
+        </div>
+
+        <div v-if="timeConflict" class="time-conflict-warning">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>End time must be after start time</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" @click="closeModal" class="btn btn-outline">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="isSubmitting || timeConflict"
+          >
+            <span v-if="isSubmitting" class="loading-spinner"></span>
+            {{ isSubmitting ? (showEditModal ? 'Updating...' : 'Creating...') : (showEditModal ? 'Update Slot' : 'Create Slot') }}
           </button>
         </div>
-        
-        <form @submit.prevent="submitSlot" class="slot-form">
-          <div class="form-group">
-            <label for="day">Day of Week *</label>
-            <select
-              id="day"
-              v-model="slotForm.day"
-              class="form-select"
-              :class="{ 'error': formErrors.day }"
-              required
-            >
-              <option value="">Select a day</option>
-              <option v-for="day in daysOfWeek" :key="day.value" :value="day.value">
-                {{ day.label }}
-              </option>
-            </select>
-            <span v-if="formErrors.day" class="error-message">{{ formErrors.day }}</span>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="startTime">Start Time *</label>
-              <div class="time-picker-group">
-                <select v-model="startHour" class="time-select">
-                  <option v-for="h in 12" :key="h" :value="h">{{ h }}</option>
-                </select>
-                :
-                <select v-model="startMinute" class="time-select">
-                  <option v-for="m in minuteOptions" :key="m" :value="m">{{ m.toString().padStart(2, '0') }}</option>
-                </select>
-                <select v-model="startPeriod" class="time-select">
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              </div>
-              <span v-if="formErrors.startTime" class="error-message">{{ formErrors.startTime }}</span>
-            </div>
-
-            <div class="form-group">
-              <label for="endTime">End Time *</label>
-              <div class="time-picker-group">
-                <select v-model="endHour" class="time-select">
-                  <option v-for="h in 12" :key="h" :value="h">{{ h }}</option>
-                </select>
-                :
-                <select v-model="endMinute" class="time-select">
-                  <option v-for="m in minuteOptions" :key="m" :value="m">{{ m.toString().padStart(2, '0') }}</option>
-                </select>
-                <select v-model="endPeriod" class="time-select">
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              </div>
-              <span v-if="formErrors.endTime" class="error-message">{{ formErrors.endTime }}</span>
-            </div>
-          </div>
-
-          <div v-if="timeConflict" class="time-conflict-warning">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-              <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>End time must be after start time</span>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" @click="closeModal" class="btn btn-outline">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              :disabled="isSubmitting || timeConflict"
-            >
-              <span v-if="isSubmitting" class="loading-spinner"></span>
-              {{ isSubmitting ? (showEditModal ? 'Updating...' : 'Creating...') : (showEditModal ? 'Update Slot' : 'Create Slot') }}
-            </button>
-          </div>
-        </form>
-      </div>
+      </form>
     </div>
-
+    
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
-      <div class="modal-content delete-modal" @click.stop>
+      <div class="modal-content delete-modal" ref="deleteModalRef" @click.stop>
         <div class="modal-header">
           <h3>Delete Availability Slot</h3>
           <button @click="closeDeleteModal" class="modal-close">
@@ -225,7 +217,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { lawyerAPI } from '../services/api'
 
 // State
@@ -240,6 +232,8 @@ const isDeleting = ref(false)
 const slotToDelete = ref(null)
 const slotToEdit = ref(null)
 const formErrors = reactive({})
+const inlineFormRef = ref(null)
+const deleteModalRef = ref(null)
 
 // Form data
 const slotForm = reactive({
@@ -259,60 +253,6 @@ const daysOfWeek = [
   { value: 'FRI', label: 'Friday' }
 ]
 
-// Time picker state
-const minuteOptions = [0, 15, 30, 45]
-const startHour = ref(9)
-const startMinute = ref(0)
-const startPeriod = ref('AM')
-const endHour = ref(10)
-const endMinute = ref(0)
-const endPeriod = ref('AM')
-
-// Watchers to update slotForm.startTime and slotForm.endTime in 24h format
-watch([startHour, startMinute, startPeriod], ([h, m, p]) => {
-  slotForm.startTime = to24Hour(h, m, p)
-})
-watch([endHour, endMinute, endPeriod], ([h, m, p]) => {
-  slotForm.endTime = to24Hour(h, m, p)
-})
-
-function to24Hour(hour, minute, period) {
-  let h = parseInt(hour)
-  if (period === 'PM' && h !== 12) h += 12
-  if (period === 'AM' && h === 12) h = 0
-  return `${h.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-}
-
-// When editing, sync dropdowns with slotForm values
-function syncTimePickers() {
-  if (slotForm.startTime) {
-    const [h, m] = slotForm.startTime.split(':')
-    let hour = parseInt(h)
-    let period = 'AM'
-    if (hour === 0) hour = 12
-    else if (hour === 12) period = 'PM'
-    else if (hour > 12) { hour -= 12; period = 'PM' }
-    startHour.value = hour
-    startMinute.value = parseInt(m)
-    startPeriod.value = period
-  }
-  if (slotForm.endTime) {
-    const [h, m] = slotForm.endTime.split(':')
-    let hour = parseInt(h)
-    let period = 'AM'
-    if (hour === 0) hour = 12
-    else if (hour === 12) period = 'PM'
-    else if (hour > 12) { hour -= 12; period = 'PM' }
-    endHour.value = hour
-    endMinute.value = parseInt(m)
-    endPeriod.value = period
-  }
-}
-
-watch([showAddModal, showEditModal], ([add, edit]) => {
-  if (add || edit) syncTimePickers()
-})
-
 // Computed properties
 const timeConflict = computed(() => {
   if (!slotForm.startTime || !slotForm.endTime) return false
@@ -331,6 +271,18 @@ const ghostCards = computed(() => {
   return count > 0 && count < cols ? cols - count : 0
 })
 window.addEventListener('resize', () => { gridColumns.value })
+
+// Watch for modal changes to scroll to the form
+watch([showAddModal, showEditModal], ([add, edit]) => {
+  nextTick(() => {
+    if (add || edit) inlineFormRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+  // When opening Add mode, prefill default times so user can submit without changing
+  if (add && !edit) {
+    if (!slotForm.startTime) slotForm.startTime = '09:00'
+    if (!slotForm.endTime) slotForm.endTime = '10:00'
+  }
+})
 
 // Methods
 const fetchSlots = async () => {
@@ -880,6 +832,27 @@ body, #app {
 .btn-danger:hover {
   background: #c53030;
   border-color: #c53030;
+}
+
+/* Inline editor styles */
+.inline-editor {
+  width: 100%;
+  max-width: 900px;
+  margin: 1rem auto 2rem auto;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.inline-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.slot-form.inline {
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
 }
 
 @media (max-width: 768px) {
