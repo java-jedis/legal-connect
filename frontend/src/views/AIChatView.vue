@@ -338,7 +338,12 @@
               <li>Court procedures and processes</li>
               <li>Case law and precedents</li>
             </ul>
-            <p class="welcome-note">Start by typing your question below!</p>
+            <p class="welcome-note">
+              {{ chatSessions.length > 0 
+                ? 'Continue with a previous conversation from the history or start typing below to begin a new chat!' 
+                : 'Start by typing your question below!' 
+              }}
+            </p>
           </div>
         </div>
 
@@ -564,8 +569,10 @@ watch(() => route.params.sessionId, async (newSessionId, oldSessionId) => {
       await loadSessionFromBackend(newSessionId)
     }
   } else if (!newSessionId && oldSessionId) {
-    // Navigated to base AI chat route, create new session
-    await createNewSession()
+    // Navigated to base AI chat route, show empty state without creating session
+    currentSessionId.value = ''
+    sessionId.value = ''
+    messages.value = []
   }
 }, { immediate: true })
 
@@ -574,7 +581,7 @@ onMounted(async () => {
   checkServiceHealth()
   await loadChatHistory()
   
-  // Handle session from route or create new
+  // Handle session from route
   const routeSessionId = route.params.sessionId
   if (routeSessionId) {
     await loadSessionFromBackend(routeSessionId)
@@ -586,8 +593,12 @@ onMounted(async () => {
       // Navigate to the session URL
       await router.push(`/ai-chat/${continueSessionId}`)
     } else {
-      // Create new session
-      await createNewSession()
+      // Show empty state without creating a session
+      // Load the most recent session if available and user wants to continue
+      // But don't auto-navigate - let user choose from sidebar or start new chat
+      currentSessionId.value = ''
+      sessionId.value = ''
+      messages.value = []
     }
   }
 })
@@ -623,10 +634,13 @@ const loadChatHistory = async () => {
             messages: [], // Messages will be loaded when session is selected
             createdAt: new Date(session.created_at),
             lastActivity: new Date(session.updated_at),
-            messageCount: session.message_count,
-            title: session.title,
+            messageCount: session.message_count || 0,
+            title: session.title || 'New Chat Session',
             isFromBackend: true
           }))
+          
+          // Load preview content for better display
+          await loadSessionPreviews()
           return
         }
       } catch (error) {
@@ -645,6 +659,26 @@ const loadChatHistory = async () => {
     console.error('Error loading chat history:', error)
   } finally {
     isLoadingHistory.value = false
+  }
+}
+
+// Load actual message content for better previews
+const loadSessionPreviews = async () => {
+  for (const session of chatSessions.value) {
+    if (session.isFromBackend && session.messages.length === 0) {
+      try {
+        const historyResponse = await aiChatService.getChatHistory(session.id)
+        if (historyResponse.messages && historyResponse.messages.length > 0) {
+          session.messages = historyResponse.messages.map(msg => ({
+            type: msg.type || msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.timestamp || msg.created_at)
+          }))
+        }
+      } catch (error) {
+        console.warn(`Failed to load preview for session ${session.id}:`, error)
+      }
+    }
   }
 }
 
@@ -827,11 +861,17 @@ const getSessionTitle = (session) => {
     return session.title
   }
   
+  // Show first user message as title (like ChatGPT)
   if (session.messages && session.messages.length > 0) {
     const firstUserMessage = session.messages.find(msg => msg.type === 'user')
     if (firstUserMessage) {
-      return truncateText(firstUserMessage.content, 40)
+      return truncateText(firstUserMessage.content, 45)
     }
+  }
+  
+  // For backend sessions without loaded messages
+  if (session.isFromBackend) {
+    return `Chat Session`
   }
   
   // For UUID format, show a shorter identifier
@@ -845,21 +885,38 @@ const getSessionTitle = (session) => {
 
 const getSessionPreview = (session) => {
   if (session.messages && session.messages.length > 0) {
+    // Show the AI's response or the conversation flow
+    const lastAIMessage = session.messages.slice().reverse().find(msg => msg.type === 'ai')
+    if (lastAIMessage) {
+      return truncateText(lastAIMessage.content, 60)
+    }
+    // Fallback to last message
     const lastMessage = session.messages[session.messages.length - 1]
     return truncateText(lastMessage.content, 60)
   }
-  return 'No messages'
+  
+  // For backend sessions without loaded messages
+  if (session.isFromBackend) {
+    return `${session.messageCount || 0} messages`
+  }
+  
+  return 'Empty conversation'
 }
 
 const formatHistoryDate = (date) => {
+  if (!date) return ''
+  
   const d = new Date(date)
   const now = new Date()
   const diffTime = Math.abs(now - d)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
   
-  if (diffDays === 1) return 'Today'
-  if (diffDays === 2) return 'Yesterday'
-  if (diffDays <= 7) return `${diffDays - 1}d ago`
+  if (diffHours < 1) return 'Just now'
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
   
   return d.toLocaleDateString()
 }
@@ -873,6 +930,32 @@ const sendMessage = async () => {
   if (!currentMessage.value.trim() || isLoading.value) return
   
   const messageText = currentMessage.value.trim()
+  
+  // If no session exists, create one before sending the message
+  if (!sessionId.value) {
+    try {
+      // Create session on backend if user is authenticated
+      if (authStore.userInfo?.id) {
+        const response = await aiChatService.createSession(authStore.userInfo.id, 'New Chat Session')
+        sessionId.value = response.session_id
+        currentSessionId.value = response.session_id
+        
+        // Navigate to the new session URL
+        await router.push(`/ai-chat/${response.session_id}`)
+      } else {
+        // Create local session for anonymous users
+        sessionId.value = aiChatService.generateSessionId()
+        currentSessionId.value = sessionId.value
+        await router.push(`/ai-chat/${sessionId.value}`)
+      }
+    } catch (error) {
+      console.error('Error creating session for message:', error)
+      // Fallback to local session
+      sessionId.value = aiChatService.generateSessionId()
+      currentSessionId.value = sessionId.value
+      await router.push(`/ai-chat/${sessionId.value}`)
+    }
+  }
   
   // Add user message to chat
   messages.value.push({
@@ -938,11 +1021,13 @@ const sendMessage = async () => {
   }
 }
 
-const clearConversation = () => {
+const clearConversation = async () => {
   if (messages.value.length > 0) {
     saveCurrentSession()
   }
-  startNewChat()
+  
+  // Navigate to base AI chat route to show empty state
+  await router.push('/ai-chat')
 }
 
 const handleKeydown = (event) => {
@@ -989,11 +1074,12 @@ const formatMessage = (content) => {
   height: 100vh;
   background: var(--color-background);
   position: relative;
+  overflow: hidden;
 }
 
 /* Sidebar Styles */
 .chat-sidebar {
-  width: 300px;
+  width: 350px;
   background: var(--color-background-soft);
   border-right: 1px solid var(--color-border);
   display: flex;
@@ -1237,6 +1323,8 @@ const formatMessage = (content) => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .mobile-header {
@@ -1378,13 +1466,14 @@ const formatMessage = (content) => {
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1rem 1rem 2rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  min-height: 0;
 }
 
 .welcome-message {
@@ -1610,6 +1699,10 @@ const formatMessage = (content) => {
   background: var(--color-background);
   border-top: 1px solid var(--color-border);
   padding: 1rem 1.5rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .input-wrapper {
@@ -1780,7 +1873,7 @@ const formatMessage = (content) => {
     top: 0;
     left: 0;
     bottom: 0;
-    width: 280px;
+    width: 320px;
     z-index: 999;
     transform: translateX(-100%);
   }
@@ -1806,11 +1899,13 @@ const formatMessage = (content) => {
   }
   
   .chat-messages {
-    padding: 1rem 0.75rem;
+    padding: 1rem 0.75rem 2rem 0.75rem;
   }
   
   .chat-input-container {
     padding: 1rem;
+    position: sticky;
+    bottom: 0;
   }
   
   .message {
@@ -1836,11 +1931,13 @@ const formatMessage = (content) => {
   }
   
   .chat-messages {
-    padding: 1rem 0.5rem;
+    padding: 1rem 0.5rem 2rem 0.5rem;
   }
   
   .chat-input-container {
     padding: 0.75rem;
+    position: sticky;
+    bottom: 0;
   }
   
   .input-wrapper {
