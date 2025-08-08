@@ -14,14 +14,18 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -506,5 +510,79 @@ class NotificationPreferenceServiceTest {
         for (NotificationType type : NotificationType.values()) {
             verify(notificationPreferenceRepo, times(2)).findByUserIdAndNotificationType(userId, type);
         }
+    }
+
+    @Test
+    @DisplayName("initializeDefaultPreferencesForUser: creates all defaults when none exist")
+    void initializeDefaults_CreatesAllWhenNoneExist() {
+        UUID userId = testUser.getId();
+
+        for (NotificationType type : NotificationType.values()) {
+            when(notificationPreferenceRepo.findByUserIdAndNotificationType(userId, type))
+                    .thenReturn(Optional.empty());
+        }
+
+        ArgumentCaptor<NotificationPreference> captor = ArgumentCaptor.forClass(NotificationPreference.class);
+
+        notificationPreferenceService.initializeDefaultPreferencesForUser(userId);
+
+        verify(notificationPreferenceRepo, times(NotificationType.values().length)).save(captor.capture());
+
+        var saved = captor.getAllValues();
+        assertEquals(NotificationType.values().length, saved.size());
+
+        Set<NotificationType> savedTypes = saved.stream()
+                .map(NotificationPreference::getNotificationType)
+                .collect(Collectors.toSet());
+
+        assertEquals(EnumSet.allOf(NotificationType.class), savedTypes);
+        saved.forEach(p -> {
+            assertEquals(userId, p.getUserId());
+            assertTrue(p.isEmailEnabled());
+            assertTrue(p.isWebPushEnabled());
+        });
+    }
+
+    @Test
+    @DisplayName("initializeDefaultPreferencesForUser: skips existing and creates only missing")
+    void initializeDefaults_SkipsExistingCreatesMissing() {
+        UUID userId = testUser.getId();
+        // Pretend preferences already exist for CASE_CREATE and EVENT_ADD
+        when(notificationPreferenceRepo.findByUserIdAndNotificationType(userId, NotificationType.CASE_CREATE))
+                .thenReturn(Optional.of(new NotificationPreference()));
+        when(notificationPreferenceRepo.findByUserIdAndNotificationType(userId, NotificationType.EVENT_ADD))
+                .thenReturn(Optional.of(new NotificationPreference()));
+
+        // Remaining types return empty
+        for (NotificationType type : EnumSet.complementOf(EnumSet.of(
+                NotificationType.CASE_CREATE,
+                NotificationType.EVENT_ADD))) {
+            when(notificationPreferenceRepo.findByUserIdAndNotificationType(userId, type))
+                    .thenReturn(Optional.empty());
+        }
+
+        ArgumentCaptor<NotificationPreference> captor = ArgumentCaptor.forClass(NotificationPreference.class);
+
+        notificationPreferenceService.initializeDefaultPreferencesForUser(userId);
+
+        int expectedCreates = NotificationType.values().length - 2;
+        verify(notificationPreferenceRepo, times(expectedCreates)).save(captor.capture());
+
+        var saved = captor.getAllValues();
+        assertEquals(expectedCreates, saved.size());
+
+        Set<NotificationType> expectedMissing = EnumSet.complementOf(EnumSet.of(
+                NotificationType.CASE_CREATE,
+                NotificationType.EVENT_ADD));
+        Set<NotificationType> savedTypes = saved.stream()
+                .map(NotificationPreference::getNotificationType)
+                .collect(Collectors.toSet());
+
+        assertEquals(expectedMissing, savedTypes);
+        saved.forEach(p -> {
+            assertEquals(userId, p.getUserId());
+            assertTrue(p.isEmailEnabled());
+            assertTrue(p.isWebPushEnabled());
+        });
     }
 }

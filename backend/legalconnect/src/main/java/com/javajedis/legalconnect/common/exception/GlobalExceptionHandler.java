@@ -16,10 +16,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.chat.exception.ChatDeliveryException;
 import com.javajedis.legalconnect.chat.exception.ConversationNotFoundException;
 import com.javajedis.legalconnect.chat.exception.MessageNotFoundException;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.notifications.exception.NotificationDeliveryException;
 import com.javajedis.legalconnect.notifications.exception.NotificationNotFoundException;
 import com.javajedis.legalconnect.notifications.exception.WebSocketAuthenticationException;
@@ -189,6 +189,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<String>> handleIllegalArgumentException(IllegalArgumentException ex) {
         log.warn("Invalid argument provided: {}", ex.getMessage());
         return ApiResponse.error("Invalid request parameters: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles user not found errors in business logic.
+     */
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiResponse<String>> handleUserNotFound(UserNotFoundException ex) {
+        log.warn("User not found: {}", ex.getMessage());
+        return ApiResponse.error(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     /**
