@@ -167,14 +167,14 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
-import { useNotificationStore } from '../stores/notification'
 import { useChatStore } from '../stores/chat'
+import { useNotificationStore } from '../stores/notification'
+import ChatInboxDropdown from './chat/ChatInboxDropdown.vue'
+import NotificationDropdown from './notification/NotificationDropdown.vue'
 import ThemeToggle from './ThemeToggle.vue'
-import NotificationDropdown from './NotificationDropdown.vue'
-import ChatInboxDropdown from './ChatInboxDropdown.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
