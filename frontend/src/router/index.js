@@ -45,130 +45,138 @@ const router = createRouter({
     {
       path: "/forgot-password",
       name: "forgot-password",
-      component: () => import("../views/ForgotPasswordView.vue"),
+      component: () => import("../views/user/ForgotPasswordView.vue"),
     },
 
     {
       path: "/email-verification",
       name: "email-verification",
-      component: () => import("../views/EmailVerificationView.vue"),
+      component: () => import("../views/user/EmailVerificationView.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/dashboard/user",
       name: "user-dashboard",
-      component: () => import("../views/UserDashboard.vue"),
+      component: () => import("../views/user/UserDashboard.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/dashboard/lawyer",
       name: "lawyer-dashboard",
-      component: () => import("../views/LawyerDashboard.vue"),
+      component: () => import("../views/lawyer/LawyerDashboard.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/dashboard/admin",
       name: "admin-dashboard",
-      component: () => import("../views/AdminDashboard.vue"),
+      component: () => import("../views/admin/AdminDashboard.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/admin/lawyers",
       name: "lawyer-management",
-      component: () => import("../views/LawyerManagementView.vue"),
+      component: () => import("../views/admin/LawyerManagementView.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/lawyer/profile/create",
       name: "lawyer-profile-creation",
-      component: () => import("../views/LawyerProfileCreationView.vue"),
+      component: () => import("../views/lawyer/LawyerProfileCreationView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/profile",
       name: "view-profile",
-      component: () => import("../views/ProfileView.vue"),
+      component: () => import("../views/user/ProfileView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/cases",
       name: "cases",
-      component: () => import("../views/CasesView.vue"),
+      component: () => import("../views/case/CasesView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/case/:id",
       name: "case-detail",
-      component: () => import("../views/CaseDetailView.vue"),
+      component: () => import("../views/case/CaseDetailView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/find-lawyer",
       name: "find-lawyer",
-      component: () => import("../views/FindLawyersView.vue"),
+      component: () => import("../views/lawyer/FindLawyersView.vue"),
       meta: { requiresAuth: true },
     },
     {
       path: "/lawyers/:email/details",
       name: "lawyer-details",
-      component: () => import("../views/LawyerDetailsView.vue"),
+      component: () => import("../views/lawyer/LawyerDetailsView.vue"),
       meta: { requiresAuth: true },
       props: true,
     },
     {
       path: "/chat",
       name: "chat-inbox",
-      component: () => import("../views/ChatInboxView.vue"),
+      component: () => import("../views/chat/ChatInboxView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/chat/:id",
       name: "chat-conversation",
-      component: () => import("../views/ChatConversationDetailView.vue"),
+      component: () => import("../views/chat/ChatConversationDetailView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
       props: true,
     },
-        {
+    {
       path: "/ai-chat",
       name: "ai-chat",
-      component: () => import("../views/AIChatView.vue"),
+      component: () => import("../views/ai/AIChatView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/ai-chat/:sessionId",
       name: "ai-chat-session",
-      component: () => import("../views/AIChatView.vue"),
+      component: () => import("../views/ai/AIChatView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
       props: true,
     },
-        {
+    {
       path: "/document-search",
       name: "document-search",
-      component: () => import("../views/DocumentSearchView.vue"),
+      component: () => import("../views/ai/DocumentSearchView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/chat-history",
       name: "chat-history",
-      component: () => import("../views/ChatHistoryView.vue"),
+      component: () => import("../views/ai/ChatHistoryView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
     {
       path: "/meetings",
       name: "meetings",
-      component: () => import("../views/MeetingsView.vue"),
-      meta: { requiresAuth: true, requiresEmailVerification: true, requiresRole: "LAWYER" },
+      component: () => import("../views/schedule/MeetingsView.vue"),
+      meta: {
+        requiresAuth: true,
+        requiresEmailVerification: true,
+        requiresRole: "LAWYER",
+      },
     },
     {
       path: "/my-meetings",
       name: "client-meetings",
-      component: () => import("../views/ClientMeetingsView.vue"),
-      meta: { requiresAuth: true, requiresEmailVerification: true, requiresRole: "USER" },
+      component: () => import("../views/schedule/ClientMeetingsView.vue"),
+      meta: {
+        requiresAuth: true,
+        requiresEmailVerification: true,
+        requiresRole: "USER",
+      },
     },
     {
       path: "/payment/success",
       name: "payment-success",
-      component: () => import("../views/PaymentSuccessView.vue"),
+      component: () => import("../views/payment/PaymentSuccessView.vue"),
       meta: { requiresAuth: true, requiresEmailVerification: true },
     },
   ],
@@ -199,7 +207,11 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Check if route requires specific role
-  if (to.meta.requiresRole && userInfo && userInfo.role !== to.meta.requiresRole) {
+  if (
+    to.meta.requiresRole &&
+    userInfo &&
+    userInfo.role !== to.meta.requiresRole
+  ) {
     // Redirect to appropriate dashboard based on user role
     if (userInfo.role === "LAWYER") {
       next("/dashboard/lawyer");
@@ -238,14 +250,17 @@ router.beforeEach(async (to, from, next) => {
     try {
       // Import chat service dynamically to avoid circular dependencies
       const { chatService } = await import("../services/chatService");
-      
+
       // Try to fetch conversation messages to validate access.
       // A non-2xx response (like 403 Forbidden or 404 Not Found) will throw an error
       // and be caught by the catch block.
       await chatService.getConversationMessages(to.params.id, 0, 1);
     } catch (error) {
       // If there's an error (e.g., access denied, conversation not found), redirect.
-      console.warn(`Error or access denied for conversation ${to.params.id}:`, error.message);
+      console.warn(
+        `Error or access denied for conversation ${to.params.id}:`,
+        error.message
+      );
       next("/chat");
       return;
     }
@@ -256,19 +271,25 @@ router.beforeEach(async (to, from, next) => {
     try {
       // Import AI chat service dynamically to avoid circular dependencies
       const { aiChatService } = await import("../services/aiChatService");
-      
+
       // Validate session ID format (should be UUID or session_timestamp_id)
       const sessionId = to.params.sessionId;
-      const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
+      const isValidUUID =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          sessionId
+        );
       const isValidLegacyFormat = /^session_\d+_[a-z0-9]+$/i.test(sessionId);
-      
+
       if (!isValidUUID && !isValidLegacyFormat) {
         console.warn(`Invalid AI chat session ID format: ${sessionId}`);
         next("/ai-chat");
         return;
       }
     } catch (error) {
-      console.warn(`Error validating AI chat session ${to.params.sessionId}:`, error.message);
+      console.warn(
+        `Error validating AI chat session ${to.params.sessionId}:`,
+        error.message
+      );
       // Allow navigation to continue - the component will handle the error
     }
   }

@@ -1,13 +1,13 @@
 <script setup>
 import AppFooter from '@/components/AppFooter.vue'
 import AppHeader from '@/components/AppHeader.vue'
-import NotificationBanner from '@/components/NotificationBanner.vue'
-import { useThemeStore } from '@/stores/theme'
+import NotificationBanner from '@/components/notification/NotificationBanner.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useNotificationStore } from '@/stores/notification'
 import { useChatStore } from '@/stores/chat'
-import { ref, onMounted, watch } from 'vue'
-import { initializeApp } from './services/init';
+import { useNotificationStore } from '@/stores/notification'
+import { useThemeStore } from '@/stores/theme'
+import { onMounted, ref, watch } from 'vue'
+import { initializeApp } from './services/init'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
