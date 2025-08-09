@@ -17,38 +17,39 @@
       </div>
     </div>
 
-    <div class="search-content">
-      <!-- Search Input Section -->
-      <div class="search-input-section">
-        <div class="search-input-wrapper">
-          <div class="input-container">
-            <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-              <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <input
-              ref="searchInput"
-              v-model="searchQuery"
-              @keydown="handleKeydown"
-              placeholder="Search legal documents, acts, regulations..."
-              class="search-input"
-              :disabled="isLoading"
-            />
-            <button 
-              @click="performSearch" 
-              class="search-button"
-              :disabled="!searchQuery.trim() || isLoading"
-            >
-              <svg v-if="!isLoading" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="main-layout">
+      <div class="search-content">
+        <!-- Search Input Section -->
+        <div class="search-input-section">
+          <div class="search-input-wrapper">
+            <div class="input-container">
+              <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
                 <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/>
               </svg>
-              <svg v-else class="loading-spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
+              <input
+                ref="searchInput"
+                v-model="searchQuery"
+                @keydown="handleKeydown"
+                placeholder="Search legal documents, acts, regulations..."
+                class="search-input"
+                :disabled="isLoading"
+              />
+              <button 
+                @click="performSearch" 
+                class="search-button"
+                :disabled="!searchQuery.trim() || isLoading"
+              >
+                <svg v-if="!isLoading" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                  <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <svg v-else class="loading-spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-dasharray="31.416"
@@ -377,12 +378,72 @@
         </div>
       </div>
     </div>
+
+    <!-- Quick Actions Right Sidebar -->
+    <div class="right-actions-sidebar">
+      <div class="actions-header">
+        <h4>Quick Actions</h4>
+      </div>
+      
+      <div class="action-buttons">
+        <button 
+          @click="navigateToAIChat" 
+          class="action-btn ai-chat-btn"
+          title="AI Legal Assistant"
+        >
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="1.5" fill="currentColor"/>
+              <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
+              <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="action-text">
+            <span class="action-title">AI Chat</span>
+            <span class="action-subtitle">Ask legal questions to AI</span>
+          </div>
+        </button>
+        
+        <button 
+          @click="navigateToChatHistory" 
+          class="action-btn chat-history-btn"
+          title="View Chat History"
+        >
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M12 7V12L15 15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="action-text">
+            <span class="action-title">Chat History</span>
+            <span class="action-subtitle">View past conversations</span>
+          </div>
+        </button>
+      </div>
+    </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { aiChatService } from '@/services/aiChatService'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // Reactive data
 const searchQuery = ref('')
@@ -449,6 +510,15 @@ const closeDocumentDetail = () => {
   selectedDocument.value = null
 }
 
+// Navigation functions
+const navigateToAIChat = () => {
+  router.push('/ai-chat')
+}
+
+const navigateToChatHistory = () => {
+  router.push('/chat-history')
+}
+
 const toggleDocumentInfo = (index) => {
   if (expandedDocuments.value.has(index)) {
     expandedDocuments.value.delete(index)
@@ -491,7 +561,7 @@ onMounted(() => {
 .document-search-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--color-background);
 }
 
@@ -499,9 +569,23 @@ onMounted(() => {
   background: var(--color-background);
   border-bottom: 1px solid var(--color-border);
   padding: 1.5rem;
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 10;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.search-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
 }
 
 .header-content {
@@ -1284,6 +1368,186 @@ onMounted(() => {
   
   .result-item {
     padding: 1rem;
+  }
+}
+
+/* Right Actions Sidebar */
+.right-actions-sidebar {
+  width: 320px;
+  background: var(--color-background-soft);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.actions-header {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actions-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.action-buttons {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover {
+  background: var(--color-background-mute);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary);
+  transform: scaleY(0);
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover::before {
+  transform: scaleY(1);
+}
+
+.ai-chat-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.ai-chat-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+  border-color: var(--color-primary);
+}
+
+.chat-history-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.chat-history-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+  border-color: rgb(16, 185, 129);
+}
+
+.action-btn .action-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover .action-icon {
+  transform: scale(1.1);
+}
+
+.action-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-history-btn .action-icon {
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(6, 182, 212));
+}
+
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.action-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  line-height: 1.2;
+}
+
+.action-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+/* Responsive adjustments for right sidebar */
+@media (max-width: 1200px) {
+  .right-actions-sidebar {
+    width: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+  }
+  
+  .right-actions-sidebar {
+    width: 100%;
+    order: -1;
+    border-left: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .actions-header {
+    padding: 1rem 1.25rem 0.75rem;
+  }
+  
+  .action-buttons {
+    padding: 1rem 1.25rem;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+  
+  .action-btn {
+    flex: 1;
+    padding: 1rem;
+  }
+  
+  .action-text {
+    gap: 0.125rem;
+  }
+  
+  .action-title {
+    font-size: 0.875rem;
+  }
+  
+  .action-subtitle {
+    font-size: 0.75rem;
   }
 }
 </style>

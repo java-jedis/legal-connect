@@ -134,7 +134,7 @@
             <line x1="3" y1="18" x2="21" y2="18" stroke="currentColor" stroke-width="2"/>
           </svg>
         </button>
-        <h1>Legal AI Assistant</h1>
+        <h1>Legal Connect AI Assistant</h1>
         <div class="mobile-actions">
           <button 
             @click="navigateToDocumentSearch" 
@@ -237,12 +237,12 @@
               </svg>
             </div>
             <div class="ai-details">
-              <h1 class="ai-name">Legal AI Assistant</h1>
+              <h1 class="ai-name">Legal Connect AI Assistant</h1>
               <p class="ai-description">Ask me anything about Bangladesh legal documents and laws</p>
             </div>
           </div>
           
-          <div class="chat-actions">
+          <div v-if="messages.length > 0" class="chat-actions">
             <button 
               @click="navigateToDocumentSearch" 
               class="btn-action"
@@ -289,7 +289,7 @@
               </svg>
             </button>
             
-            <button 
+            <!-- <button 
               @click="clearConversation" 
               class="btn-action"
               title="Clear conversation"
@@ -311,7 +311,7 @@
                   stroke-linejoin="round"
                 />
               </svg>
-            </button>
+            </button> -->
           </div>
         </div>
       </div>
@@ -383,7 +383,7 @@
             
             <div class="message-content">
               <div class="message-header">
-                <span class="message-sender">{{ message.type === 'user' ? 'You' : 'Legal AI Assistant' }}</span>
+                <span class="message-sender">{{ message.type === 'user' ? 'You' : 'Legal Connect AI Assistant' }}</span>
                 <span class="message-time">{{ formatTime(message.timestamp) }}</span>
               </div>
               
@@ -503,6 +503,73 @@
         </svg>
         <span>{{ errorMessage }}</span>
         <button @click="errorMessage = ''" class="error-close">×</button>
+      </div>
+    </div>
+
+    <!-- Right Actions Sidebar -->
+    <div class="right-actions-sidebar">
+      <div class="actions-header">
+        <h4>Quick Actions</h4>
+      </div>
+      
+      <div class="action-buttons">
+        <button 
+          @click="navigateToDocumentSearch" 
+          class="action-btn document-search-btn"
+          title="Search Legal Documents"
+        >
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <polyline
+                points="14,2 14,8 20,8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="11.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+              <path d="m13.5 14.5 1.5 1.5" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="action-text">
+            <span class="action-title">Search Documents</span>
+            <span class="action-subtitle">Browse legal documents and laws</span>
+          </div>
+        </button>
+        
+        <button 
+          @click="navigateToChatHistory" 
+          class="action-btn chat-history-btn"
+          title="View Chat History"
+        >
+          <div class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+              <path
+                d="M12 7V12L15 15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="action-text">
+            <span class="action-title">Chat History</span>
+            <span class="action-subtitle">View past conversations</span>
+          </div>
+        </button>
       </div>
     </div>
 
@@ -840,9 +907,15 @@ const deleteSession = async (session) => {
       chatSessions.value = chatSessions.value.filter(s => s.id !== session.id)
       localStorage.setItem('ai_chat_sessions', JSON.stringify(chatSessions.value.filter(s => !s.isFromBackend)))
       
-      // If we're deleting the current session, start a new one
+      // If we're deleting the current session, redirect to main AI chat page
       if (currentSessionId.value === session.id) {
-        await startNewChat()
+        // Clear current session data
+        messages.value = []
+        currentSessionId.value = ''
+        sessionId.value = ''
+        
+        // Navigate to main AI chat page without creating new session
+        await router.push('/ai-chat')
       }
     } catch (error) {
       console.error('Error deleting session:', error)
@@ -1079,61 +1152,89 @@ const formatMessage = (content) => {
 
 /* Sidebar Styles */
 .chat-sidebar {
-  width: 350px;
-  background: var(--color-background-soft);
+  width: 370px;
+  background: linear-gradient(135deg, var(--color-background-soft), var(--color-background));
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-header {
-  padding: 1rem;
+  padding: 1.5rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.03));
 }
 
 .sidebar-header h3 {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: var(--color-heading);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .sidebar-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .sidebar-btn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--color-border);
-  background: var(--color-background);
-  border-radius: var(--border-radius);
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.05));
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
-  color: var(--color-text-muted);
+  color: var(--color-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .sidebar-btn:hover:not(:disabled) {
-  background: var(--color-background-soft);
-  color: var(--color-primary);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(147, 51, 234, 0.1));
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+}
+
+.sidebar-btn:hover::before {
+  opacity: 0.1;
 }
 
 .sidebar-btn.primary {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: var(--color-background);
   border-color: var(--color-primary);
 }
 
 .sidebar-btn.primary:hover {
-  background: var(--color-primary-dark);
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-primary));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
 }
 
 .sidebar-btn:disabled {
@@ -1147,8 +1248,9 @@ const formatMessage = (content) => {
 }
 
 .sidebar-search {
-  padding: 1rem;
+  padding: 1.25rem;
   border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03), rgba(6, 182, 212, 0.02));
 }
 
 .search-container {
@@ -1157,36 +1259,44 @@ const formatMessage = (content) => {
 
 .search-icon {
   position: absolute;
-  left: 0.75rem;
+  left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  color: var(--color-text-muted);
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary);
   pointer-events: none;
+  transition: color var(--transition-fast);
 }
 
 .search-input {
   width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  padding: 0.5rem 0.75rem 0.5rem 2rem;
-  background: var(--color-background);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--border-radius-lg);
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(59, 130, 246, 0.02));
   color: var(--color-text);
   font-family: inherit;
   font-size: 0.875rem;
   outline: none;
-  transition: border-color var(--transition-fast);
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
 .search-input:focus {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 12px rgba(59, 130, 246, 0.15);
+  background: var(--color-background);
+}
+
+.search-input:focus + .search-icon {
+  color: var(--color-secondary);
 }
 
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 1rem;
 }
 
 .loading-state,
@@ -1195,64 +1305,93 @@ const formatMessage = (content) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 3rem 1.5rem;
   text-align: center;
 }
 
 .loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--color-border);
-  border-top: 2px solid var(--color-primary);
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .no-history-icon {
-  width: 40px;
-  height: 40px;
-  color: var(--color-text-muted);
-  margin-bottom: 0.5rem;
+  width: 48px;
+  height: 48px;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+  opacity: 0.7;
 }
 
 .no-history-state p {
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-  color: var(--color-text);
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-heading);
 }
 
 .no-history-state small {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .history-item {
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  padding: 0.75rem;
+  background: linear-gradient(135deg, var(--color-background), rgba(59, 130, 246, 0.02));
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.history-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  transform: scaleY(0);
+  transition: transform var(--transition-fast);
 }
 
 .history-item:hover {
-  background: var(--color-background-soft);
+  background: linear-gradient(135deg, var(--color-background-soft), rgba(59, 130, 246, 0.05));
   border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+}
+
+.history-item:hover::before {
+  transform: scaleY(1);
 }
 
 .history-item.active {
-  background: rgba(var(--color-primary-rgb), 0.1);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.05));
   border-color: var(--color-primary);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+}
+
+.history-item.active::before {
+  transform: scaleY(1);
 }
 
 .history-item-content {
@@ -1261,8 +1400,8 @@ const formatMessage = (content) => {
 }
 
 .history-title {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.875rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-heading);
   line-height: 1.3;
@@ -1272,10 +1411,10 @@ const formatMessage = (content) => {
 }
 
 .history-preview {
-  margin: 0 0 0.25rem 0;
-  font-size: 0.75rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
-  line-height: 1.3;
+  line-height: 1.4;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1284,8 +1423,9 @@ const formatMessage = (content) => {
 }
 
 .history-date {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
 .history-actions {
@@ -1294,22 +1434,32 @@ const formatMessage = (content) => {
 }
 
 .history-action-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.03));
+  color: var(--color-danger);
   cursor: pointer;
-  border-radius: var(--border-radius);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all var(--transition-fast);
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.history-item:hover .history-action-btn {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .history-action-btn:hover {
-  background: var(--color-danger);
+  background: linear-gradient(135deg, var(--color-danger), #dc2626);
   color: var(--color-background);
+  border-color: var(--color-danger);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .history-action-btn svg {
@@ -1481,6 +1631,7 @@ const formatMessage = (content) => {
   justify-content: center;
   align-items: center;
   min-height: 400px;
+  padding: 2rem;
 }
 
 .welcome-content {
@@ -1843,6 +1994,139 @@ const formatMessage = (content) => {
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Right Actions Sidebar */
+.right-actions-sidebar {
+  width: 320px;
+  background: var(--color-background-soft);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.actions-header {
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actions-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.action-buttons {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover {
+  background: var(--color-background-mute);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary);
+  transform: scaleY(0);
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover::before {
+  transform: scaleY(1);
+}
+
+.document-search-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.document-search-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+  border-color: var(--color-primary);
+}
+
+.chat-history-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.chat-history-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+  border-color: rgb(16, 185, 129);
+}
+
+.action-btn .action-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover .action-icon {
+  transform: scale(1.1);
+}
+
+.action-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-history-btn .action-icon {
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(6, 182, 212));
+}
+
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.action-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  line-height: 1.2;
+}
+
+.action-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -1914,6 +2198,17 @@ const formatMessage = (content) => {
   
   .welcome-content {
     padding: 0 1rem;
+  }
+  
+  .right-actions-sidebar {
+    display: none;
+  }
+  
+  .welcome-message {
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem 1rem;
+    min-height: auto;
   }
 }
 
