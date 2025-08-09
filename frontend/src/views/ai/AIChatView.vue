@@ -90,7 +90,7 @@
           >
             <div class="history-item-content">
               <h4 class="history-title">{{ getSessionTitle(session) }}</h4>
-              <p class="history-preview">{{ getSessionPreview(session) }}</p>
+              <!-- <p class="history-preview">{{ getSessionPreview(session) }}</p> -->
               <span class="history-date">{{ formatHistoryDate(session.lastActivity) }}</span>
             </div>
             
@@ -320,28 +320,58 @@
         <!-- Welcome message -->
         <div v-if="messages.length === 0" class="welcome-message">
           <div class="welcome-content">
-            <div class="welcome-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M21 11.5C21.0034 12.8199 20.6951 14.1219 20.1 15.3C19.3944 16.7118 18.3098 17.8992 16.9674 18.7293C15.6251 19.5594 14.0782 19.9994 12.5 20C11.1801 20.0035 9.87812 19.6951 8.7 19.1L3 21L4.9 15.3C4.30493 14.1219 3.99656 12.8199 4 11.5C4.00061 9.92179 4.44061 8.37488 5.27072 7.03258C6.10083 5.69028 7.28825 4.60557 8.7 3.9C9.87812 3.30493 11.1801 2.99656 12.5 3H13C15.0843 3.11499 17.053 3.99476 18.5291 5.47086C20.0052 6.94696 20.885 8.91565 21 11V11.5Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
             <h3>Welcome to Legal Connect AI Assistant</h3>
-            <p>I'm here to help you with Bangladesh legal documents and laws. You can ask me questions about:</p>
-            <ul class="feature-list">
-              <li>Legal acts and regulations</li>
-              <li>Court procedures and processes</li>
-              <li>Case law and precedents</li>
-            </ul>
+            <p>Get instant legal guidance by choosing a topic below or ask your own question:</p>
+            
+            <!-- Quick Legal Topic Buttons -->
+            <div class="quick-prompts">
+              <button 
+                @click="startPromptConversation('What are the key provisions of civil law in Bangladesh?')"
+                class="prompt-btn"
+              >
+                What are the key provisions of civil law in Bangladesh?
+              </button>
+
+              <button 
+                @click="startPromptConversation('Explain the criminal law system in Bangladesh')"
+                class="prompt-btn"
+              >
+                Explain the criminal law system in Bangladesh
+              </button>
+
+              <button 
+                @click="startPromptConversation('What are the family law provisions in Bangladesh?')"
+                class="prompt-btn"
+              >
+                What are the family law provisions in Bangladesh?
+              </button>
+
+              <button 
+                @click="startPromptConversation('Explain labor law and workers rights in Bangladesh')"
+                class="prompt-btn"
+              >
+                Explain labor law and workers rights in Bangladesh
+              </button>
+
+              <button 
+                @click="startPromptConversation('What are the property law regulations in Bangladesh?')"
+                class="prompt-btn"
+              >
+                What are the property law regulations in Bangladesh?
+              </button>
+
+              <button 
+                @click="startPromptConversation('Explain business law and company formation in Bangladesh')"
+                class="prompt-btn"
+              >
+                Explain business law and company formation in Bangladesh
+              </button>
+            </div>
+
             <p class="welcome-note">
               {{ chatSessions.length > 0 
-                ? 'Continue with a previous conversation from the history or start typing below to begin a new chat!' 
-                : 'Start by typing your question below!' 
+                ? 'Or continue with a previous conversation from the history above.' 
+                : 'You can also type your own legal question below.' 
               }}
             </p>
           </div>
@@ -679,6 +709,27 @@ const navigateToChatHistory = () => {
   router.push('/chat-history')
 }
 
+// Start conversation with predefined prompt
+const startPromptConversation = async (prompt) => {
+  try {
+    // Create new session first if needed
+    if (!sessionId.value) {
+      await createNewSession()
+    }
+    
+    // Set the prompt as current message and send it
+    currentMessage.value = prompt
+    await sendMessage()
+    
+    // Focus on the input for follow-up questions
+    await nextTick()
+    messageInput.value?.focus()
+  } catch (error) {
+    console.error('Error starting prompt conversation:', error)
+    errorMessage.value = 'Failed to start conversation. Please try again.'
+  }
+}
+
 const checkServiceHealth = async () => {
   try {
     await aiChatService.checkHealth()
@@ -979,7 +1030,10 @@ const getSessionPreview = (session) => {
 const formatHistoryDate = (date) => {
   if (!date) return ''
   
+  // Add 6 hours to the date
   const d = new Date(date)
+  d.setHours(d.getHours() + 6)
+  
   const now = new Date()
   const diffTime = Math.abs(now - d)
   const diffHours = Math.floor(diffTime / (1000 * 60 * 60))
@@ -1629,31 +1683,15 @@ const formatMessage = (content) => {
 .welcome-message {
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  padding: 2rem;
+  align-items: flex-start;
+  min-height: 300px;
+  padding: 3rem 2rem 2rem;
 }
 
 .welcome-content {
   text-align: center;
-  max-width: 500px;
-}
-
-.welcome-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 1.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.welcome-icon svg {
-  width: 40px;
-  height: 40px;
+  max-width: 900px;
+  width: 100%;
 }
 
 .welcome-content h3 {
@@ -1694,6 +1732,45 @@ const formatMessage = (content) => {
   font-size: 0.875rem;
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+/* Quick Prompts Styling */
+.quick-prompts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 32px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.prompt-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+  line-height: 1.4;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.prompt-btn:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.prompt-btn:active {
+  transform: translateY(0);
 }
 
 .message-wrapper {
@@ -2147,6 +2224,16 @@ const formatMessage = (content) => {
   display: block;
 }
 
+/* Tablet responsive */
+@media (max-width: 1024px) {
+  .quick-prompts {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    max-width: 700px;
+    gap: 1.25rem;
+  }
+}
+
 @media (max-width: 768px) {
   .ai-chat-layout {
     flex-direction: column;
@@ -2210,6 +2297,17 @@ const formatMessage = (content) => {
     padding: 1.5rem 1rem;
     min-height: auto;
   }
+  
+  .quick-prompts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .prompt-btn {
+    padding: 16px;
+    font-size: 13px;
+    min-height: 70px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2251,6 +2349,36 @@ const formatMessage = (content) => {
   .send-button svg {
     width: 18px;
     height: 18px;
+  }
+  
+  /* Mobile prompt buttons */
+  .quick-prompts {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+  }
+  
+  .prompt-btn {
+    padding: 1rem;
+  }
+  
+  .prompt-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .prompt-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .prompt-title {
+    font-size: 0.875rem;
+  }
+  
+  .prompt-subtitle {
+    font-size: 0.75rem;
   }
 }
 </style>
