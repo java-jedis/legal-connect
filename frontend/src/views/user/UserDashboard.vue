@@ -51,7 +51,7 @@
             <p>Get instant legal guidance</p>
           </div>
 
-          <div class="quick-action-card stagger-item" @click="toggleFindLawyerSection">
+          <div class="quick-action-card stagger-item" @click="goToFindLawyer">
             <div class="action-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -132,7 +132,7 @@
                 <div class="message-avatar">You</div>
               </div>
             </div>
-            <div class="chat-input">
+            <!-- <div class="chat-input">
               <input
                 type="text"
                 v-model="newMessage"
@@ -150,98 +150,7 @@
                   />
                 </svg>
               </button>
-            </div>
-          </div>
-
-          <!-- Find a Lawyer Search Section -->
-          <div class="dashboard-card find-lawyer-search-section" v-if="showFindLawyerSection">
-            <div class="card-header">
-              <h3>Find a Lawyer</h3>
-              <button @click="toggleFindLawyerSection" class="btn btn-outline btn-sm">Close</button>
-            </div>
-            <div class="card-content">
-              <form @submit.prevent="searchLawyersFromDashboard" class="filters-form">
-                <div class="filters-grid">
-                  <div class="form-group">
-                    <label for="dashboardMinExperience">Min Experience (Years)</label>
-                    <input
-                      id="dashboardMinExperience"
-                      type="number"
-                      v-model.number="findLawyerFilters.minExperience"
-                      min="0"
-                      max="50"
-                      class="form-input"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="dashboardMaxExperience">Max Experience (Years)</label>
-                    <input
-                      id="dashboardMaxExperience"
-                      type="number"
-                      v-model.number="findLawyerFilters.maxExperience"
-                      min="0"
-                      max="50"
-                      class="form-input"
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label for="dashboardPracticingCourt">Practicing Court</label>
-                    <select
-                      id="dashboardPracticingCourt"
-                      v-model="findLawyerFilters.practicingCourt"
-                      class="form-select"
-                    >
-                      <option value="">Any</option>
-                      <option v-for="court in practicingCourts" :key="court.value" :value="court.value">
-                        {{ court.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="dashboardDivision">Division</label>
-                    <select
-                      id="dashboardDivision"
-                      v-model="findLawyerFilters.division"
-                      class="form-select"
-                    >
-                      <option value="">Any</option>
-                      <option v-for="division in divisions" :key="division.value" :value="division.value">
-                        {{ division.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="dashboardDistrict">District</label>
-                    <select
-                      id="dashboardDistrict"
-                      v-model="findLawyerFilters.district"
-                      class="form-select"
-                    >
-                      <option value="">Any</option>
-                      <option v-for="district in districts" :key="district.value" :value="district.value">
-                        {{ district.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="dashboardSpecialization">Specialization</label>
-                    <select
-                      id="dashboardSpecialization"
-                      v-model="findLawyerFilters.specialization"
-                      class="form-select"
-                    >
-                      <option value="">Any</option>
-                      <option v-for="spec in specializations" :key="spec.value" :value="spec.value">
-                        {{ spec.label }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-                <button type="submit" class="btn btn-primary search-button">
-                  Search Lawyers
-                </button>
-              </form>
-            </div>
+            </div> -->
           </div>
 
           <!-- Active Cases -->
@@ -307,8 +216,10 @@
             </div>
           </div>
 
-          <!-- My Calendar -->
-          <MyCalendarSection class="my-calendar-section" />
+          <!-- My Calendar - spans full width -->
+          <div class="calendar-wrapper">
+            <MyCalendarSection class="my-calendar-section" />
+          </div>
         </div>
       </div>
     </section>
@@ -510,6 +421,14 @@ const goToMeetings = () => {
   router.push('/my-meetings')
 }
 
+const openAIChat = () => {
+  router.push('/ai-chat')
+}
+
+const goToFindLawyer = () => {
+  router.push('/find-lawyer')
+}
+
 const goToCalendar = () => {
   const calendarSection = document.querySelector('.my-calendar-section');
   if (calendarSection) {
@@ -624,7 +543,7 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 2rem;
 }
 
@@ -669,13 +588,8 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
   background: #10b981;
 }
 
-/* Chat Section */
-.chat-section {
-  grid-row: span 2;
-}
-
 .chat-messages {
-  height: 300px;
+  height: 200px;
   overflow-y: auto;
   padding: 1rem;
   background: var(--color-background);
@@ -888,13 +802,74 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
   font-weight: 600;
 }
 
+/* Calendar Section Styles */
+.calendar-wrapper {
+  margin-top: 3rem;
+  width: 100%;
+  grid-column: 1 / -1; /* Span all grid columns */
+}
+
+.my-calendar-section {
+  width: 100%;
+  min-height: 600px;
+}
+
+.my-calendar-section :deep(.calendar-container) {
+  width: 100%;
+  max-width: none;
+  padding: 2rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+}
+
+.my-calendar-section :deep(.calendar-header) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--color-heading);
+}
+
+.my-calendar-section :deep(.calendar-grid) {
+  font-size: 1rem;
+  min-height: 400px;
+}
+
+.my-calendar-section :deep(.calendar-day) {
+  min-height: 60px;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.my-calendar-section :deep(.calendar-day:hover) {
+  background: var(--color-background-soft);
+  border-color: var(--color-primary);
+}
+
+.my-calendar-section :deep(.calendar-event) {
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 0.25rem;
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+.my-calendar-section :deep(.calendar-navigation) {
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+}
+
+.my-calendar-section :deep(.calendar-month-year) {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
 @media (max-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .chat-section {
-    grid-row: span 1;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -909,82 +884,94 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
   .chat-messages {
-    height: 250px;
-  }
-  @media (max-width: 768px) {
-    .header-content {
-      flex-direction: column;
-      gap: 1rem;
-      text-align: center;
-    }
-
-    .quick-actions-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .chat-messages {
-      height: 250px;
-    }
+    height: 150px;
   }
 
-  /* Find Lawyer Search Section Styles */
-  .find-lawyer-search-section {
-    grid-column: 1 / -1; /* Span full width */
+  .calendar-wrapper {
+    margin-top: 2rem;
   }
 
-  .find-lawyer-search-section .card-content {
-    padding: 1.5rem;
+  .my-calendar-section :deep(.calendar-container) {
+    padding: 1rem;
   }
 
-  .find-lawyer-search-section .filters-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  .my-calendar-section :deep(.calendar-day) {
+    min-height: 50px;
+    padding: 0.5rem;
+    font-size: 0.875rem;
   }
 
-  .find-lawyer-search-section .filters-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+  .my-calendar-section :deep(.calendar-header) {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
   }
 
-  .find-lawyer-search-section .form-group label {
-    font-weight: 600;
-    color: var(--color-heading);
-    margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+  .my-calendar-section :deep(.calendar-month-year) {
+    font-size: 1.125rem;
   }
+}
 
-  .find-lawyer-search-section .form-input,
-  .find-lawyer-search-section .form-select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    background: var(--color-background-soft);
-    color: var(--color-text);
-    font-size: 1rem;
-    transition: all 0.2s ease;
-  }
+/* Find Lawyer Search Section Styles */
+.find-lawyer-search-section {
+  grid-column: 1 / -1; /* Span full width */
+}
 
-  .find-lawyer-search-section .form-input:focus,
-  .find-lawyer-search-section .form-select:focus {
-    outline: none;
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
-  }
+.find-lawyer-search-section .card-content {
+  padding: 1.5rem;
+}
 
-  .find-lawyer-search-section .search-button {
-    align-self: flex-end;
-    padding: 0.75rem 2rem;
-    font-size: 1rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
+.find-lawyer-search-section .filters-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.find-lawyer-search-section .filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.find-lawyer-search-section .form-group label {
+  font-weight: 600;
+  color: var(--color-heading);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.find-lawyer-search-section .form-input,
+.find-lawyer-search-section .form-select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.find-lawyer-search-section .form-input:focus,
+.find-lawyer-search-section .form-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1);
+}
+
+.find-lawyer-search-section .search-button {
+  align-self: flex-end;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }
 </style>
