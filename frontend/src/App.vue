@@ -6,17 +6,21 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useNotificationStore } from '@/stores/notification'
 import { useThemeStore } from '@/stores/theme'
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { initializeApp } from './services/init'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 const chatStore = useChatStore()
+const route = useRoute()
 
 // Connection warning state
 const showConnectionWarning = ref(false)
 const connectionWarningDelay = ref(null)
+
+
 
 // Methods for connection warning
 const reconnectWebSocket = async () => {
@@ -94,6 +98,15 @@ const leave = (el, done) => {
   
   setTimeout(done, 300)
 }
+
+// Hide footer on chat conversation and AI-related routes
+const shouldShowFooter = computed(() => ![
+  'chat-conversation',
+  'ai-chat',
+  'ai-chat-session',
+  'document-search',
+  'chat-history'
+].includes(route.name))
 </script>
 
 <template>
@@ -137,7 +150,7 @@ const leave = (el, done) => {
         </transition>
       </router-view>
     </main>
-    <AppFooter />
+    <AppFooter v-if="shouldShowFooter" />
   </div>
 </template>
 
