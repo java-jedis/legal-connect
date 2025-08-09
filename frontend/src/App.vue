@@ -20,13 +20,7 @@ const route = useRoute()
 const showConnectionWarning = ref(false)
 const connectionWarningDelay = ref(null)
 
-// Check if current route is an AI-related page (no footer needed)
-const isAIRelatedPage = computed(() => {
-  return route.name === 'ai-chat' || 
-         route.name === 'ai-chat-session' || 
-         route.name === 'document-search' || 
-         route.name === 'chat-history'
-})
+
 
 // Methods for connection warning
 const reconnectWebSocket = async () => {
@@ -104,6 +98,15 @@ const leave = (el, done) => {
   
   setTimeout(done, 300)
 }
+
+// Hide footer on chat conversation and AI-related routes
+const shouldShowFooter = computed(() => ![
+  'chat-conversation',
+  'ai-chat',
+  'ai-chat-session',
+  'document-search',
+  'chat-history'
+].includes(route.name))
 </script>
 
 <template>
@@ -147,7 +150,7 @@ const leave = (el, done) => {
         </transition>
       </router-view>
     </main>
-    <AppFooter v-if="!isAIRelatedPage" />
+    <AppFooter v-if="shouldShowFooter" />
   </div>
 </template>
 

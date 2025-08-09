@@ -658,6 +658,16 @@ const goToCalendar = () => {
     calendarSection.scrollIntoView({ behavior: "smooth" });
   }
 };
+
+// If navigated with ?focus=calendar, scroll to calendar after mount
+if (typeof window !== 'undefined' && window.location.search.includes('focus=calendar')) {
+  setTimeout(() => {
+    const calendarSection = document.querySelector('.my-calendar-section');
+    if (calendarSection) {
+      calendarSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, 250);
+}
 </script>
 
 <style scoped>

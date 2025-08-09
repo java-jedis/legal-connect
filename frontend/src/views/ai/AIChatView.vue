@@ -316,7 +316,7 @@
         </div>
       </div>
 
-      <div class="chat-messages" ref="messagesContainer">
+      <div class="chat-messages" ref="messagesContainer" role="region" aria-label="AI chat messages">
         <!-- Welcome message -->
         <div v-if="messages.length === 0" class="welcome-message">
           <div class="welcome-content">
@@ -733,7 +733,7 @@ const startPromptConversation = async (prompt) => {
 const checkServiceHealth = async () => {
   try {
     await aiChatService.checkHealth()
-  } catch (error) {
+  } catch {
     errorMessage.value = 'AI Chat service is currently unavailable. Please try again later.'
   }
 }
@@ -835,7 +835,7 @@ const loadSessionFromBackend = async (sessionIdToLoad) => {
     messages.value = []
     
     // Try to get session info from backend
-    const sessionInfo = await aiChatService.getSessionInfo(sessionIdToLoad)
+    await aiChatService.getSessionInfo(sessionIdToLoad)
     
     // Get chat history for this session
     const historyResponse = await aiChatService.getChatHistory(sessionIdToLoad)
@@ -1198,7 +1198,7 @@ const formatMessage = (content) => {
 <style scoped>
 .ai-chat-layout {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 70px);
   background: var(--color-background);
   position: relative;
   overflow: hidden;
@@ -1527,8 +1527,9 @@ const formatMessage = (content) => {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .mobile-header {
@@ -1668,9 +1669,13 @@ const formatMessage = (content) => {
 }
 
 .chat-messages {
-  flex: 1;
+  position: absolute;
+  top: 80px; /* place below desktop header */
+  left: 0;
+  right: 0;
+  bottom: 72px; /* leave space for input */
   overflow-y: auto;
-  padding: 1rem 1rem 2rem 1rem;
+  padding: 1rem 1rem 1rem 1rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -1923,15 +1928,17 @@ const formatMessage = (content) => {
   }
 }
 
-.chat-input-container {
+ .chat-input-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--color-background);
   border-top: 1px solid var(--color-border);
-  padding: 1rem 1.5rem;
-  position: sticky;
-  bottom: 0;
+  padding: 0.75rem 1rem;
   z-index: 10;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-}
+ }
 
 .input-wrapper {
   max-width: 800px;
@@ -2270,12 +2277,13 @@ const formatMessage = (content) => {
   }
   
   .chat-messages {
+    top: 56px; /* account for mobile header height */
     padding: 1rem 0.75rem 2rem 0.75rem;
   }
   
   .chat-input-container {
     padding: 1rem;
-    position: sticky;
+    position: absolute;
     bottom: 0;
   }
   

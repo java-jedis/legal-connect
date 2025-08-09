@@ -1,5 +1,19 @@
 <template>
-  <div class="chat-layout">
+  <div class="chat-conversation-layout">
+    <!-- Chat History Sidebar -->
+    <div class="chat-sidebar">
+      <div class="sidebar-header">
+        <h3>Conversations</h3>
+      </div>
+      <div class="sidebar-content">
+        <ChatConversationList
+          :conversations="conversationsSorted"
+          :loading="isLoadingConversations"
+          @conversation-click="handleConversationClickFromList"
+        />
+      </div>
+    </div>
+
     <!-- Main Chat Area -->
     <div class="chat-main">
       <!-- Loading State -->
@@ -25,7 +39,7 @@
       </div>
 
       <!-- Messages Area -->
-      <div v-else class="chat-messages" ref="conversationContainerRef">
+      <div v-else class="chat-messages" ref="conversationContainerRef" role="region" aria-label="Conversation messages">
         <ChatConversationView
           :conversation-id="conversationId"
           :conversation="conversation"
@@ -40,14 +54,83 @@
           :placeholder="`Message ${participantName}...`"
           :is-sending="isSendingMessage"
           :error="sendError"
+          :max-rows="3"
           @send="handleSendMessage"
         />
+      </div>
+    </div>
+
+    <!-- Right Actions Sidebar -->
+    <div class="right-actions-sidebar">
+      <div class="actions-header">
+        <h4>Quick Actions</h4>
+      </div>
+      <div class="action-buttons">
+        <!-- User/Client Actions -->
+        <template v-if="isUser">
+          <button @click="goToMyMeetings" class="action-btn">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M3 9h18" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8" cy="14" r="1.5" fill="currentColor"/>
+                <circle cx="12" cy="14" r="1.5" fill="currentColor"/>
+                <circle cx="16" cy="14" r="1.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">My Meetings</span>
+              <span class="action-subtitle">View and manage your meetings</span>
+            </div>
+          </button>
+          <button @click="goToMyCalendar" class="action-btn">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 2v4M17 2v4M3 9h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">My Calendar</span>
+              <span class="action-subtitle">See your schedule</span>
+            </div>
+          </button>
+        </template>
+
+        <!-- Lawyer Actions -->
+        <template v-else-if="isLawyer">
+          <button @click="goToScheduleMeeting" class="action-btn">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">Schedule Meeting</span>
+              <span class="action-subtitle">Create a new consultation</span>
+            </div>
+          </button>
+          <button @click="goToLawyerCalendar" class="action-btn">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 2v4M17 2v4M3 9h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">My Calendar</span>
+              <span class="action-subtitle">See your schedule</span>
+            </div>
+          </button>
+        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import ChatConversationList from "@/components/chat/ChatConversationList.vue";
 import ChatConversationView from "@/components/chat/ChatConversationView.vue";
 import ChatLoadingSkeleton from "@/components/chat/ChatLoadingSkeleton.vue";
 import ChatMessageInput from "@/components/chat/ChatMessageInput.vue";
@@ -74,6 +157,14 @@ const sendError = ref(null);
 // Props from route
 const conversationId = computed(() => route.params.id);
 
+// Conversations sidebar data
+const conversationsSorted = computed(() => chatStore.sortedConversations);
+const isLoadingConversations = computed(() => chatStore.isLoading);
+
+// Role
+const isLawyer = computed(() => authStore.userInfo?.role === "LAWYER" || authStore.userType === "lawyer");
+const isUser = computed(() => authStore.userInfo?.role === "USER" || authStore.userType === "user");
+
 // Computed properties
 const conversation = computed(() => {
   return (
@@ -88,9 +179,7 @@ const participantName = computed(() => {
   return "Unknown User";
 });
 
-const participantInitial = computed(() => {
-  return participantName.value.charAt(0).toUpperCase();
-});
+
 
 const error = computed(() => {
   if (!conversationId.value) return "invalid_id";
@@ -127,7 +216,6 @@ const getParticipantName = (conv) => {
 const getReceiverId = (conv) => {
   return conv.participantTwoId || null;
 };
-
 
 const loadConversationData = async () => {
   if (!conversationId.value) {
@@ -181,6 +269,17 @@ const handleSendMessage = async (content) => {
   }
 };
 
+// Sidebar actions
+const handleConversationClickFromList = (conv) => {
+  chatStore.setCurrentConversation(conv);
+  router.push(`/chat/${conv.id}`);
+};
+
+const goToMyMeetings = () => router.push("/my-meetings");
+const goToMyCalendar = () => router.push({ name: 'user-dashboard', query: { focus: 'calendar' } });
+const goToScheduleMeeting = () => router.push("/meetings");
+const goToLawyerCalendar = () => router.push({ name: 'lawyer-dashboard', query: { focus: 'calendar' } });
+
 // Lifecycle
 onMounted(async () => {
   if (!authStore.isLoggedIn) {
@@ -218,83 +317,54 @@ watch(() => participantName.value, (name) => {
 </script>
 
 <style scoped>
-.chat-layout {
-  height: 95vh;
-  max-width: 95vw;
-  margin: 2.5vh auto;
+.chat-conversation-layout {
   display: flex;
+  height: calc(100vh - 70px); /* account for sticky header */
   background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-xl);
+  position: relative;
   overflow: hidden;
 }
 
+/* Sidebar (left) */
+.chat-sidebar {
+  width: 360px;
+  background: linear-gradient(135deg, var(--color-background-soft), var(--color-background));
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Main Chat Area (center) */
 .chat-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Header */
-.chat-header {
-  background: var(--color-background-soft);
-  border-bottom: 1px solid var(--color-border);
-  padding: 0.75rem 1rem;
-  flex-shrink: 0;
-}
-
-.unified-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.back-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  color: var(--color-text);
-  text-decoration: none;
-  border-radius: 50%;
-  transition: background-color var(--transition-fast);
-}
-
-.back-button:hover {
-  background-color: var(--color-background-mute);
-}
-
-.back-button svg {
-  width: 22px;
-  height: 22px;
-}
-
-.participant-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  color: var(--color-background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 1.1rem;
-}
-
-.participant-details h1 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--color-heading);
-}
-
-/* Loading & Error States */
-.loading-container, .error-container {
+.loading-container,
+.error-container {
   flex: 1;
   display: flex;
   align-items: center;
@@ -317,20 +387,6 @@ watch(() => participantName.value, (name) => {
   color: var(--color-error);
 }
 
-.error-content h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  margin: 0;
-}
-
-.error-content p {
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
 .retry-btn {
   padding: 0.75rem 1.5rem;
   background: var(--color-primary);
@@ -340,36 +396,115 @@ watch(() => participantName.value, (name) => {
   cursor: pointer;
 }
 
-/* Messages Area */
 .chat-messages {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 72px; /* leave space for input */
   overflow-y: auto;
-  min-height: 0;
+  padding: 1rem 1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
 }
 
-.conversation-view {
-  height: 100%;
-}
+.conversation-view { height: 100%; }
 
 /* Input Area */
 .chat-input-container {
-  flex-shrink: 0;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: var(--color-background);
   border-top: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
 }
 
+.chat-input-container :deep(.input-wrapper) {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+}
+
+/* Right Actions Sidebar */
+.right-actions-sidebar {
+  width: 300px;
+  background: var(--color-background-soft);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.actions-header {
+  padding: 1.25rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actions-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.action-buttons {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.action-btn:hover {
+  background: var(--color-background-mute);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-icon svg { width: 20px; height: 20px; }
+
+.action-text { display: flex; flex-direction: column; gap: 0.2rem; }
+.action-title { font-size: 0.95rem; font-weight: 600; color: var(--color-heading); }
+.action-subtitle { font-size: 0.8125rem; color: var(--color-text-muted); }
+
 /* Responsive */
+@media (max-width: 1024px) {
+  .right-actions-sidebar { display: none; }
+}
+
 @media (max-width: 768px) {
-  .chat-header {
-    padding: 0.5rem;
-  }
-  .participant-avatar {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-  .participant-details h1 {
-    font-size: 1rem;
-  }
+  .chat-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 80vw; z-index: 20; transform: translateX(0); }
+  .chat-conversation-layout { flex-direction: column; }
+  .chat-main { height: calc(100vh - 0px); }
+  .chat-messages { bottom: 64px; }
 }
 </style>
