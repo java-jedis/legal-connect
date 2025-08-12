@@ -164,6 +164,29 @@ const router = createRouter({
       },
     },
     {
+      path: "/lawyer/blogs",
+      name: "lawyer-blogs",
+      component: () => import("../views/blogs/LawyerBlogsView.vue"),
+      meta: {
+        requiresAuth: true,
+        requiresEmailVerification: true,
+        requiresRole: "LAWYER",
+      },
+    },
+    {
+      path: "/law-insights",
+      name: "law-insights",
+      component: () => import("../views/blogs/LawInsightsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/blog/:id",
+      name: "blog-detail",
+      component: () => import("../views/blogs/BlogDetailView.vue"),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: "/my-meetings",
       name: "client-meetings",
       component: () => import("../views/schedule/ClientMeetingsView.vue"),
@@ -269,9 +292,6 @@ router.beforeEach(async (to, from, next) => {
   // AI Chat session validation
   if (to.name === "ai-chat-session" && to.params.sessionId) {
     try {
-      // Import AI chat service dynamically to avoid circular dependencies
-      const { aiChatService } = await import("../services/aiChatService");
-
       // Validate session ID format (should be UUID or session_timestamp_id)
       const sessionId = to.params.sessionId;
       const isValidUUID =

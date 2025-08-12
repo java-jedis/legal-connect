@@ -342,35 +342,34 @@
       <section class="dashboard-content section">
         <div class="container">
           <div class="dashboard-row">
-            <!-- Recent Clients -->
+            <!-- Blogs (replacing Recent Clients) -->
             <div class="dashboard-card">
               <div class="card-header">
-                <h3>Recent Clients</h3>
-                <button class="btn btn-outline btn-sm">View All</button>
-              </div>
-              <div class="clients-list">
-                <div
-                  v-for="client in recentClients"
-                  :key="client.id"
-                  class="client-item"
-                >
-                  <div class="client-avatar">
-                    <span>{{ client.name.charAt(0) }}</span>
-                  </div>
-                  <div class="client-info">
-                    <h4 class="client-name">{{ client.name }}</h4>
-                    <p class="client-case">{{ client.caseType }}</p>
-                    <p class="client-status" :class="client.status">
-                      {{ client.status }}
-                    </p>
-                  </div>
-                  <div class="client-actions">
-                    <button class="btn btn-outline btn-sm">View Profile</button>
-                  </div>
+                <h3>My Blogs</h3>
+                <div class="card-actions">
+                  <button class="btn btn-outline btn-sm" @click="goToBlogs">Manage</button>
+                  <button class="btn btn-primary btn-sm" @click="goToBlogs">New Blog</button>
                 </div>
-                <div v-if="recentClients.length === 0" class="empty-state">
-                  <p>No clients yet</p>
-                  <button class="btn btn-primary btn-sm">Add Client</button>
+              </div>
+              <div class="cases-list">
+                <div v-if="blogStore.isLoading" class="empty-state">
+                  <p>Loading blogs...</p>
+                </div>
+                <div v-else>
+                  <div v-for="b in blogsPreview" :key="b.blogId" class="case-item">
+                    <div class="case-info">
+                      <h4 class="case-title">{{ b.title }}</h4>
+                      <p class="case-client">Updated: {{ formatDate(b.updatedAt) }}</p>
+                      <p class="case-status" :class="b.status.toLowerCase()">{{ b.status }}</p>
+                    </div>
+                    <div class="case-actions">
+                      <button class="btn btn-outline btn-sm" @click="goToBlogs">Open</button>
+                    </div>
+                  </div>
+                  <div v-if="blogsPreview.length === 0" class="empty-state">
+                    <p>No blogs yet</p>
+                    <button class="btn btn-primary btn-sm" @click="goToBlogs">Create Blog</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -515,6 +514,7 @@ import LawyerAvailabilitySlots from "@/components/lawyer/LawyerAvailabilitySlots
 import LawyerVerificationStatus from "@/components/lawyer/LawyerVerificationStatus.vue";
 import MyCalendarSection from "@/components/schedule/MyCalendarSection.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useBlogStore } from "@/stores/blog";
 import { useLawyerStore } from "@/stores/lawyer";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -523,6 +523,7 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const lawyerStore = useLawyerStore();
+const blogStore = useBlogStore();
 
 const lawyerName = computed(() => {
   if (authStore.userInfo?.firstName && authStore.userInfo?.lastName) {
@@ -535,6 +536,9 @@ const lawyerName = computed(() => {
 const canAccessDashboard = computed(() => lawyerStore.canAccessDashboard);
 const showSuccessMessage = ref(false);
 
+// Blog preview
+const blogsPreview = computed(() => (blogStore.blogs || []).slice(0, 5));
+
 // Check if profile was just created and fetch lawyer info
 onMounted(async () => {
   if (route.query.profileCreated === "true") {
@@ -545,6 +549,13 @@ onMounted(async () => {
 
   // Fetch lawyer info to check verification status
   await lawyerStore.fetchLawyerInfo();
+
+  // Load recent blogs preview
+  try {
+    await blogStore.loadMyBlogs(0, 5, "DESC");
+  } catch (e) {
+    console.warn('Failed to load blogs preview', e);
+  }
 });
 
 const dismissSuccessMessage = () => {
@@ -560,26 +571,7 @@ const stats = ref({
   yearlyEarnings: "145,800",
 });
 
-const recentClients = ref([
-  {
-    id: 1,
-    name: "John Smith",
-    caseType: "Contract Dispute",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Emily Davis",
-    caseType: "Employment Law",
-    status: "pending",
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    caseType: "Real Estate",
-    status: "active",
-  },
-]);
+// Removed recentClients in favor of blogs section
 
 const activeCases = ref([
   {
@@ -636,6 +628,14 @@ const maxEarning = computed(() => {
   return Math.max(...Object.values(monthlyEarnings.value));
 });
 
+function formatDate(dt) {
+  try {
+    return new Date(dt).toLocaleString();
+  } catch {
+    return dt;
+  }
+}
+
 const goToMeetings = () => {
   router.push("/meetings");
 };
@@ -657,6 +657,10 @@ const goToCalendar = () => {
   if (calendarSection) {
     calendarSection.scrollIntoView({ behavior: "smooth" });
   }
+};
+
+const goToBlogs = () => {
+  router.push("/lawyer/blogs");
 };
 
 // If navigated with ?focus=calendar, scroll to calendar after mount
@@ -912,6 +916,11 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-heading);
+}
+
+.card-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Lists */
