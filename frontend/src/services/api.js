@@ -607,7 +607,10 @@ export const chatAPI = {
    * @returns {Promise<Object>} Response containing sent message
    */
   sendMessage: async (messageData) => {
-    const response = await api.post(API_CONFIG.ENDPOINTS.CHAT.SEND_MESSAGE, messageData);
+    const response = await api.post(
+      API_CONFIG.ENDPOINTS.CHAT.SEND_MESSAGE,
+      messageData
+    );
     return response.data;
   },
 
@@ -630,10 +633,11 @@ export const chatAPI = {
    * @returns {Promise<Object>} Response containing messages list
    */
   getConversationMessages: async (conversationId, page = 0, size = 20) => {
-    const endpoint = API_CONFIG.ENDPOINTS.CHAT.GET_CONVERSATION_MESSAGES.replace(
-      "{id}",
-      conversationId
-    );
+    const endpoint =
+      API_CONFIG.ENDPOINTS.CHAT.GET_CONVERSATION_MESSAGES.replace(
+        "{id}",
+        conversationId
+      );
     const response = await api.get(endpoint, {
       params: { page, size },
     });
@@ -746,6 +750,90 @@ export const paymentAPI = {
   // Cancel payment
   cancelPayment: async (paymentId) => {
     const response = await api.put(`/payments/${paymentId}/cancel`);
+    return response.data;
+  },
+};
+
+// Blog API methods
+export const blogAPI = {
+  // Create a new blog (lawyer only)
+  createBlog: async (blogData) => {
+    const response = await api.post("/blogs", blogData);
+    return response.data;
+  },
+
+  // Update an existing blog (lawyer only)
+  updateBlog: async (blogId, blogData) => {
+    const response = await api.put(`/blogs/${blogId}`, blogData);
+    return response.data;
+  },
+
+  // Delete a blog (lawyer only)
+  deleteBlog: async (blogId) => {
+    const response = await api.delete(`/blogs/${blogId}`);
+    return response.data;
+  },
+
+  // Change blog status (DRAFT | PUBLISHED | ARCHIVED)
+  changeBlogStatus: async (blogId, status) => {
+    const response = await api.put(`/blogs/${blogId}/status`, null, {
+      params: { status },
+    });
+    return response.data;
+  },
+
+  // Get a single blog by ID
+  getBlog: async (blogId) => {
+    const response = await api.get(`/blogs/${blogId}`);
+    return response.data;
+  },
+
+  // Get all blogs by an author (if current user is author -> all, else -> published only)
+  getAuthorBlogs: async (
+    authorId,
+    page = 0,
+    size = 10,
+    sortDirection = "DESC"
+  ) => {
+    const response = await api.get(`/blogs/authors/${authorId}`, {
+      params: { page, size, sortDirection },
+    });
+    return response.data;
+  },
+
+  // Get subscribers for the authenticated author (lawyer only)
+  getSubscribers: async (page = 0, size = 10) => {
+    const response = await api.get(`/blogs/authors/subscribers`, {
+      params: { page, size },
+    });
+    return response.data;
+  },
+
+  // Subscribe to an author
+  subscribe: async (authorId) => {
+    const response = await api.post(`/blogs/authors/${authorId}/subscribe`);
+    return response.data;
+  },
+
+  // Unsubscribe from an author
+  unsubscribe: async (authorId) => {
+    const response = await api.delete(`/blogs/authors/${authorId}/subscribe`);
+    return response.data;
+  },
+
+  // Get blogs from authors the authenticated user is subscribed to
+  getSubscribedBlogs: async (page = 0, size = 10, sortDirection = "DESC") => {
+    const response = await api.get(`/blogs/subscribed`, {
+      params: { page, size, sortDirection },
+    });
+    return response.data;
+  },
+
+  // Search published blogs (title/content)
+  searchPublished: async (q, page = 0, size = 10) => {
+    const response = await api.get(`/blogs/search`, {
+      params: { q, page, size },
+    });
     return response.data;
   },
 };
