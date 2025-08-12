@@ -1,0 +1,98 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:17.5
+    container_name: lc_postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-legalconnect}
+      - POSTGRES_USER=${POSTGRES_USER:-root}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-root} -d ${POSTGRES_DB:-legalconnect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+    networks:
+      - backend-net
+
+  redis:
+    image: redis:7
+    container_name: lc_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.1
+    container_name: lc_elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend-net
+
+  backend:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: lc_backend
+    working_dir: /workspace/backend/legalconnect
+    command: ./mvnw spring-boot:run
+    environment:
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=file:/app/config/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-legalconnect}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-root}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+    volumes:
+      - ./legalconnect:/workspace/backend/legalconnect
+      - ./application.yml:/app/config/application.yml:ro
+      - ~/.m2:/root/.m2
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend-net
+
+volumes:
+  pg_data:
+  redis_data:
+  es_data:
+
+networks:
+  backend-net:
+    driver: bridge 
