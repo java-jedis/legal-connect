@@ -175,6 +175,16 @@
             <version>29.4.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>9.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+            <version>3.5.3</version> <!-- match your Spring Boot version -->
+        </dependency>
         <!-- Actuator for health checks -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
