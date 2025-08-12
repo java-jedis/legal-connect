@@ -24,7 +24,7 @@ class BlogListResponseDTOTest {
 
     @Test
     void testAllArgsConstructorAndGetters() {
-        BlogResponseDTO blog = new BlogResponseDTO(UUID.randomUUID(), null, "T", "C", BlogStatus.DRAFT, null, null);
+        BlogResponseDTO blog = new BlogResponseDTO(UUID.randomUUID(), null, "T", "C", BlogStatus.DRAFT, null, null, false);
         List<BlogResponseDTO> list = Collections.singletonList(blog);
         BlogListResponseDTO dto = new BlogListResponseDTO(list);
         assertEquals(list, dto.getBlogs());
@@ -33,8 +33,8 @@ class BlogListResponseDTOTest {
     @Test
     void testSettersAndGetters() {
         BlogListResponseDTO dto = new BlogListResponseDTO();
-        BlogResponseDTO b1 = new BlogResponseDTO(UUID.randomUUID(), null, "T1", "C1", BlogStatus.DRAFT, null, null);
-        BlogResponseDTO b2 = new BlogResponseDTO(UUID.randomUUID(), null, "T2", "C2", BlogStatus.PUBLISHED, null, null);
+        BlogResponseDTO b1 = new BlogResponseDTO(UUID.randomUUID(), null, "T1", "C1", BlogStatus.DRAFT, null, null, false);
+        BlogResponseDTO b2 = new BlogResponseDTO(UUID.randomUUID(), null, "T2", "C2", BlogStatus.PUBLISHED, null, null, true);
         List<BlogResponseDTO> list = Arrays.asList(b1, b2);
         dto.setBlogs(list);
         assertEquals(list, dto.getBlogs());
@@ -42,7 +42,7 @@ class BlogListResponseDTOTest {
 
     @Test
     void testEqualsHashCodeAndToString() {
-        BlogResponseDTO b = new BlogResponseDTO(UUID.randomUUID(), null, "T", "C", BlogStatus.DRAFT, null, null);
+        BlogResponseDTO b = new BlogResponseDTO(UUID.randomUUID(), null, "T", "C", BlogStatus.DRAFT, null, null, false);
         List<BlogResponseDTO> list = Collections.singletonList(b);
         BlogListResponseDTO d1 = new BlogListResponseDTO(list);
         BlogListResponseDTO d2 = new BlogListResponseDTO(list);

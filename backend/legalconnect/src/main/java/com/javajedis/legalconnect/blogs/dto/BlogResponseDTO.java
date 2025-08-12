@@ -20,7 +20,8 @@ public class BlogResponseDTO {
     private BlogStatus status;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
-
+    private boolean subscribed;
+    
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

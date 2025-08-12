@@ -214,6 +214,8 @@ class BlogServiceTest {
         try (MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
             mocked.when(() -> GetUserUtil.getAuthenticatedUser(userRepo)).thenReturn(otherUser);
             when(blogRepo.findByAuthorIdAndStatus(eq(author.getId()), eq(BlogStatus.PUBLISHED), any(Pageable.class))).thenReturn(page);
+            // New: subscription check invoked by mapper when viewer isn't the author
+            when(subscriberRepo.findByAuthorIdAndSubscriberId(author.getId(), otherUser.getId())).thenReturn(Optional.empty());
             ResponseEntity<ApiResponse<BlogListResponseDTO>> res = blogService.getAllAuthorBlogs(author.getId(), 0, 10, "DESC");
             assertEquals(HttpStatus.OK, res.getStatusCode());
             assertEquals(1, res.getBody().getData().getBlogs().size());
@@ -320,9 +322,12 @@ class BlogServiceTest {
             when(subscriberRepo.findBySubscriberId(eq(otherUser.getId()), any(Pageable.class))).thenReturn(subs);
             Page<Blog> blogPage = new PageImpl<>(List.of(blog), PageRequest.of(0, 10), 1);
             when(blogRepo.findByAuthorIdInAndStatus(anyList(), eq(BlogStatus.PUBLISHED), any(Pageable.class))).thenReturn(blogPage);
+            // New: mapper will check subscription for each blog; return present
+            when(subscriberRepo.findByAuthorIdAndSubscriberId(author.getId(), otherUser.getId())).thenReturn(Optional.of(new Subscriber()));
             ResponseEntity<ApiResponse<BlogListResponseDTO>> ok = blogService.getSubscribedBlogs(0, 10, "DESC");
             assertEquals(HttpStatus.OK, ok.getStatusCode());
             assertEquals(1, ok.getBody().getData().getBlogs().size());
+            assertTrue(ok.getBody().getData().getBlogs().get(0).isSubscribed());
         }
     }
 

@@ -22,7 +22,8 @@ class BlogSearchResponseDTOTest {
             "C",
             BlogStatus.PUBLISHED,
             OffsetDateTime.now(),
-            OffsetDateTime.now()
+            OffsetDateTime.now(),
+            true
         );
     }
 

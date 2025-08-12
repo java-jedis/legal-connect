@@ -24,6 +24,7 @@ class BlogResponseDTOTest {
         assertNull(dto.getStatus());
         assertNull(dto.getCreatedAt());
         assertNull(dto.getUpdatedAt());
+        assertEquals(false, dto.isSubscribed());
     }
 
     @Test
@@ -41,7 +42,8 @@ class BlogResponseDTOTest {
             "Sample Content",
             BlogStatus.PUBLISHED,
             now,
-            now
+            now,
+            true
         );
 
         assertEquals(blogId, dto.getBlogId());
@@ -51,6 +53,7 @@ class BlogResponseDTOTest {
         assertEquals(BlogStatus.PUBLISHED, dto.getStatus());
         assertEquals(now, dto.getCreatedAt());
         assertEquals(now, dto.getUpdatedAt());
+        assertEquals(true, dto.isSubscribed());
     }
 
     @Test
@@ -72,6 +75,7 @@ class BlogResponseDTOTest {
         dto.setStatus(BlogStatus.DRAFT);
         dto.setCreatedAt(created);
         dto.setUpdatedAt(updated);
+        dto.setSubscribed(true);
 
         assertEquals(blogId, dto.getBlogId());
         assertEquals(author, dto.getAuthor());
@@ -80,6 +84,7 @@ class BlogResponseDTOTest {
         assertEquals(BlogStatus.DRAFT, dto.getStatus());
         assertEquals(created, dto.getCreatedAt());
         assertEquals(updated, dto.getUpdatedAt());
+        assertEquals(true, dto.isSubscribed());
     }
 
     @Test
@@ -90,9 +95,9 @@ class BlogResponseDTOTest {
         );
         OffsetDateTime now = OffsetDateTime.now();
 
-        BlogResponseDTO dto1 = new BlogResponseDTO(blogId, author, "T", "C", BlogStatus.PUBLISHED, now, now);
-        BlogResponseDTO dto2 = new BlogResponseDTO(blogId, author, "T", "C", BlogStatus.PUBLISHED, now, now);
-        BlogResponseDTO dto3 = new BlogResponseDTO(UUID.randomUUID(), author, "T2", "C2", BlogStatus.DRAFT, now, now);
+        BlogResponseDTO dto1 = new BlogResponseDTO(blogId, author, "T", "C", BlogStatus.PUBLISHED, now, now, true);
+        BlogResponseDTO dto2 = new BlogResponseDTO(blogId, author, "T", "C", BlogStatus.PUBLISHED, now, now, true);
+        BlogResponseDTO dto3 = new BlogResponseDTO(UUID.randomUUID(), author, "T2", "C2", BlogStatus.DRAFT, now, now, false);
 
         assertEquals(dto1, dto2);
         assertEquals(dto1.hashCode(), dto2.hashCode());

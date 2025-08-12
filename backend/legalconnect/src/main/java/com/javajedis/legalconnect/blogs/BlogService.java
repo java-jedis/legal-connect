@@ -11,6 +11,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.javajedis.legalconnect.blogs.dto.AuthorSubscribersListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.BlogListResponseDTO;
@@ -221,6 +222,7 @@ public class BlogService {
         return ApiResponse.success("Subscribed successfully", HttpStatus.OK, "Subscribed successfully");
     }
 
+    @Transactional
     public ResponseEntity<ApiResponse<String>> unsubscribe(UUID authorId) {
         log.debug("Unsubscribing from author: {}", authorId);
 
@@ -356,6 +358,10 @@ public class BlogService {
                     r.blog().getAuthorLastName(),
                     r.blog().getAuthorEmail()
             );
+            boolean subscribed = false;
+            if (currentUser != null && !currentUser.getId().equals(r.blog().getAuthorId())) {
+                subscribed = subscriberRepo.findByAuthorIdAndSubscriberId(r.blog().getAuthorId(), currentUser.getId()).isPresent();
+            }
             BlogResponseDTO blogInfo = new BlogResponseDTO(
                     r.blog().getId(),
                     authorDto,
@@ -363,12 +369,9 @@ public class BlogService {
                     r.blog().getContent(),
                     BlogStatus.valueOf(r.blog().getStatus()),
                     r.blog().getCreatedAt(),
-                    r.blog().getUpdatedAt()
+                    r.blog().getUpdatedAt(),
+                    subscribed
             );
-            boolean subscribed = false;
-            if (currentUser != null) {
-                subscribed = subscriberRepo.findByAuthorIdAndSubscriberId(r.blog().getAuthorId(), currentUser.getId()).isPresent();
-            }
             return new BlogSearchResponseDTO(blogInfo, r.highlightedTitle(), r.highlightedContent(), subscribed);
         }).toList();
 
@@ -412,6 +415,11 @@ public class BlogService {
                 blog.getAuthor().getLastName(),
                 blog.getAuthor().getEmail()
         );
+        User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
+        boolean subscribed = false;
+        if (currentUser != null && !currentUser.getId().equals(blog.getAuthor().getId())) {
+            subscribed = subscriberRepo.findByAuthorIdAndSubscriberId(blog.getAuthor().getId(), currentUser.getId()).isPresent();
+        }
         return new BlogResponseDTO(
                 blog.getId(),
                 authorDto,
@@ -419,7 +427,8 @@ public class BlogService {
                 blog.getContent(),
                 blog.getStatus(),
                 blog.getCreatedAt(),
-                blog.getUpdatedAt()
+                blog.getUpdatedAt(),
+                subscribed
         );
     }
 } 

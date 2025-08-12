@@ -115,7 +115,8 @@ class BlogControllerTest {
             "Content",
             BlogStatus.DRAFT,
             OffsetDateTime.now(),
-            OffsetDateTime.now()
+            OffsetDateTime.now(),
+            false
         );
 
         blogListResponseDTO = new BlogListResponseDTO(List.of(blogResponseDTO));
