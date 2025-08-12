@@ -15,8 +15,11 @@ import org.springframework.stereotype.Service;
 import com.javajedis.legalconnect.blogs.dto.AuthorSubscribersListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.BlogListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.BlogResponseDTO;
+import com.javajedis.legalconnect.blogs.dto.BlogSearchListResponseDTO;
+import com.javajedis.legalconnect.blogs.dto.BlogSearchResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.UserSubscriptionsListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.WriteBlogDTO;
+import com.javajedis.legalconnect.blogs.search.EsBlogService;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.user.User;
@@ -45,6 +48,7 @@ public class BlogService {
     private final BlogRepo blogRepo;
     private final UserRepo userRepo;
     private final SubscriberRepo subscriberRepo;
+    private final EsBlogService esBlogService;
 
     public ResponseEntity<ApiResponse<BlogResponseDTO>> writeBlog( User currentUser,WriteBlogDTO blogData) {
         log.debug("Creating blog for author ID: {}", currentUser.getId());
@@ -62,6 +66,7 @@ public class BlogService {
         blog.setStatus(blogData.getStatus());
 
         Blog saved = blogRepo.save(blog);
+        esBlogService.index(saved);
         log.info("Blog {} created by user: {}", saved.getId(), currentUser.getEmail());
 
         return ApiResponse.success(mapToBlogResponseDTO(saved), HttpStatus.CREATED, "Blog created successfully");
@@ -88,6 +93,7 @@ public class BlogService {
         }
 
         Blog updated = blogRepo.save(existing);
+        esBlogService.update(updated);
         log.info("Blog {} updated", blogId);
 
         return ApiResponse.success(mapToBlogResponseDTO(updated), HttpStatus.OK, "Blog updated successfully");
@@ -114,6 +120,7 @@ public class BlogService {
         }
 
         blogRepo.delete(existing);
+        esBlogService.delete(blogId);
         log.info("Blog {} deleted", blogId);
 
         return ApiResponse.success("Blog deleted successfully", HttpStatus.OK, "Blog deleted successfully");
@@ -135,6 +142,7 @@ public class BlogService {
 
         existing.setStatus(status);
         Blog updated = blogRepo.save(existing);
+        esBlogService.update(updated);
         log.info("Blog {} status changed to {}", blogId, status);
 
         return ApiResponse.success(mapToBlogResponseDTO(updated), HttpStatus.OK, "Blog status updated successfully");
@@ -333,6 +341,46 @@ public class BlogService {
         metadata.put(META_HAS_NEXT, subsPage.hasNext());
         metadata.put(META_HAS_PREVIOUS, subsPage.hasPrevious());
         return ApiResponse.success(response, HttpStatus.OK, "Subscribed authors retrieved successfully", metadata);
+    }
+
+    public ResponseEntity<ApiResponse<BlogSearchListResponseDTO>> searchPublished(String query, int page, int size) {
+        log.debug("Searching published blogs with query='{}', page={}, size={}", query, page, size);
+        User currentUser = GetUserUtil.getAuthenticatedUser(userRepo);
+
+        var searchPage = esBlogService.searchPublishedBlogs(query, page, size);
+
+        List<BlogSearchResponseDTO> items = searchPage.results().stream().map(r -> {
+            BlogResponseDTO.AuthorSummaryDTO authorDto = new BlogResponseDTO.AuthorSummaryDTO(
+                    r.blog().getAuthorId(),
+                    r.blog().getAuthorFirstName(),
+                    r.blog().getAuthorLastName(),
+                    r.blog().getAuthorEmail()
+            );
+            BlogResponseDTO blogInfo = new BlogResponseDTO(
+                    r.blog().getId(),
+                    authorDto,
+                    r.blog().getTitle(),
+                    r.blog().getContent(),
+                    BlogStatus.valueOf(r.blog().getStatus()),
+                    r.blog().getCreatedAt(),
+                    r.blog().getUpdatedAt()
+            );
+            boolean subscribed = false;
+            if (currentUser != null) {
+                subscribed = subscriberRepo.findByAuthorIdAndSubscriberId(r.blog().getAuthorId(), currentUser.getId()).isPresent();
+            }
+            return new BlogSearchResponseDTO(blogInfo, r.highlightedTitle(), r.highlightedContent(), subscribed);
+        }).toList();
+
+        BlogSearchListResponseDTO response = new BlogSearchListResponseDTO(items);
+        Map<String, Object> metadata = new java.util.HashMap<>();
+        metadata.put(META_TOTAL_COUNT, searchPage.total());
+        metadata.put(META_PAGE_NUMBER, page);
+        metadata.put(META_PAGE_SIZE, size);
+        long totalPages = (searchPage.total() + size - 1) / size;
+        metadata.put(META_TOTAL_PAGES, totalPages);
+
+        return ApiResponse.success(response, HttpStatus.OK, "Search completed", metadata);
     }
 
     private ResponseEntity<ApiResponse<BlogResponseDTO>> validateBlogAccessForAuthor(UUID blogId, String operation) {

@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.javajedis.legalconnect.blogs.dto.AuthorSubscribersListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.BlogListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.BlogResponseDTO;
-import com.javajedis.legalconnect.blogs.dto.UserSubscriptionsListResponseDTO;
+import com.javajedis.legalconnect.blogs.dto.BlogSearchListResponseDTO;
 import com.javajedis.legalconnect.blogs.dto.WriteBlogDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.security.RequireUserOrVerifiedLawyer;
@@ -136,13 +136,13 @@ public class BlogController {
         return blogService.getSubscribedBlogs(page, size, sortDirection);
     }
 
-    @Operation(summary = "Get subscribed authors", description = "Retrieves a paginated list of authors that the current user subscribed to")
-    @GetMapping("/authors/subscribed")
-    @RequireVerifiedLawyer
-    public ResponseEntity<ApiResponse<UserSubscriptionsListResponseDTO>> getSubscribedAuthors(
+    @Operation(summary = "Search published blogs", description = "Searches published blogs by title/content. Sorted by updated time desc.")
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<BlogSearchListResponseDTO>> searchPublished(
+            @RequestParam String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        log.info("GET /blogs/authors/subscribed called with page={}, size={}", page, size);
-        return blogService.getSubscribedAuthors(page, size);
+        log.info("GET /blogs/search called with q='{}', page={}, size={}", q, page, size);
+        return blogService.searchPublished(q, page, size);
     }
 } 
