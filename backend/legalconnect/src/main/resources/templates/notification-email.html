@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>LegalConnect Notification</title>
+  <style>
+    /* Base reset for email clients */
+    body, table, td, a { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+    img { border: 0; outline: none; text-decoration: none; display: block; }
+    table { border-collapse: collapse !important; }
+    body { margin: 0; padding: 0; width: 100% !important; }
+
+    /* Light mode default */
+    body { background: #f6f7fb; color: #111827; }
+
+    .wrapper { width: 100%; background: #f6f7fb; padding: 24px 12px; }
+
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      background: #ffffff;
+      color: #111827;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      box-shadow: 0 4px 18px rgba(17, 24, 39, 0.06);
+    }
+
+    .header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo { width: 36px; height: 36px; border-radius: 8px; background: #0b5ed7; }
+
+    .brand-title { font-size: 18px; font-weight: 700; letter-spacing: 0.3px; color: #0b5ed7; }
+
+    .content { padding: 24px; }
+
+    h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #111827; }
+    p { margin: 0; line-height: 1.55; font-size: 15px; color: #1f2937; }
+
+    .notice {
+      margin: 18px 0 16px 0;
+      padding: 16px;
+      border: 1px solid #d1fae5;
+      background: #ecfdf5;
+      border-left: 4px solid #10b981;
+      border-radius: 8px;
+    }
+
+    .pill {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #0b5ed7;
+      background: #e6f0ff;
+      padding: 6px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+
+    .main-text { font-size: 16px; font-weight: 600; color: #0f172a; }
+
+    .cta-wrap { text-align: center; margin-top: 16px; }
+    .cta {
+      display: inline-block;
+      background: #0b5ed7;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .cta:hover { background: #0a53be; }
+
+    .timestamp { margin-top: 16px; text-align: center; font-size: 13px; color: #374151; }
+
+    .footer {
+      padding: 18px 24px 22px 24px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      background: #fafafa;
+    }
+
+    .footer a { color: #0b5ed7; text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Dark mode adjustments (supported in many modern clients) */
+    @media (prefers-color-scheme: dark) {
+      body { background: #0b1220; color: #e5e7eb; }
+      .wrapper { background: #0b1220; }
+      .container { background: #111827; color: #e5e7eb; border-color: #1f2937; box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+      .header { border-bottom-color: #1f2937; }
+      .brand-title { color: #76b3ff; }
+      h2 { color: #f3f4f6; }
+      p { color: #e5e7eb; }
+      .notice { background: #0f2a22; border-color: #065f46; }
+      .pill { background: rgba(118, 179, 255, 0.15); color: #9cc7ff; }
+      .main-text { color: #f8fafc; }
+      .cta { background: #2563eb; }
+      .cta:hover { background: #1d4ed8; }
+      .timestamp { color: #cbd5e1; }
+      .footer { background: #0f172a; border-top-color: #1f2937; color: #94a3b8; }
+      .footer a { color: #76b3ff; }
+    }
+
+    /* Outlook.com dark mode tweak */
+    [data-ogsc] body { background: #0b1220 !important; }
+    [data-ogsc] .container { background: #111827 !important; color: #e5e7eb !important; }
+    [data-ogsc] .footer { background: #0f172a !important; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <div class="logo" role="img" aria-label="LegalConnect"></div>
+        <div class="brand-title">LegalConnect</div>
+      </div>
+
+      <div class="content">
+        <h2>New Notification</h2>
+        <p>You have received a new notification from <strong>LegalConnect</strong>.</p>
+
+        <div class="notice">
+          <div class="pill" th:text="${notificationType}">Notification</div>
+          <p class="main-text" th:text="${content}">Example content goes here</p>
+        </div>
+
+        <p>You can view more details by logging into your LegalConnect account.</p>
+        <div class="cta-wrap">
+          <a class="cta" href="http://localhost:5173/dashboard">View in Dashboard</a>
+        </div>
+
+        <div class="timestamp" th:if="${timestamp != null}" th:text="${#temporals.format(timestamp, 'dd-MM-yyyy hh:mm a')}">05-08-2025 12:00 PM</div>
+        <div class="timestamp" th:if="${timestamp == null}" th:text="${#temporals.format(#temporals.createNow(), 'dd-MM-yyyy hh:mm a')}">05-08-2025 12:00 PM</div>
+      </div>
+
+      <div class="footer">
+        <p>This is an automated message, please do not reply.</p>
+        <p>Manage your preferences in account settings.</p>
+        <p>&copy; 2025 LegalConnect. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

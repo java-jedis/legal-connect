@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>LegalConnect Email Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6fb;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+            padding: 32px 28px 24px 28px;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 24px auto;
+            max-width: 120px;
+        }
+
+        h2 {
+            color: #1a237e;
+            margin-top: 0;
+            font-weight: 600;
+        }
+
+        .otp-box {
+            background: linear-gradient(90deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 18px 0;
+            border-radius: 8px;
+            text-align: center;
+            margin: 28px 0 18px 0;
+        }
+
+        .otp-code {
+            font-size: 2.2em;
+            font-weight: bold;
+            letter-spacing: 6px;
+            color: #1565c0;
+        }
+
+        .info {
+            color: #444;
+            font-size: 1.05em;
+        }
+
+        .expire {
+            color: #b71c1c;
+            font-weight: 500;
+        }
+
+        .footer {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-top: 32px;
+        }
+
+        .brand {
+            color: #1976d2;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <img alt="LegalConnect Logo" class="logo" src="https://your-legalconnect-logo-url.com/logo.png">
+    <h2>Verify your email address</h2>
+    <p class="info">Thank you for choosing <span class="brand">LegalConnect</span>! To complete your registration,
+        please use the following verification code:</p>
+    <div class="otp-box">
+        <span class="otp-code" th:text="${otp}">123456</span>
+    </div>
+    <p class="info">This code will expire in <span class="expire" th:text="${expirationMinutes}">5</span> minutes.</p>
+    <p class="info" style="font-size: 0.97em; color: #888;">If you didn't request this verification, you can safely
+        ignore this email.</p>
+</div>
+<div class="footer">
+    <p>This is an automated message, please do not reply to this email.</p>
+    <p>&copy; 2025 LegalConnect. All rights reserved.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Debug Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Debug Test</h1>
+    
+    <div>
+        <label>JWT Token:</label><br>
+        <input type="text" id="jwtToken" style="width: 500px;" placeholder="Enter JWT token">
+    </div>
+    <br>
+    
+    <div>
+        <label>User ID:</label><br>
+        <input type="text" id="userId" style="width: 300px;" placeholder="Enter user ID (UUID)">
+    </div>
+    <br>
+    
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="sendPing()">Send Ping</button>
+    <button onclick="testNotification()">Test Notification</button>
+    <br><br>
+    
+    <div>
+        <strong>Status:</strong> <span id="status">Disconnected</span>
+    </div>
+    <br>
+    
+    <div>
+        <strong>Messages Received:</strong> <span id="messageCount">0</span>
+    </div>
+    <br>
+    
+    <div>
+        <strong>Log:</strong><br>
+        <textarea id="log" rows="20" cols="100" readonly></textarea>
+    </div>
+
+    <script>
+        let stompClient = null;
+        let connected = false;
+        let messageCount = 0;
+
+        function log(message) {
+            const logArea = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logArea.value += `[${timestamp}] ${message}\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+
+        function updateMessageCount() {
+            document.getElementById('messageCount').textContent = messageCount;
+        }
+
+        function connect() {
+            const token = document.getElementById('jwtToken').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            
+            if (!token || !userId) {
+                alert('Please enter both JWT token and User ID');
+                return;
+            }
+
+            log('Attempting to connect...');
+            
+            const socket = new SockJS('/v1/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.debug = function(str) {
+                log('STOMP DEBUG: ' + str);
+            };
+            
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'token': token
+            };
+
+            stompClient.connect(headers, function(frame) {
+                connected = true;
+                updateStatus('Connected');
+                log('✅ Connected successfully');
+                log('Frame: ' + frame);
+                
+                // Subscribe to all possible queues
+                log('Subscribing to notification queue...');
+                stompClient.subscribe(`/user/${userId}/queue/notifications`, function(message) {
+                    messageCount++;
+                    updateMessageCount();
+                    log('📨 NOTIFICATION MESSAGE RECEIVED: ' + message.body);
+                });
+                
+                log('Subscribing to status queue...');
+                stompClient.subscribe(`/user/${userId}/queue/status`, function(message) {
+                    messageCount++;
+                    updateMessageCount();
+                    log('📡 STATUS MESSAGE RECEIVED: ' + message.body);
+                });
+                
+                log('Subscribing to error queue...');
+                stompClient.subscribe(`/user/${userId}/queue/errors`, function(message) {
+                    messageCount++;
+                    updateMessageCount();
+                    log('❌ ERROR MESSAGE RECEIVED: ' + message.body);
+                });
+                
+                // Also subscribe to session-specific destinations (for testing approach 2)
+                // Extract session ID from the connection
+                const sessionId = stompClient.ws._transport.url.split('/')[5]; // Extract from SockJS URL
+                log('Session ID extracted: ' + sessionId);
+                log('Subscribing to session-specific notification queue...');
+                stompClient.subscribe(`/queue/notifications-${sessionId}`, function(message) {
+                    messageCount++;
+                    updateMessageCount();
+                    log('📨 SESSION-SPECIFIC NOTIFICATION RECEIVED: ' + message.body);
+                });
+                
+                // Also subscribe to topic-based destination (for testing approach 3)
+                log('Subscribing to topic-based notification queue...');
+                stompClient.subscribe(`/topic/user-${userId}`, function(message) {
+                    messageCount++;
+                    updateMessageCount();
+                    log('📨 TOPIC-BASED NOTIFICATION RECEIVED: ' + message.body);
+                });
+                
+                // Send subscription message
+                log('Sending subscription message...');
+                stompClient.send('/app/notifications/subscribe', {}, JSON.stringify({}));
+                
+            }, function(error) {
+                connected = false;
+                updateStatus('Connection Failed');
+                log('❌ Connection failed: ' + error);
+            });
+        }
+
+        function disconnect() {
+            if (stompClient && connected) {
+                stompClient.disconnect(function() {
+                    connected = false;
+                    updateStatus('Disconnected');
+                    log('🔌 Disconnected');
+                });
+            }
+        }
+
+        function sendPing() {
+            if (stompClient && connected) {
+                log('Sending ping...');
+                stompClient.send('/app/notifications/ping', {}, JSON.stringify({}));
+            } else {
+                alert('Not connected');
+            }
+        }
+
+        function testNotification() {
+            const token = document.getElementById('jwtToken').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            
+            if (!token || !userId) {
+                alert('Please enter both JWT token and User ID');
+                return;
+            }
+
+            log('Sending test notification via REST API...');
+            
+            fetch('/v1/notifications/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    receiverId: userId,
+                    content: 'WebSocket debug test notification'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                log('REST API Response: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                log('REST API Error: ' + error);
+            });
+        }
+
+        // Initial log
+        log('WebSocket Debug Test loaded. Enter JWT token and User ID, then click Connect.');
+    </script>
+</body>
+</html>

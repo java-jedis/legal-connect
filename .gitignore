@@ -4,6 +4,7 @@ __pycache__/
 venv/
 .venv/
 env/
+.env
 .mypy_cache/
 /application.yml
 application.yml
@@ -11,3 +12,4 @@ application.yml
 # IDE directories
 .idea/
 .vscode/
+jaas-key.pk
