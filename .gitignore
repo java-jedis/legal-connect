@@ -7,7 +7,8 @@ env/
 .mypy_cache/
 /application.yml
 application.yml
-
+.env.development
+.env.production
 # IDE directories
 .idea/
 .vscode/
