@@ -40,6 +40,8 @@ public class OAuthService {
     private String redirectUri;
     @Value("${google.oauth.scope}")
     private String scope;
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
 
     /**
@@ -138,7 +140,7 @@ public class OAuthService {
             oAuthCalendarTokenRepo.save(oAuthCalendarToken);
 
             String userType = user.getRole().toString().toLowerCase();
-            String redirectUrl = "http://localhost:5173/dashboard/" + userType;
+            String redirectUrl = frontendUrl + "/dashboard/" + userType;
             return ResponseEntity.status(HttpStatus.FOUND)
                     .location(URI.create(redirectUrl))
                     .build();
