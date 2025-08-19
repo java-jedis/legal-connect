@@ -60,6 +60,8 @@ public class PaymentService {
     
     @Value("${stripe.secret-key}")
     private String stripeSecretKey;
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @PostConstruct
     @SuppressWarnings("java:S2696") // This method is from Stripe dependency can not enclose it in static
@@ -447,8 +449,8 @@ public class PaymentService {
         try {
             SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl("http://localhost:5173/payment/success?session_id={CHECKOUT_SESSION_ID}")
-                    .setCancelUrl("http://localhost:5173/payment/cancel?session_id={CHECKOUT_SESSION_ID}")
+                    .setSuccessUrl(frontendUrl + "/payment/success?session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl(frontendUrl + "/payment/cancel?session_id={CHECKOUT_SESSION_ID}")
                     .addLineItem(SessionCreateParams.LineItem.builder()
                             .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
                                     .setCurrency("bdt")
