@@ -330,10 +330,10 @@ class WebSocketManager {
 
     // Use environment variable or default to localhost with v1 context path for WebSocket
     const apiBaseUrl =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/v1";
 
-    // Add /v1/ws to the base URL (WebSocket needs the full context path)
-    return `${apiBaseUrl}/v1/ws`;
+    // Append only /ws to the base URL (which should already include the context path)
+    return `${apiBaseUrl}/ws`;
   }
 
   /**
