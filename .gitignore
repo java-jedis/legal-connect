@@ -9,6 +9,9 @@ env/
 /application.yml
 application.yml
 app.yaml
+dispatch.yaml
+.gcloudignore
+app.yaml
 application-prod.yml
 app-default.yaml
 dispatch.yaml
