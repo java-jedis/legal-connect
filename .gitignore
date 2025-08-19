@@ -8,7 +8,14 @@ env/
 .mypy_cache/
 /application.yml
 application.yml
+app.yaml
+application-prod.yml
+app-default.yaml
+dispatch.yaml
+legal-connect-25-5e433a148e66.json
 
+.env.development
+.env.production
 # IDE directories
 .idea/
 .vscode/
