@@ -22,7 +22,49 @@
       </div>
     </div>
 
-    <!-- Filters Section (similar to CaseManagement.vue) -->
+    <!-- Inline Create/Edit Panel -->
+    <div v-if="showEditor" ref="editorContainer" class="editor-inline">
+      <div class="editor-header">
+        <h3 class="title">{{ editingBlog ? 'Edit Blog' : 'Create New Blog' }}</h3>
+        <button class="icon-btn" @click="closeEditor" aria-label="Close editor">&times;</button>
+      </div>
+      <div class="editor-body">
+        <div class="form-group">
+          <label>Title</label>
+          <input v-model="form.title" class="title-input" placeholder="Enter a compelling blog title" />
+        </div>
+        <div class="form-group">
+          <label>Content</label>
+          <div ref="editor" class="rich-editor" contenteditable="true" @input="onEditorInput"></div>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn btn-outline" @click="closeEditor">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Cancel
+        </button>
+        <button class="btn btn-outline" @click="saveDraft">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <path d="M19 21H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 21v-8H7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Save as Draft
+        </button>
+        <button class="btn btn-primary" @click="savePublish">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+            <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Publish
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
     <div class="blog-filters">
       <div class="filter-tabs">
         <button @click="filterByStatus(null)" :class="['filter-tab', { active: currentFilter === null }]">
@@ -109,46 +151,6 @@
       </div>
     </div>
 
-    <!-- Create/Edit Modal -->
-    <div v-if="showEditor" class="modal-overlay" @click.self="closeEditor">
-      <div class="modal-content editor-modal">
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Title</label>
-            <input v-model="form.title" class="title-input" placeholder="Enter a compelling blog title" />
-          </div>
-          <div class="form-group">
-            <label>Content</label>
-            <div ref="editor" class="rich-editor" contenteditable="true" @input="onEditorInput"></div>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn btn-outline" @click="closeEditor">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            Cancel
-          </button>
-          <button class="btn btn-outline" @click="saveDraft">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <path d="M19 21H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h9l5 5v9a2 2 0 0 1-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M17 21v-8H7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M7 3v5h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Save as Draft
-          </button>
-          <button class="btn btn-primary" @click="savePublish">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-              <path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <path d="M13 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Publish
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Subscribers Modal -->
     <div v-if="showSubscribers" class="modal-overlay" @click.self="closeSubscribersModal">
       <div class="modal-content subscribers-modal">
@@ -203,6 +205,7 @@ const form = ref({ title: '', content: '' })
 const hasBlogs = computed(() => (blogs.value?.length || 0) > 0)
 
 const editor = ref(null)
+const editorContainer = ref(null)
 
 const filteredBlogs = computed(() => {
   if (!blogs.value) return []
@@ -241,8 +244,8 @@ function openCreateModal() {
   form.value = { title: '', content: '' }
   showEditor.value = true
   nextTick(() => {
-    const modal = document.querySelector('.modal-overlay')
-    modal?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const container = editorContainer.value || document.querySelector('.editor-inline')
+    container?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (editor.value) {
       editor.value.innerHTML = ''
       editor.value.focus()
@@ -255,8 +258,8 @@ function openEditModal(blog) {
   form.value = { title: blog.title, content: blog.content }
   showEditor.value = true
   nextTick(() => {
-    const modal = document.querySelector('.modal-overlay')
-    modal?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const container = editorContainer.value || document.querySelector('.editor-inline')
+    container?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (editor.value) {
       editor.value.innerHTML = sanitizeHTML(blog.content || '')
       editor.value.focus()
@@ -382,7 +385,22 @@ function initials(fn, ln) {
 .header-actions { display:flex; gap:.5rem; }
 .header-actions .btn { padding: .6rem 1rem; }
 
-/* Filters (borrowed from CaseManagement.vue) */
+/* Inline editor panel */
+.editor-inline {
+  border: 1px solid var(--color-border);
+  background: var(--color-background-soft);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,.06);
+}
+.editor-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:.5rem; border-bottom:1px solid var(--color-border); margin-bottom:.75rem; }
+.icon-btn { background:none; border:none; font-size:1.25rem; cursor:pointer; color: var(--color-text-muted); }
+.icon-btn:hover { color: var(--color-text); }
+.editor-body { display:flex; flex-direction:column; gap:1rem; }
+.editor-actions { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; padding-top:.75rem; border-top:1px solid var(--color-border); margin-top:.75rem; backdrop-filter: saturate(160%) blur(1px); }
+
+/* Filters */
 .blog-filters { margin-bottom: 1rem; }
 .filter-tabs { display:flex; gap: .5rem; }
 .filter-tab { padding: 0.5rem 1rem; border: none; background: none; border-radius: 8px; cursor: pointer; color: var(--color-text-muted); font-weight: 500; transition: all 0.2s ease; }
@@ -413,7 +431,7 @@ function initials(fn, ln) {
 .info .name { font-weight:600; }
 .info .email { font-size:.85rem; color: var(--color-text-muted); }
 
-/* Enlarged editor modal */
+/* Subscribers modal (unchanged) */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:1000; padding:1rem; }
 .modal-content { background: var(--color-background); border-radius:12px; width:100%; max-width:720px; overflow:hidden; display:flex; flex-direction:column; max-height:80vh; }
 .editor-modal { max-width: 1100px; }
@@ -421,7 +439,7 @@ function initials(fn, ln) {
 .modal-actions { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; padding:1rem 1.25rem; border-top:1px solid var(--color-border); }
 .form-group { display:flex; flex-direction:column; gap:.375rem; margin-bottom:1rem; }
 .form-group label { font-weight:600; color: var(--color-heading); }
-.title-input { font-size:1.05rem; padding:.7rem .8rem; }
+.title-input { font-size:1.1rem; font-weight:600; padding:.75rem .9rem; }
 .content-textarea { width:100%; min-height: 480px; resize: vertical; line-height: 1.7; padding:.9rem 1rem; font-family: inherit; }
 input, textarea { width:100%; border:1px solid var(--color-border); border-radius:8px; background: var(--color-background); color: var(--color-text); font-family: inherit; }
 input:focus, textarea:focus { outline:none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.1); }
@@ -451,8 +469,8 @@ input:focus, textarea:focus { outline:none; border-color: var(--color-primary); 
 .rich-editor {
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  padding: 0.75rem 0.9rem;
-  min-height: 320px;
+  padding: 0.85rem 1rem;
+  min-height: 380px;
   background: var(--color-background);
   color: var(--color-text);
   line-height: 1.7;
