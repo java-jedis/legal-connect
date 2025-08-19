@@ -5,6 +5,8 @@ venv/
 .venv/
 env/
 .env
+.env.development
+.env.production
 .mypy_cache/
 /application.yml
 application.yml
