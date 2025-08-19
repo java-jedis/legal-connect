@@ -7,6 +7,9 @@ env/
 .mypy_cache/
 /application.yml
 application.yml
+app.yaml
+dispatch.yaml
+.gcloudignore
 
 # IDE directories
 .idea/
