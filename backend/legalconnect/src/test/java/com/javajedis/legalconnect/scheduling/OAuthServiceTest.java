@@ -80,6 +80,7 @@ class OAuthServiceTest {
         ReflectionTestUtils.setField(oAuthService, "clientSecret", "test_client_secret");
         ReflectionTestUtils.setField(oAuthService, "redirectUri", "http://localhost:8080/schedule/oauth/callback");
         ReflectionTestUtils.setField(oAuthService, "scope", "https://www.googleapis.com/auth/calendar");
+        ReflectionTestUtils.setField(oAuthService, "frontendUrl", "http://localhost:5173");
         
         // Setup test data
         setupTestUser();

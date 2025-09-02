@@ -57,43 +57,22 @@ public class LawyerDirectoryService {
             FindLawyersDTO dto,
             int page, int size, String sortDirection) {
         log.info("Finding lawyers with filters: {}, page: {}, size: {}, sort: {}", dto, page, size, sortDirection);
-        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Sort sort = Sort.by(direction, "created_at");
+        Sort sort = buildSort(sortDirection, "created_at");
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<Object[]> rawResults = lawyerRepo.findVerifiedLawyerRawResultsByCriteria(
                 dto.getMinExperience(),
                 dto.getMaxExperience(),
-                dto.getPracticingCourt() != null ? dto.getPracticingCourt().name() : null,
-                dto.getDivision() != null ? dto.getDivision().name() : null,
-                dto.getDistrict() != null ? dto.getDistrict().name() : null,
-                dto.getSpecialization() != null ? dto.getSpecialization().name() : null,
+                getEnumNameOrNull(dto.getPracticingCourt()),
+                getEnumNameOrNull(dto.getDivision()),
+                getEnumNameOrNull(dto.getDistrict()),
+                getEnumNameOrNull(dto.getSpecialization()),
                 pageable
         );
-        List<LawyerSearchResultDTO> lawyerList = rawResults.stream().map(row ->
-                LawyerSearchResultDTO.builder()
-                        .lawyerId((UUID) row[0])
-                        .userId((UUID) row[1])
-                        .firstName((String) row[2])
-                        .lastName((String) row[3])
-                        .email((String) row[4])
-                        .firm((String) row[5])
-                        .yearsOfExperience((Integer) row[6])
-                        .practicingCourt(row[7] != null ? PracticingCourt.valueOf(row[7].toString()) : null)
-                        .division(row[8] != null ? Division.valueOf(row[8].toString()) : null)
-                        .district(row[9] != null ? District.valueOf(row[9].toString()) : null)
-                        .bio((String) row[10])
-                        .specializations(LawyerSearchResultDTO.parseSpecializations((String) row[11]))
-                        .averageRating(row[12] != null ? ((Number) row[12]).doubleValue() : null)
-                        .build()
-        ).toList();
+        List<LawyerSearchResultDTO> lawyerList = rawResults.stream()
+                .map(this::mapRowToLawyerSearchResultDTO)
+                .toList();
 
-        Map<String, Object> appliedFilters = new HashMap<>();
-        appliedFilters.put("minExperience", dto.getMinExperience());
-        appliedFilters.put("maxExperience", dto.getMaxExperience());
-        if (dto.getPracticingCourt() != null) appliedFilters.put("practicingCourt", dto.getPracticingCourt());
-        if (dto.getDivision() != null) appliedFilters.put("division", dto.getDivision());
-        if (dto.getDistrict() != null) appliedFilters.put("district", dto.getDistrict());
-        if (dto.getSpecialization() != null) appliedFilters.put("specialization", dto.getSpecialization());
+        Map<String, Object> appliedFilters = buildAppliedFilters(dto);
 
         Map<String, Object> metadata = buildPaginationMetadata(
                 rawResults,
@@ -281,5 +260,50 @@ public class LawyerDirectoryService {
                 review.getCreatedAt(),
                 review.getUpdatedAt()
         );
+    }
+
+    private Sort buildSort(String sortDirection, String sortField) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return Sort.by(direction, sortField);
+    }
+
+    private String getEnumNameOrNull(Enum<?> value) {
+        return value != null ? value.name() : null;
+    }
+
+    private Map<String, Object> buildAppliedFilters(FindLawyersDTO dto) {
+        Map<String, Object> appliedFilters = new HashMap<>();
+        appliedFilters.put("minExperience", dto.getMinExperience());
+        appliedFilters.put("maxExperience", dto.getMaxExperience());
+        if (dto.getPracticingCourt() != null) appliedFilters.put("practicingCourt", dto.getPracticingCourt());
+        if (dto.getDivision() != null) appliedFilters.put("division", dto.getDivision());
+        if (dto.getDistrict() != null) appliedFilters.put("district", dto.getDistrict());
+        if (dto.getSpecialization() != null) appliedFilters.put("specialization", dto.getSpecialization());
+        return appliedFilters;
+    }
+
+    private <E extends Enum<E>> E parseEnum(Class<E> enumType, Object value) {
+        if (value == null) {
+            return null;
+        }
+        return Enum.valueOf(enumType, value.toString());
+    }
+
+    private LawyerSearchResultDTO mapRowToLawyerSearchResultDTO(Object[] row) {
+        return LawyerSearchResultDTO.builder()
+                .lawyerId((UUID) row[0])
+                .userId((UUID) row[1])
+                .firstName((String) row[2])
+                .lastName((String) row[3])
+                .email((String) row[4])
+                .firm((String) row[5])
+                .yearsOfExperience((Integer) row[6])
+                .practicingCourt(parseEnum(PracticingCourt.class, row[7]))
+                .division(parseEnum(Division.class, row[8]))
+                .district(parseEnum(District.class, row[9]))
+                .bio((String) row[10])
+                .specializations(LawyerSearchResultDTO.parseSpecializations((String) row[11]))
+                .averageRating(row[12] != null ? ((Number) row[12]).doubleValue() : null)
+                .build();
     }
 }

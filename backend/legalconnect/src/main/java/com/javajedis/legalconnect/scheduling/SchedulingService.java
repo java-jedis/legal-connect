@@ -54,6 +54,7 @@ public class SchedulingService {
     private static final String NOTIFICATION_TYPE = "notificationType";
     private static final String CONTENT = "content";
     private static final String EMAIIL_TEMPLATE = "notification-email";
+    private static final String TIMESTAMP = "timestamp";
     private static final int REMINDER_MINUTES_BEFORE = 1;
 
     private final ScheduleRepo scheduleRepo;
@@ -120,7 +121,7 @@ public class SchedulingService {
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Created");
         templateVariables.put(CONTENT, content);
-        templateVariables.put("timestamp", savedSchedule.getStartTime());
+        templateVariables.put(TIMESTAMP, savedSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
@@ -220,7 +221,7 @@ public class SchedulingService {
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Updated");
         templateVariables.put(CONTENT, content);
-        templateVariables.put("timestamp", updatedSchedule.getStartTime());
+        templateVariables.put(TIMESTAMP, updatedSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
@@ -309,7 +310,7 @@ public class SchedulingService {
         Map<String, Object> templateVariables = new HashMap<>();
         templateVariables.put(NOTIFICATION_TYPE, "Schedule Cancelled");
         templateVariables.put(CONTENT, content);
-        templateVariables.put("timestamp", existingSchedule.getStartTime());
+        templateVariables.put(TIMESTAMP, existingSchedule.getStartTime());
 
         if (notificationPreferenceService.checkWebPushEnabled(recipientId, NotificationType.EVENT_ADD)) {
             notificationService.sendNotification(recipientId, content);
