@@ -176,7 +176,16 @@ Context Information:
 
 User Question: {query}
 
-Please provide a helpful and accurate response based on the context information provided. If the context doesn't contain enough information to answer the question, please state that clearly."""
+Please provide a helpful and accurate response based on the context information provided above. 
+
+IMPORTANT INSTRUCTIONS:
+- If this question refers to something discussed earlier in the conversation, use that context along with the provided documents
+- If the question uses words like "this", "that", "it", "eta", "details", "explain more" - refer to the previous conversation for context
+- Always cite actual document names and page numbers, not generic "Source 1, 2, 3"
+- If the context doesn't contain enough information to answer the question, please state that clearly
+- Use both Bengali and English terms when appropriate for Bangladesh legal topics
+
+Please provide a helpful and accurate response based on the context information provided."""
         
         return prompt
     

@@ -199,7 +199,7 @@ async def search_endpoint(
 @router.get("/sessions/{session_id}/history")
 async def get_chat_history(
     session_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     """Get chat history for a session"""
