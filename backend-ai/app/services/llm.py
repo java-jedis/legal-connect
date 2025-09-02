@@ -1,3 +1,5 @@
+#How it works: User Query → RAG Search → Legal Documents → llm.py → Gemini API → Legal Response
+
 """
 LLM service using Google's Gemini for response generation
 """
@@ -15,15 +17,11 @@ class GeminiService:
     
     def __init__(self):
         self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
         
         if not self.api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required")
-        
-        # Configure Gemini
         genai.configure(api_key=self.api_key)
-        
-        # Initialize model
         self.model = genai.GenerativeModel(self.model_name)
         
         # System prompt for legal assistant
@@ -34,16 +32,23 @@ Your responsibilities:
 1. Provide accurate legal information based on the provided context
 2. Explain complex legal concepts in simple language
 3. Reference specific legal documents and sections when applicable  
-4. Always mention when information is from the provided context
+4. Always cite genuine source information (document names, acts, laws) not generic "Source 1, 2, 3"
 5. Be helpful but remind users to consult qualified lawyers for legal advice
 
 Guidelines:
 - Always base your answers on the provided context
+- When referencing information, cite the actual document name and page (e.g., "Divorce Act, 1869, Page 26")
 - If information is not in the context, clearly state this
 - Use both Bengali and English terms when appropriate
-- Provide citations and references when possible
+- Provide specific legal citations and references when possible
 - Be respectful and professional
-- Never provide definitive legal advice, only information"""
+- Never provide definitive legal advice, only information
+IMPORTANT RESTRICTIONS:
+- When citing sources, use the actual document names and details provided in the context, NOT generic "Source 1", "Source 2" labels.
+- Only respond to legal questions related to Bangladesh law
+- If asked non-legal questions, politely redirect to legal matters
+- Do not provide general knowledge, entertainment, or off-topic responses
+- Always stay within your role as a legal assistant """
         
         logger.info(f"Initialized GeminiService with model: {self.model_name}")
     
@@ -115,15 +120,30 @@ Guidelines:
             }
     
     def _prepare_context(self, documents: List[Dict[str, Any]]) -> str:
-        """Prepare context from retrieved documents"""
+        """Prepare context from retrieved documents with genuine source information"""
         if not documents:
             return "No relevant documents found."
         
         context_parts = []
         for i, doc in enumerate(documents, 1):
-            source_info = f"[Source {i}: {doc.get('document_name', 'Unknown')}]"
-            if doc.get('page_number'):
-                source_info += f" (Page {doc.get('page_number')})"
+            # Create genuine source information instead of generic "Source X"
+            document_name = doc.get('document_name', 'Unknown Document')
+            filename = doc.get('filename', '')
+            page_number = doc.get('page_number')
+            
+            # Format genuine source info
+            if document_name and document_name != 'Unknown Document':
+                source_info = f"[From: {document_name}"
+                if page_number:
+                    source_info += f", Page {page_number}"
+                if filename and filename != document_name:
+                    source_info += f" ({filename})"
+                source_info += "]"
+            else:
+                source_info = f"[Document: {filename or 'Unknown'}"
+                if page_number:
+                    source_info += f", Page {page_number}"
+                source_info += "]"
             
             text = doc.get('text', '').strip()
             if text:
@@ -242,3 +262,5 @@ Please provide a bullet-point list of the most important aspects, sections, or p
         except Exception as e:
             logger.error(f"Error extracting key points: {e}")
             return []
+
+

@@ -11,37 +11,41 @@ import logging
 from app.db.database import get_db
 from app.services.chat_service import chat_service
 from app.core.auth import get_current_user_id, verify_session_ownership
+from app.core.rag_config import RAGConfig
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# We'll import these here to avoid circular imports
+
+
 def get_embedding_service():
     from main import embedding_service
     if embedding_service is None:
-        raise HTTPException(status_code=503, detail="Embedding service not initialized")
+        raise HTTPException(status_code=503, detail="LegalConnect Embedding service not initialized")
     return embedding_service
 
 def get_vectordb_service():
     from main import vectordb_service
     if vectordb_service is None:
-        raise HTTPException(status_code=503, detail="Vector database service not initialized")
+        raise HTTPException(status_code=503, detail="LegalConnect Vector database service not initialized")
     return vectordb_service
 
 def get_llm_service():
     from main import llm_service
     if llm_service is None:
-        raise HTTPException(status_code=503, detail="LLM service not initialized")
+        raise HTTPException(status_code=503, detail="LegalConnect LLM service not initialized")
     return llm_service
+
+
+
 
 # Request/Response models
 class ChatRequest(BaseModel):
     """Chat request model"""
     message: str
     session_id: Optional[str] = None
-    context_limit: Optional[int] = 5
-    # Note: user_id removed - will be extracted from JWT token
+    context_limit: Optional[int] = RAGConfig.CHAT_DEFAULT_CONTEXT_LIMIT
 
 class ChatResponse(BaseModel):
     """Chat response model"""
@@ -53,8 +57,8 @@ class ChatResponse(BaseModel):
 class SearchRequest(BaseModel):
     """Search request model"""
     query: str
-    top_k: Optional[int] = 5
-    threshold: Optional[float] = 0.7
+    top_k: Optional[int] = RAGConfig.SEARCH_DEFAULT_TOP_K
+    threshold: Optional[float] = RAGConfig.SEARCH_DEFAULT_THRESHOLD
 
 class SearchResponse(BaseModel):
     """Search response model"""
@@ -64,56 +68,51 @@ class SearchResponse(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     """Session creation request model"""
-    title: Optional[str] = None
-    # Note: user_id removed - will be extracted from JWT token
+    title: Optional[str] = None  #extracted from JWT token
 
 class SessionResponse(BaseModel):
     """Session response model"""
     session_id: str
     message: str
 
+
+
+# POST endpoint to handle chat requests and return a structured ChatResponse
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
     request: ChatRequest,
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
     embedding_service = Depends(get_embedding_service),
     vectordb_service = Depends(get_vectordb_service),
     llm_service = Depends(get_llm_service)
 ):
-    """
-    Main chat endpoint for RAG-based legal assistance
-    Requires authentication - user_id extracted from JWT token
-    """
+    """Legal AI chat endpoint with document retrieval"""
     try:
-        # Get or create session
         session_id = chat_service.get_or_create_session(
             db=db, 
             session_id=request.session_id,
-            user_id=current_user_id  # ✅ Always pass user_id
+            user_id=current_user_id
         )
         
-        # Verify session ownership (security check)
         if request.session_id:
             session_info = chat_service.get_session_info(db=db, session_id=session_id)
             if session_info and session_info.get("user_id"):
                 verify_session_ownership(session_info["user_id"], current_user_id)
         
-        # Save user message to database
         # Store user message
         user_message_id = chat_service.add_message(
             db=db,
             session_id=session_id,
             role="user",
             content=request.message,
-            user_id=current_user_id  # ✅ Add user_id for verification
+            user_id=current_user_id
         )
         
-        # Get chat history for context (limit to recent messages to avoid token overflow)
         chat_history = chat_service.get_chat_history(
             db=db,
             session_id=session_id,
-            user_id=current_user_id,  # ✅ Add user_id for verification
+            user_id=current_user_id,  
             limit=request.context_limit * 2  # Get more history for better context
         )
         
@@ -129,11 +128,11 @@ async def chat_endpoint(
         # Generate query embedding
         query_embedding = await embedding_service.generate_query_embedding(request.message)
         
-        # Search for relevant documents
+        # Search for relevant documents with optimized parameters
         similar_docs = await vectordb_service.search_similar(
             query_embedding=query_embedding,
             top_k=request.context_limit,
-            score_threshold=0.7
+            score_threshold=RAGConfig.CHAT_DEFAULT_THRESHOLD
         )
         
         # Generate response with chat history context
@@ -149,7 +148,7 @@ async def chat_endpoint(
             session_id=session_id,
             role="assistant",
             content=llm_response["response"],
-            user_id=current_user_id,  # ✅ Add user_id for verification
+            user_id=current_user_id,
             metadata={
                 "sources": llm_response["metadata"]["sources"],
                 "model_metadata": llm_response["metadata"]
@@ -203,17 +202,14 @@ async def get_chat_history(
     current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
     db: Session = Depends(get_db)
 ):
-    """
-    Get chat history for a session
-    Only the session owner can access the history
-    """
+    """Get chat history for a session"""
     try:
         # Get session info to verify it exists and ownership
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
-        # ✅ Security check: Verify session ownership
+        # Verify session ownership
         if session_info.get("user_id"):
             verify_session_ownership(session_info["user_id"], current_user_id)
         
@@ -236,15 +232,12 @@ async def get_chat_history(
 @router.delete("/sessions/{session_id}")
 async def delete_chat_session(
     session_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    """
-    Delete a chat session and its history
-    Only the session owner can delete the session
-    """
+    """Delete a chat session and its history"""
     try:
-        # ✅ Security check: Verify session ownership before deletion
+        # Verify session ownership before deletion
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
@@ -269,6 +262,12 @@ async def delete_chat_session(
         logger.error(f"Error deleting session for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
 
+
+
+
+
+
+# Health Check
 @router.get("/health")
 async def chat_health_check():
     """Health check for chat service"""
@@ -281,16 +280,11 @@ async def chat_health_check():
 @router.get("/users/{user_id}/sessions")
 async def get_user_sessions(
     user_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = 20, 
     db: Session = Depends(get_db)
 ):
-    """
-    Get all chat sessions for a user
-    Users can only access their own sessions
-    """
     try:
-        # ✅ Security check: Users can only access their own sessions
         if user_id != current_user_id:
             raise HTTPException(
                 status_code=403, 
@@ -314,20 +308,16 @@ async def get_user_sessions(
 @router.get("/sessions/{session_id}")
 async def get_session_info(
     session_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    """
-    Get information about a specific chat session
-    Only the session owner can access the information
-    """
+    
     try:
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
-        
-        # ✅ Security check: Verify session ownership
+
         if session_info.get("user_id"):
             verify_session_ownership(session_info["user_id"], current_user_id)
         
@@ -342,7 +332,7 @@ async def get_session_info(
 @router.post("/sessions", response_model=SessionResponse)
 async def create_chat_session(
     request: SessionCreateRequest, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     """
@@ -351,7 +341,7 @@ async def create_chat_session(
     try:
         session_id = chat_service.create_session(
             db=db, 
-            user_id=current_user_id,  # ✅ Use authenticated user ID
+            user_id=current_user_id,
             title=request.title
         )
         
