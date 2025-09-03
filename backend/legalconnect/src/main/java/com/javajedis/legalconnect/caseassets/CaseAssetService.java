@@ -5,6 +5,7 @@ import com.javajedis.legalconnect.casemanagement.CaseRepo;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.AwsService;
 import com.javajedis.legalconnect.common.service.EmailService;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.notifications.NotificationPreferenceService;
 import com.javajedis.legalconnect.notifications.NotificationService;
 import com.javajedis.legalconnect.notifications.NotificationType;
@@ -39,6 +40,18 @@ public class CaseAssetService {
     private static final String DOCUMENT_NOT_FOUND_LOG = "Document not found with ID: {}";
     private static final String DOCUMENT_NOT_FOUND_MSG = "Document not found";
     private static final String CREATED_AT_FIELD = "createdAt";
+    private static final String META_TOTAL_COUNT = "totalCount";
+    private static final String META_PAGE_SIZE = "pageSize";
+    private static final String META_TOTAL_PAGES = "totalPages";
+    private static final String META_HAS_NEXT = "hasNext";
+    private static final String META_HAS_PREVIOUS = "hasPrevious";
+    private static final String META_IS_FIRST = "isFirst";
+    private static final String META_IS_LAST = "isLast";
+    private static final String META_PAGE_NUMBER = "pageNumber";
+    private static final String META_SORT_DIRECTION = "sortDirection";
+    private static final String META_SORT_FIELD = "sortField";
+    private static final String META_APPLIED_FILTERS = "appliedFilters";
+    private static final String DOCUMENTS_RETRIEVED_SUCCESS = "Documents retrieved successfully";
 
     private final NoteRepo noteRepo;
     private final UserRepo userRepo;
@@ -282,17 +295,17 @@ public class CaseAssetService {
         NoteListResponseDTO responseData = new NoteListResponseDTO(filteredNotes);
 
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("totalCount", notePage.getTotalElements());
-        metadata.put("pageNumber", notePage.getNumber());
-        metadata.put("pageSize", notePage.getSize());
-        metadata.put("totalPages", notePage.getTotalPages());
-        metadata.put("hasNext", notePage.hasNext());
-        metadata.put("hasPrevious", notePage.hasPrevious());
-        metadata.put("isFirst", notePage.isFirst());
-        metadata.put("isLast", notePage.isLast());
-        metadata.put("sortDirection", sortDirection);
-        metadata.put("sortField", CREATED_AT_FIELD);
-        metadata.put("appliedFilters", Map.of("caseId", caseId.toString()));
+        metadata.put(META_TOTAL_COUNT, notePage.getTotalElements());
+        metadata.put(META_PAGE_NUMBER, notePage.getNumber());
+        metadata.put(META_PAGE_SIZE, notePage.getSize());
+        metadata.put(META_TOTAL_PAGES, notePage.getTotalPages());
+        metadata.put(META_HAS_NEXT, notePage.hasNext());
+        metadata.put(META_HAS_PREVIOUS, notePage.hasPrevious());
+        metadata.put(META_IS_FIRST, notePage.isFirst());
+        metadata.put(META_IS_LAST, notePage.isLast());
+        metadata.put(META_SORT_DIRECTION, sortDirection);
+        metadata.put(META_SORT_FIELD, CREATED_AT_FIELD);
+        metadata.put(META_APPLIED_FILTERS, Map.of("caseId", caseId.toString()));
 
         log.info("Retrieved {} notes for case {} for user: {} (page {}/{})",
                 filteredNotes.size(), caseId, validation.user().getEmail(), page + 1, notePage.getTotalPages());
@@ -529,23 +542,17 @@ public class CaseAssetService {
                 .toList();
         DocumentListResponseDTO documentResponse = new DocumentListResponseDTO(filteredDocuments);
 
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("totalCount", documentPage.getTotalElements());
-        metadata.put("pageNumber", documentPage.getNumber());
-        metadata.put("pageSize", documentPage.getSize());
-        metadata.put("totalPages", documentPage.getTotalPages());
-        metadata.put("hasNext", documentPage.hasNext());
-        metadata.put("hasPrevious", documentPage.hasPrevious());
-        metadata.put("isFirst", documentPage.isFirst());
-        metadata.put("isLast", documentPage.isLast());
-        metadata.put("sortDirection", sortDirection);
-        metadata.put("sortField", CREATED_AT_FIELD);
-        metadata.put("appliedFilters", Map.of("caseId", caseId.toString()));
+        Map<String, Object> metadata = buildPaginationMetadata(
+            documentPage,
+            sortDirection,
+            CREATED_AT_FIELD,
+            Map.of("caseId", caseId.toString())
+        );
 
         log.info("Retrieved {} documents for case {} for user: {} (page {}/{})",
                 filteredDocuments.size(), caseId, validation.user().getEmail(), page + 1, documentPage.getTotalPages());
 
-        return ApiResponse.success(documentResponse, HttpStatus.OK, "Documents retrieved successfully", metadata);
+        return ApiResponse.success(documentResponse, HttpStatus.OK, DOCUMENTS_RETRIEVED_SUCCESS, metadata);
     }
 
     /**
@@ -616,4 +623,68 @@ public class CaseAssetService {
                 document.getCreatedAt()
         );
     }
+
+    public ResponseEntity<ApiResponse<DocumentListResponseDTO>> getMyDocuments(int page, int size, String sortDirection) {
+		log.debug("Getting documents for current user with page={}, size={}, sort={}", page, size, sortDirection);
+		User user = GetUserUtil.getAuthenticatedUser(userRepo);
+		if (user == null) {
+			return ApiResponse.error("User is not authenticated", HttpStatus.UNAUTHORIZED);
+		}
+		Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+		Sort sort = Sort.by(direction, CREATED_AT_FIELD);
+		Pageable pageable = PageRequest.of(page, size, sort);
+		Page<Document> documentPage = documentRepo.findByUploadedById(user.getId(), pageable);
+		List<DocumentResponseDTO> documents = documentPage.getContent().stream()
+				.map(this::mapDocumentToDocumentResponseDTO)
+				.toList();
+		DocumentListResponseDTO response = new DocumentListResponseDTO(documents);
+		Map<String, Object> metadata = buildPaginationMetadata(
+			documentPage,
+			sortDirection,
+			CREATED_AT_FIELD,
+			Map.of("uploadedBy", user.getId().toString())
+		);
+		log.info("Retrieved {} documents for user: {} (page {}/{})", documents.size(), user.getEmail(), page + 1, documentPage.getTotalPages());
+		return ApiResponse.success(response, HttpStatus.OK, DOCUMENTS_RETRIEVED_SUCCESS, metadata);
+	}
+
+	public ResponseEntity<ApiResponse<DocumentListResponseDTO>> getVisibleDocumentsForCurrentUser(int page, int size, String sortDirection) {
+		log.debug("Getting visible documents across all cases for current user with page={}, size={}, sort={}", page, size, sortDirection);
+		User user = GetUserUtil.getAuthenticatedUser(userRepo);
+		if (user == null) {
+			return ApiResponse.error("User is not authenticated", HttpStatus.UNAUTHORIZED);
+		}
+		Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+		Sort sort = Sort.by(direction, CREATED_AT_FIELD);
+		Pageable pageable = PageRequest.of(page, size, sort);
+		Page<Document> documentPage = documentRepo.findVisibleDocumentsForUser(user.getId(), AssetPrivacy.SHARED, pageable);
+		List<DocumentResponseDTO> documents = documentPage.getContent().stream()
+				.map(this::mapDocumentToDocumentResponseDTO)
+				.toList();
+		DocumentListResponseDTO response = new DocumentListResponseDTO(documents);
+		Map<String, Object> metadata = buildPaginationMetadata(
+			documentPage,
+			sortDirection,
+			CREATED_AT_FIELD,
+			Map.of("visibleToUser", user.getId().toString())
+		);
+		log.info("Retrieved {} visible documents for user: {} (page {}/{})", documents.size(), user.getEmail(), page + 1, documentPage.getTotalPages());
+		return ApiResponse.success(response, HttpStatus.OK, DOCUMENTS_RETRIEVED_SUCCESS, metadata);
+	}
+
+	private Map<String, Object> buildPaginationMetadata(Page<?> page, String sortDirection, String sortField, Map<String, Object> appliedFilters) {
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put(META_TOTAL_COUNT, page.getTotalElements());
+		metadata.put(META_PAGE_NUMBER, page.getNumber());
+		metadata.put(META_PAGE_SIZE, page.getSize());
+		metadata.put(META_TOTAL_PAGES, page.getTotalPages());
+		metadata.put(META_HAS_NEXT, page.hasNext());
+		metadata.put(META_HAS_PREVIOUS, page.hasPrevious());
+		metadata.put(META_IS_FIRST, page.isFirst());
+		metadata.put(META_IS_LAST, page.isLast());
+		metadata.put(META_SORT_DIRECTION, sortDirection);
+		metadata.put(META_SORT_FIELD, sortField);
+		metadata.put(META_APPLIED_FILTERS, appliedFilters);
+		return metadata;
+	}
 }

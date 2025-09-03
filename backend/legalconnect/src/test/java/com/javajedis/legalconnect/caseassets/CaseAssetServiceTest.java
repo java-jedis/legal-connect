@@ -725,4 +725,80 @@ class CaseAssetServiceTest {
         assertNotNull(result.getBody());
         assertEquals("Document not found", result.getBody().getError().getMessage());
     }
+
+    @Test
+    void getMyDocuments_success_returnsDocumentList() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sortDirection = "DESC";
+        Page<Document> documentPage = new PageImpl<>(List.of(testDocument), PageRequest.of(page, size), 1);
+        when(documentRepo.findByUploadedById(eq(testUserId), any(Pageable.class))).thenReturn(documentPage);
+
+        try (MockedStatic<com.javajedis.legalconnect.common.utility.GetUserUtil> mockedUtil = org.mockito.Mockito.mockStatic(com.javajedis.legalconnect.common.utility.GetUserUtil.class)) {
+            mockedUtil.when(() -> com.javajedis.legalconnect.common.utility.GetUserUtil.getAuthenticatedUser(eq(userRepo)))
+                .thenReturn(testUser);
+
+            // Act
+            ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetService.getMyDocuments(page, size, sortDirection);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Documents retrieved successfully", result.getBody().getMessage());
+        }
+    }
+
+    @Test
+    void getMyDocuments_unauthenticated_returnsUnauthorized() {
+        // Arrange
+        try (MockedStatic<com.javajedis.legalconnect.common.utility.GetUserUtil> mockedUtil = org.mockito.Mockito.mockStatic(com.javajedis.legalconnect.common.utility.GetUserUtil.class)) {
+            mockedUtil.when(() -> com.javajedis.legalconnect.common.utility.GetUserUtil.getAuthenticatedUser(eq(userRepo)))
+                .thenReturn(null);
+
+            // Act
+            ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetService.getMyDocuments(0, 10, "DESC");
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        }
+    }
+
+    @Test
+    void getVisibleDocumentsForCurrentUser_success_returnsDocumentList() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sortDirection = "DESC";
+        Page<Document> documentPage = new PageImpl<>(List.of(testDocument), PageRequest.of(page, size), 1);
+        when(documentRepo.findVisibleDocumentsForUser(eq(testUserId), eq(AssetPrivacy.SHARED), any(Pageable.class))).thenReturn(documentPage);
+
+        try (MockedStatic<com.javajedis.legalconnect.common.utility.GetUserUtil> mockedUtil = org.mockito.Mockito.mockStatic(com.javajedis.legalconnect.common.utility.GetUserUtil.class)) {
+            mockedUtil.when(() -> com.javajedis.legalconnect.common.utility.GetUserUtil.getAuthenticatedUser(eq(userRepo)))
+                .thenReturn(testUser);
+
+            // Act
+            ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetService.getVisibleDocumentsForCurrentUser(page, size, sortDirection);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals("Documents retrieved successfully", result.getBody().getMessage());
+        }
+    }
+
+    @Test
+    void getVisibleDocumentsForCurrentUser_unauthenticated_returnsUnauthorized() {
+        // Arrange
+        try (MockedStatic<com.javajedis.legalconnect.common.utility.GetUserUtil> mockedUtil = org.mockito.Mockito.mockStatic(com.javajedis.legalconnect.common.utility.GetUserUtil.class)) {
+            mockedUtil.when(() -> com.javajedis.legalconnect.common.utility.GetUserUtil.getAuthenticatedUser(eq(userRepo)))
+                .thenReturn(null);
+
+            // Act
+            ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetService.getVisibleDocumentsForCurrentUser(0, 10, "DESC");
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        }
+    }
 } 
