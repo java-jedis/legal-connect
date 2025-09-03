@@ -146,4 +146,30 @@ public class CaseAssetController {
                 caseId, page, size, sortDirection);
         return caseAssetService.getAllDocumentsForCase(caseId, page, size, sortDirection);
     }
+
+	/**
+	 * Get all documents uploaded by the current user with pagination.
+	 */
+	@Operation(summary = "Get my documents", description = "Retrieves all documents uploaded by the current authenticated user with pagination.")
+	@GetMapping("/users/me/documents")
+	public ResponseEntity<ApiResponse<DocumentListResponseDTO>> getMyDocuments(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(defaultValue = "DESC") String sortDirection) {
+		log.info("GET /case-assets/users/me/documents called with page={}, size={}, sortDirection={}", page, size, sortDirection);
+		return caseAssetService.getMyDocuments(page, size, sortDirection);
+	}
+
+	/**
+	 * Get all documents visible to the current user across all their cases with pagination.
+	 */
+	@Operation(summary = "Get visible documents", description = "Retrieves all documents the current authenticated user can see across their cases. Includes SHARED documents and user's own PRIVATE documents.")
+	@GetMapping("/users/me/documents/visible")
+	public ResponseEntity<ApiResponse<DocumentListResponseDTO>> getVisibleDocuments(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(defaultValue = "DESC") String sortDirection) {
+		log.info("GET /case-assets/users/me/documents/visible called with page={}, size={}, sortDirection={}", page, size, sortDirection);
+		return caseAssetService.getVisibleDocumentsForCurrentUser(page, size, sortDirection);
+	}
 } 

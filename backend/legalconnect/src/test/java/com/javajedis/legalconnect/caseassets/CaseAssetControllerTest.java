@@ -492,4 +492,46 @@ class CaseAssetControllerTest {
         assertEquals("You don't have permission to access this case", result.getBody().getError().getMessage());
         verify(caseAssetService).getAllDocumentsForCase(testCaseId, 0, 10, "DESC");
     }
+
+    @Test
+    void getMyDocuments_returnsSuccess() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sortDirection = "DESC";
+        ApiResponse<DocumentListResponseDTO> apiResponse = ApiResponse.success(testDocumentListResponseDTO, HttpStatus.OK, "Documents retrieved successfully").getBody();
+        when(caseAssetService.getMyDocuments(page, size, sortDirection))
+            .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetController.getMyDocuments(page, size, sortDirection);
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(testDocumentListResponseDTO, result.getBody().getData());
+        assertEquals("Documents retrieved successfully", result.getBody().getMessage());
+        verify(caseAssetService).getMyDocuments(page, size, sortDirection);
+    }
+
+    @Test
+    void getVisibleDocuments_returnsSuccess() {
+        // Arrange
+        int page = 0;
+        int size = 10;
+        String sortDirection = "DESC";
+        ApiResponse<DocumentListResponseDTO> apiResponse = ApiResponse.success(testDocumentListResponseDTO, HttpStatus.OK, "Documents retrieved successfully").getBody();
+        when(caseAssetService.getVisibleDocumentsForCurrentUser(page, size, sortDirection))
+            .thenReturn(ResponseEntity.ok(apiResponse));
+
+        // Act
+        ResponseEntity<ApiResponse<DocumentListResponseDTO>> result = caseAssetController.getVisibleDocuments(page, size, sortDirection);
+
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(testDocumentListResponseDTO, result.getBody().getData());
+        assertEquals("Documents retrieved successfully", result.getBody().getMessage());
+        verify(caseAssetService).getVisibleDocumentsForCurrentUser(page, size, sortDirection);
+    }
 } 
