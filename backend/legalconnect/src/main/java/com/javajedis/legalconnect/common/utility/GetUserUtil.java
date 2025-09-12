@@ -52,6 +52,9 @@ public class GetUserUtil {
         userInfo.put("email", user.getEmail());
         userInfo.put("role", user.getRole());
         userInfo.put("emailVerified", user.isEmailVerified());
+        userInfo.put("profilePictureUrl", user.getProfilePictureUrl());
+        userInfo.put("profilePictureThumbnailUrl", user.getProfilePictureThumbnailUrl());
+        userInfo.put("profilePicturePublicId", user.getProfilePicturePublicId());
         userInfo.put("createdAt", user.getCreatedAt());
         userInfo.put("updatedAt", user.getUpdatedAt());
         return userInfo;
