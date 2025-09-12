@@ -1,5 +1,18 @@
 package com.javajedis.legalconnect.admin;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.EmailService;
 import com.javajedis.legalconnect.lawyer.Lawyer;
@@ -9,21 +22,11 @@ import com.javajedis.legalconnect.lawyer.LawyerSpecializationRepo;
 import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
 import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 import com.javajedis.legalconnect.user.UserInfoResponseDTO;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -133,6 +136,16 @@ public class AdminService {
             userDto.setUpdatedAt(lawyer.getUser().getUpdatedAt());
         }
 
+        // Create profile picture DTO if profile picture data exists
+        ProfilePictureDTO profilePicture = null;
+        if (lawyer.getUser().getProfilePictureUrl() != null) {
+            profilePicture = new ProfilePictureDTO(
+                lawyer.getUser().getProfilePictureUrl(),
+                lawyer.getUser().getProfilePictureThumbnailUrl(),
+                lawyer.getUser().getProfilePicturePublicId()
+            );
+        }
+
         LawyerInfoDTO lawyerDto = new LawyerInfoDTO(
                 lawyer.getUser().getId(),
                 lawyer.getUser().getFirstName(),
@@ -153,7 +166,8 @@ public class AdminService {
                         .map(LawyerSpecialization::getSpecializationType)
                         .toList(),
                 lawyer.getHourlyCharge(),
-                lawyer.getCompleteProfile()
+                lawyer.getCompleteProfile(),
+                profilePicture
         );
 
         return new AdminLawyerDTO(

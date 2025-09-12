@@ -171,6 +171,7 @@ class ConversationListResponseDTOTest {
             UUID.randomUUID(),
             UUID.randomUUID(),
             participantName,
+            null, // otherParticipantProfilePicture
             latestMessage,
             unreadCount,
             OffsetDateTime.now()

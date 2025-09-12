@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.lawyer.dto.LawyerInfoDTO;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -66,6 +67,17 @@ public class LawyerUtil {
         lawyerInfoDTO.setSpecializations(specializations != null ? specializations : List.of());
         lawyerInfoDTO.setHourlyCharge(lawyer.getHourlyCharge());
         lawyerInfoDTO.setCompleteProfile(lawyer.getCompleteProfile());
+        
+        // Set profile picture information
+        User user = lawyer.getUser();
+        if (user.getProfilePictureUrl() != null) {
+            ProfilePictureDTO profilePicture = new ProfilePictureDTO(
+                user.getProfilePictureUrl(),
+                user.getProfilePictureThumbnailUrl(),
+                user.getProfilePicturePublicId()
+            );
+            lawyerInfoDTO.setProfilePicture(profilePicture);
+        }
         
         return lawyerInfoDTO;
     }

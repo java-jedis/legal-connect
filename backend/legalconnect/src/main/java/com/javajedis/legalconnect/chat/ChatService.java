@@ -22,6 +22,7 @@ import com.javajedis.legalconnect.chat.dto.SendMessageDTO;
 import com.javajedis.legalconnect.chat.dto.UnreadCountResponseDTO;
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.WebSocketService;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -345,7 +346,19 @@ public class ChatService {
                 return null;
             }
 
-            String otherParticipantName = otherUser.get().getFirstName() + " " + otherUser.get().getLastName();
+            User otherParticipant = otherUser.get();
+            String otherParticipantName = otherParticipant.getFirstName() + " " + otherParticipant.getLastName();
+            
+            // Create profile picture DTO for other participant
+            ProfilePictureDTO otherParticipantProfilePicture = null;
+            if (otherParticipant.getProfilePictureUrl() != null) {
+                otherParticipantProfilePicture = new ProfilePictureDTO(
+                    otherParticipant.getProfilePictureUrl(),
+                    otherParticipant.getProfilePictureThumbnailUrl(),
+                    otherParticipant.getProfilePicturePublicId()
+                );
+            }
+            
             Optional<Message> latestMessage = messageRepo.findTopByConversationIdOrderByCreatedAtDesc(conversation.getId());
             MessageResponseDTO latestMessageDTO = latestMessage.map(this::convertToMessageResponseDTO).orElse(null);
             long unreadCount = messageRepo.countUnreadByConversationAndUser(conversation.getId(), currentUserId);
@@ -354,6 +367,7 @@ public class ChatService {
             dto.setId(conversation.getId());
             dto.setOtherParticipantId(otherParticipantId);
             dto.setOtherParticipantName(otherParticipantName);
+            dto.setOtherParticipantProfilePicture(otherParticipantProfilePicture);
             dto.setLatestMessage(latestMessageDTO);
             dto.setUnreadCount((int) unreadCount);
             dto.setUpdatedAt(conversation.getUpdatedAt());
