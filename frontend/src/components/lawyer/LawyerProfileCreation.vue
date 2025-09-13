@@ -184,7 +184,7 @@
                     <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p class="upload-text">Click to upload or drag and drop</p>
-                  <p class="upload-hint">PDF, JPG, PNG up to 10MB</p>
+                  <p class="upload-hint">PDF, JPG, PNG up to 1MB</p>
                 </div>
                 <div v-else class="file-info">
                   <svg class="file-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -214,6 +214,47 @@
             </div>
           </div>
 
+          <!-- Profile Picture Upload -->
+          <div class="form-group">
+            <label for="profilePicture" class="form-label">Profile Picture</label>
+            <div class="file-upload-container">
+              <div class="file-upload-area" :class="{ 'has-file': profilePictureFile, 'error': profilePictureError }" @click="triggerProfilePictureInput">
+                <div v-if="!profilePictureFile" class="upload-placeholder">
+                  <svg class="upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  <p class="upload-text">Click to upload or drag and drop</p>
+                  <p class="upload-hint">JPG, PNG up to 5MB</p>
+                </div>
+                <div v-else class="file-info">
+                  <svg class="file-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  <div class="file-details">
+                    <p class="file-name">{{ profilePictureFile.name }}</p>
+                    <p class="file-size">{{ formatFileSize(profilePictureFile.size) }}</p>
+                  </div>
+                  <button type="button" class="remove-file" @click.stop="removeProfilePicture">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <input
+                ref="profilePictureInput"
+                type="file"
+                accept="image/*"
+                @change="handleProfilePictureSelect"
+                class="hidden-input"
+              />
+              <span v-if="profilePictureError" class="error-message">{{ profilePictureError }}</span>
+            </div>
+          </div>
+
           <!-- Submit Button -->
           <div class="form-actions">
             <button
@@ -234,10 +275,12 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
 import { useLawyerStore } from '../../stores/lawyer'
 
 const router = useRouter()
 const lawyerStore = useLawyerStore()
+const authStore = useAuthStore()
 
 // Form data
 const formData = reactive({
@@ -254,6 +297,11 @@ const formData = reactive({
 // File upload
 const fileInput = ref(null)
 const selectedFile = ref(null)
+
+// Profile picture upload
+const profilePictureInput = ref(null)
+const profilePictureFile = ref(null)
+const profilePictureError = ref('')
 
 // Form state
 const isSubmitting = ref(false)
@@ -475,6 +523,48 @@ const validateForm = () => {
   return Object.keys(errors).length === 0
 }
 
+// Profile picture upload methods
+const triggerProfilePictureInput = () => {
+  if (profilePictureInput.value) {
+    profilePictureInput.value.click()
+  }
+}
+
+const handleProfilePictureSelect = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    profilePictureError.value = 'Please select a valid image file.'
+    return
+  }
+
+  // Validate file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxSize) {
+    profilePictureError.value = 'File size must be less than 5MB.'
+    return
+  }
+
+  // Clear previous errors
+  profilePictureError.value = ''
+
+  // Store the file
+  profilePictureFile.value = file
+}
+
+const removeProfilePicture = () => {
+  profilePictureFile.value = null
+  profilePictureError.value = ''
+  
+  // Clear the file input
+  if (profilePictureInput.value) {
+    profilePictureInput.value.value = ''
+  }
+}
+
+
 const submitProfile = async () => {
   if (!validateForm()) {
     return
@@ -498,6 +588,21 @@ const submitProfile = async () => {
     // Then upload the bar certificate
     if (selectedFile.value) {
       await lawyerStore.uploadCredentials(selectedFile.value)
+    }
+
+    // Upload profile picture if selected
+    if (profilePictureFile.value) {
+      try {
+        const result = await authStore.uploadProfilePicture(profilePictureFile.value)
+        if (!result.success) {
+          profilePictureError.value = result.message || 'Failed to upload profile picture.'
+          return
+        }
+      } catch (error) {
+        console.error('Error uploading profile picture:', error)
+        profilePictureError.value = 'Failed to upload profile picture. Please try again.'
+        return
+      }
     }
 
     // Redirect to dashboard with success message
@@ -823,4 +928,6 @@ const submitProfile = async () => {
     padding: 1.5rem;
   }
 }
+
+
 </style> 

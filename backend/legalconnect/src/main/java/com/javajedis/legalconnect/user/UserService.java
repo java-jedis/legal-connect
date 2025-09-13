@@ -1,10 +1,11 @@
 package com.javajedis.legalconnect.user;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
-import com.javajedis.legalconnect.common.utility.JWTUtil;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,11 +14,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.CloudinaryService;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.common.utility.JWTUtil;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -32,6 +37,7 @@ public class UserService {
     private final StringRedisTemplate redisTemplate;
     private final JWTUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final CloudinaryService cloudinaryService;
 
     /**
      * Retrieves the current authenticated user's information.
@@ -58,6 +64,19 @@ public class UserService {
         info.setEmailVerified((Boolean) userInfo.get("emailVerified"));
         info.setCreatedAt((OffsetDateTime) userInfo.get("createdAt"));
         info.setUpdatedAt((OffsetDateTime) userInfo.get("updatedAt"));
+        
+        String profilePictureUrl = (String) userInfo.get("profilePictureUrl");
+        String profilePictureThumbnailUrl = (String) userInfo.get("profilePictureThumbnailUrl");
+        String profilePicturePublicId = (String) userInfo.get("profilePicturePublicId");
+        
+        if (profilePictureUrl != null) {
+            ProfilePictureDTO profilePicture = new ProfilePictureDTO(
+                profilePictureUrl, 
+                profilePictureThumbnailUrl, 
+                profilePicturePublicId
+            );
+            info.setProfilePicture(profilePicture);
+        }
 
         return ApiResponse.success(info, HttpStatus.OK, "User info retrieved successfully");
     }
@@ -125,5 +144,51 @@ public class UserService {
         log.info("Password changed successfully for email: {}", email);
         return ApiResponse.success(true, HttpStatus.OK, "Password changed successfully");
     }
+
+    /**
+     * Uploads a profile picture for the current user.
+     */
+    public ResponseEntity<ApiResponse<ProfilePictureDTO>> uploadProfilePicture(MultipartFile file) {
+        log.debug("Attempting to upload profile picture for current user");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            log.warn("User is not authenticated when attempting to upload profile picture");
+            return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
+        }
+        
+        String email = authentication.getName();
+        if (email == null) {
+            log.error("Email not found in authentication context during profile picture upload");
+            return ApiResponse.error(INVALID_TOKEN_MSG, HttpStatus.UNAUTHORIZED);
+        }
+        
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> {
+                    log.error("User not found for email: {} during profile picture upload", email);
+                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
+                });
+
+        try {
+            if (user.getProfilePicturePublicId() != null) {
+                cloudinaryService.deleteProfilePicture(user.getProfilePicturePublicId());
+            }
+
+            ProfilePictureDTO profilePicture = cloudinaryService.uploadProfilePicture(file, user.getId().toString());
+            
+            user.setProfilePictureUrl(profilePicture.getFullPictureUrl());
+            user.setProfilePictureThumbnailUrl(profilePicture.getThumbnailPictureUrl());
+            user.setProfilePicturePublicId(profilePicture.getPublicId());
+            userRepo.save(user);
+
+            log.info("Profile picture uploaded successfully for email: {}", email);
+            return ApiResponse.success(profilePicture, HttpStatus.OK, "Profile picture uploaded successfully");
+            
+        } catch (IOException e) {
+            log.error("Error uploading profile picture for email: {}", email, e);
+            return ApiResponse.error("Failed to upload profile picture", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
 
 }

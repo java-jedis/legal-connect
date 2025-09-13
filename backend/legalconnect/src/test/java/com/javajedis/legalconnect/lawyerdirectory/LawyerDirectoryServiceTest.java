@@ -123,7 +123,8 @@ class LawyerDirectoryServiceTest {
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
         Object[] row = new Object[] {
             testLawyerId, testUserId, "Lawyer", "User", "lawyer@example.com", "Firm", 10,
-            PracticingCourt.SUPREME_COURT.name(), Division.DHAKA.name(), District.DHAKA.name(), "CRIMINAL_LAW", "CRIMINAL_LAW", 4.5
+            PracticingCourt.SUPREME_COURT.name(), Division.DHAKA.name(), District.DHAKA.name(), "CRIMINAL_LAW", "CRIMINAL_LAW", 4.5,
+            "https://example.com/lawyer-full.jpg", "https://example.com/lawyer-thumb.jpg", "lawyer-profile-pic"
         };
         List<Object[]> content = new ArrayList<>();
         content.add(row);
@@ -134,6 +135,13 @@ class LawyerDirectoryServiceTest {
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody().getData());
         assertEquals(1, result.getBody().getData().size());
+        
+        // Verify profile picture data is included
+        LawyerSearchResultDTO lawyerResult = result.getBody().getData().get(0);
+        assertNotNull(lawyerResult.getProfilePicture());
+        assertEquals("https://example.com/lawyer-full.jpg", lawyerResult.getProfilePicture().getFullPictureUrl());
+        assertEquals("https://example.com/lawyer-thumb.jpg", lawyerResult.getProfilePicture().getThumbnailPictureUrl());
+        assertEquals("lawyer-profile-pic", lawyerResult.getProfilePicture().getPublicId());
     }
 
     @Test

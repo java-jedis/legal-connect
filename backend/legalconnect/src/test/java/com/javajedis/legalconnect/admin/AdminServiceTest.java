@@ -63,6 +63,23 @@ class AdminServiceTest {
         user.setEmailVerified(true);
         user.setCreatedAt(OffsetDateTime.now());
         user.setUpdatedAt(OffsetDateTime.now());
+        user.setProfilePictureUrl("https://example.com/profile-full.jpg");
+        user.setProfilePictureThumbnailUrl("https://example.com/profile-thumb.jpg");
+        user.setProfilePicturePublicId("profile-pic-id");
+        return user;
+    }
+
+    private User createMockUserWithoutProfilePicture() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("First");
+        user.setLastName("Last");
+        user.setEmail("email@example.com");
+        user.setRole(Role.LAWYER);
+        user.setEmailVerified(true);
+        user.setCreatedAt(OffsetDateTime.now());
+        user.setUpdatedAt(OffsetDateTime.now());
+        // No profile picture data
         return user;
     }
 
@@ -152,5 +169,85 @@ class AdminServiceTest {
         ResponseEntity<ApiResponse<AdminLawyerDTO>> response = adminService.updateLawyerVerificationStatus(lawyerId, VerificationStatus.APPROVED);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void getLawyersByVerificationStatus_shouldIncludeProfilePicture() {
+        // Arrange
+        Lawyer lawyer = new Lawyer();
+        lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUser());
+        List<Lawyer> lawyers = List.of(lawyer);
+        when(lawyerRepo.findByVerificationStatus(eq(VerificationStatus.PENDING), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(lawyers));
+        when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ApiResponse<AdminLawyerListResponseDTO>> response = 
+            adminService.getLawyersByVerificationStatus(VerificationStatus.PENDING, 0, 10);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData()).isNotNull();
+        assertThat(response.getBody().getData().getLawyers()).hasSize(1);
+        
+        AdminLawyerDTO lawyerDTO = response.getBody().getData().getLawyers().get(0);
+        assertThat(lawyerDTO.getLawyer().getProfilePicture()).isNotNull();
+        assertThat(lawyerDTO.getLawyer().getProfilePicture().getFullPictureUrl())
+            .isEqualTo("https://example.com/profile-full.jpg");
+        assertThat(lawyerDTO.getLawyer().getProfilePicture().getThumbnailPictureUrl())
+            .isEqualTo("https://example.com/profile-thumb.jpg");
+        assertThat(lawyerDTO.getLawyer().getProfilePicture().getPublicId())
+            .isEqualTo("profile-pic-id");
+    }
+
+    @Test
+    void getLawyersByVerificationStatus_shouldHandleNullProfilePicture() {
+        // Arrange
+        Lawyer lawyer = new Lawyer();
+        lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUserWithoutProfilePicture());
+        List<Lawyer> lawyers = List.of(lawyer);
+        when(lawyerRepo.findByVerificationStatus(eq(VerificationStatus.PENDING), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(lawyers));
+        when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ApiResponse<AdminLawyerListResponseDTO>> response = 
+            adminService.getLawyersByVerificationStatus(VerificationStatus.PENDING, 0, 10);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData()).isNotNull();
+        assertThat(response.getBody().getData().getLawyers()).hasSize(1);
+        
+        AdminLawyerDTO lawyerDTO = response.getBody().getData().getLawyers().get(0);
+        assertThat(lawyerDTO.getLawyer().getProfilePicture()).isNull();
+    }
+
+    @Test
+    void updateLawyerVerificationStatus_shouldPreserveProfilePicture() {
+        // Arrange
+        UUID lawyerId = UUID.randomUUID();
+        Lawyer lawyer = new Lawyer();
+        lawyer.setId(lawyerId);
+        lawyer.setVerificationStatus(VerificationStatus.PENDING);
+        lawyer.setUser(createMockUser());
+        when(lawyerRepo.findById(lawyerId)).thenReturn(Optional.of(lawyer));
+        when(lawyerRepo.save(any(Lawyer.class))).thenReturn(lawyer);
+        when(lawyerSpecializationRepo.findByLawyer(any())).thenReturn(Collections.emptyList());
+
+        // Act
+        ResponseEntity<ApiResponse<AdminLawyerDTO>> response = 
+            adminService.updateLawyerVerificationStatus(lawyerId, VerificationStatus.APPROVED);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData()).isNotNull();
+        
+        AdminLawyerDTO lawyerDTO = response.getBody().getData();
+        assertThat(lawyerDTO.getLawyer().getProfilePicture()).isNotNull();
+        assertThat(lawyerDTO.getLawyer().getProfilePicture().getFullPictureUrl())
+            .isEqualTo("https://example.com/profile-full.jpg");
     }
 }

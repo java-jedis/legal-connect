@@ -42,6 +42,15 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
+
+    @Column(name = "profile_picture_thumbnail_url")
+    private String profilePictureThumbnailUrl;
+
+    @Column(name = "profile_picture_public_id")
+    private String profilePicturePublicId;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMPTZ DEFAULT now()")
     private OffsetDateTime createdAt;

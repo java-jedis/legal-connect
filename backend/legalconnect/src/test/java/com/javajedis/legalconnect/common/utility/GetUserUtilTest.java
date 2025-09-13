@@ -55,6 +55,9 @@ class GetUserUtilTest {
         user.setEmail("test@example.com");
         user.setRole(null);
         user.setEmailVerified(true);
+        user.setProfilePictureUrl("https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_123.jpg");
+        user.setProfilePictureThumbnailUrl("https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_123.jpg");
+        user.setProfilePicturePublicId("profile_pictures/user_123");
         OffsetDateTime now = OffsetDateTime.now();
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
@@ -65,6 +68,9 @@ class GetUserUtilTest {
         assertEquals("Doe", result.get("lastName"));
         assertEquals("test@example.com", result.get("email"));
         assertEquals(true, result.get("emailVerified"));
+        assertEquals("https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_123.jpg", result.get("profilePictureUrl"));
+        assertEquals("https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_123.jpg", result.get("profilePictureThumbnailUrl"));
+        assertEquals("profile_pictures/user_123", result.get("profilePicturePublicId"));
         assertEquals(now, result.get("createdAt"));
         assertEquals(now, result.get("updatedAt"));
     }

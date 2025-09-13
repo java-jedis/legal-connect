@@ -58,6 +58,9 @@ class LawyerUtilTest {
         testUser.setEmailVerified(true);
         testUser.setCreatedAt(OffsetDateTime.now());
         testUser.setUpdatedAt(OffsetDateTime.now());
+        testUser.setProfilePictureUrl("https://example.com/lawyer-full.jpg");
+        testUser.setProfilePictureThumbnailUrl("https://example.com/lawyer-thumb.jpg");
+        testUser.setProfilePicturePublicId("lawyer-profile-pic");
         
         // Setup test lawyer
         testLawyer = new Lawyer();
@@ -211,6 +214,12 @@ class LawyerUtilTest {
         assertEquals(testLawyer.getCreatedAt(), result.getLawyerCreatedAt());
         assertEquals(testLawyer.getUpdatedAt(), result.getLawyerUpdatedAt());
         assertEquals(specializations, result.getSpecializations());
+        
+        // Verify profile picture mapping
+        assertNotNull(result.getProfilePicture());
+        assertEquals("https://example.com/lawyer-full.jpg", result.getProfilePicture().getFullPictureUrl());
+        assertEquals("https://example.com/lawyer-thumb.jpg", result.getProfilePicture().getThumbnailPictureUrl());
+        assertEquals("lawyer-profile-pic", result.getProfilePicture().getPublicId());
     }
 
     @Test
@@ -307,5 +316,38 @@ class LawyerUtilTest {
         assertEquals(testLawyer.getCompleteProfile(), result.getCompleteProfile());
         assertEquals(new java.math.BigDecimal("75.50"), result.getHourlyCharge());
         assertEquals(false, result.getCompleteProfile());
+    }
+    
+    @Test
+    void mapLawyerToLawyerInfoDTO_withNoProfilePicture_returnsNullProfilePicture() {
+        // Arrange
+        User userWithoutPicture = new User();
+        userWithoutPicture.setId(UUID.randomUUID());
+        userWithoutPicture.setFirstName("Jane");
+        userWithoutPicture.setLastName("Smith");
+        userWithoutPicture.setEmail("jane@example.com");
+        // No profile picture URLs set
+        
+        Lawyer lawyerWithoutPicture = new Lawyer();
+        lawyerWithoutPicture.setId(UUID.randomUUID());
+        lawyerWithoutPicture.setUser(userWithoutPicture);
+        lawyerWithoutPicture.setFirm("Test Firm");
+        lawyerWithoutPicture.setYearsOfExperience(3);
+        lawyerWithoutPicture.setBarCertificateNumber("BAR789");
+        lawyerWithoutPicture.setVerificationStatus(VerificationStatus.PENDING);
+        lawyerWithoutPicture.setCreatedAt(OffsetDateTime.now());
+        lawyerWithoutPicture.setUpdatedAt(OffsetDateTime.now());
+        
+        List<SpecializationType> specializations = List.of(SpecializationType.FAMILY_LAW);
+        
+        // Act
+        LawyerInfoDTO result = LawyerUtil.mapLawyerToLawyerInfoDTO(lawyerWithoutPicture, specializations);
+        
+        // Assert
+        assertNotNull(result);
+        assertEquals(userWithoutPicture.getId(), result.getId());
+        assertEquals("Jane", result.getFirstName());
+        assertEquals("Smith", result.getLastName());
+        assertNull(result.getProfilePicture()); // Should be null when user has no profile picture
     }
 }

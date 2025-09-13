@@ -93,9 +93,16 @@
           <template v-else>
             <div class="user-menu">
               <button class="user-menu-toggle" @click="toggleUserMenu">
-                <div class="user-avatar">
+                <div class="user-avatar" v-if="!authStore.userInfo?.profilePicture?.thumbnailPictureUrl">
                   <span>{{ userInitial }}</span>
                 </div>
+                <img 
+                  v-else
+                  :src="authStore.userInfo.profilePicture.thumbnailPictureUrl" 
+                  :alt="userFullName"
+                  :key="authStore.userInfo.profilePicture.thumbnailPictureUrl"
+                  class="user-avatar-image"
+                />
                 <span class="user-name">{{ userFullName }}</span>
                 <svg
                   class="dropdown-icon"
@@ -362,6 +369,14 @@ const logout = async () => {
   justify-content: center;
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.user-avatar-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-background);
 }
 
 .user-name {

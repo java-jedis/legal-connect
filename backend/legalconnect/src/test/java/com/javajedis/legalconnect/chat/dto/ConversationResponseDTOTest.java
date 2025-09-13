@@ -12,6 +12,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
+
 @DisplayName("ConversationResponseDTO Tests")
 class ConversationResponseDTOTest {
 
@@ -22,19 +24,21 @@ class ConversationResponseDTOTest {
         UUID id = UUID.randomUUID();
         UUID otherParticipantId = UUID.randomUUID();
         String otherParticipantName = "John Doe";
+        ProfilePictureDTO otherParticipantProfilePicture = createSampleProfilePicture();
         MessageResponseDTO latestMessage = createSampleMessage();
         int unreadCount = 5;
         OffsetDateTime updatedAt = OffsetDateTime.now();
 
         // Act
         ConversationResponseDTO dto = new ConversationResponseDTO(
-            id, otherParticipantId, otherParticipantName, latestMessage, unreadCount, updatedAt
+            id, otherParticipantId, otherParticipantName, otherParticipantProfilePicture, latestMessage, unreadCount, updatedAt
         );
 
         // Assert
         assertEquals(id, dto.getId());
         assertEquals(otherParticipantId, dto.getOtherParticipantId());
         assertEquals(otherParticipantName, dto.getOtherParticipantName());
+        assertEquals(otherParticipantProfilePicture, dto.getOtherParticipantProfilePicture());
         assertEquals(latestMessage, dto.getLatestMessage());
         assertEquals(unreadCount, dto.getUnreadCount());
         assertEquals(updatedAt, dto.getUpdatedAt());
@@ -50,6 +54,7 @@ class ConversationResponseDTOTest {
         assertNull(dto.getId());
         assertNull(dto.getOtherParticipantId());
         assertNull(dto.getOtherParticipantName());
+        assertNull(dto.getOtherParticipantProfilePicture());
         assertNull(dto.getLatestMessage());
         assertEquals(0, dto.getUnreadCount());
         assertNull(dto.getUpdatedAt());
@@ -63,6 +68,7 @@ class ConversationResponseDTOTest {
         UUID id = UUID.randomUUID();
         UUID otherParticipantId = UUID.randomUUID();
         String otherParticipantName = "Jane Smith";
+        ProfilePictureDTO otherParticipantProfilePicture = createSampleProfilePicture();
         MessageResponseDTO latestMessage = createSampleMessage();
         int unreadCount = 3;
         OffsetDateTime updatedAt = OffsetDateTime.now();
@@ -71,6 +77,7 @@ class ConversationResponseDTOTest {
         dto.setId(id);
         dto.setOtherParticipantId(otherParticipantId);
         dto.setOtherParticipantName(otherParticipantName);
+        dto.setOtherParticipantProfilePicture(otherParticipantProfilePicture);
         dto.setLatestMessage(latestMessage);
         dto.setUnreadCount(unreadCount);
         dto.setUpdatedAt(updatedAt);
@@ -79,6 +86,7 @@ class ConversationResponseDTOTest {
         assertEquals(id, dto.getId());
         assertEquals(otherParticipantId, dto.getOtherParticipantId());
         assertEquals(otherParticipantName, dto.getOtherParticipantName());
+        assertEquals(otherParticipantProfilePicture, dto.getOtherParticipantProfilePicture());
         assertEquals(latestMessage, dto.getLatestMessage());
         assertEquals(unreadCount, dto.getUnreadCount());
         assertEquals(updatedAt, dto.getUpdatedAt());
@@ -95,14 +103,16 @@ class ConversationResponseDTOTest {
         int unreadCount = 5;
         OffsetDateTime updatedAt = OffsetDateTime.now();
 
+        ProfilePictureDTO profilePicture = createSampleProfilePicture();
+        
         ConversationResponseDTO dto1 = new ConversationResponseDTO(
-            id, otherParticipantId, otherParticipantName, latestMessage, unreadCount, updatedAt
+            id, otherParticipantId, otherParticipantName, profilePicture, latestMessage, unreadCount, updatedAt
         );
         ConversationResponseDTO dto2 = new ConversationResponseDTO(
-            id, otherParticipantId, otherParticipantName, latestMessage, unreadCount, updatedAt
+            id, otherParticipantId, otherParticipantName, profilePicture, latestMessage, unreadCount, updatedAt
         );
         ConversationResponseDTO dto3 = new ConversationResponseDTO(
-            UUID.randomUUID(), otherParticipantId, otherParticipantName, latestMessage, unreadCount, updatedAt
+            UUID.randomUUID(), otherParticipantId, otherParticipantName, profilePicture, latestMessage, unreadCount, updatedAt
         );
 
         // Assert
@@ -125,8 +135,10 @@ class ConversationResponseDTOTest {
         int unreadCount = 5;
         OffsetDateTime updatedAt = OffsetDateTime.now();
         
+        ProfilePictureDTO profilePicture = createSampleProfilePicture();
+        
         ConversationResponseDTO dto = new ConversationResponseDTO(
-            id, otherParticipantId, otherParticipantName, latestMessage, unreadCount, updatedAt
+            id, otherParticipantId, otherParticipantName, profilePicture, latestMessage, unreadCount, updatedAt
         );
 
         // Act
@@ -145,12 +157,13 @@ class ConversationResponseDTOTest {
     @DisplayName("Should handle null values gracefully")
     void testNullValues() {
         // Act
-        ConversationResponseDTO dto = new ConversationResponseDTO(null, null, null, null, 0, null);
+        ConversationResponseDTO dto = new ConversationResponseDTO(null, null, null, null, null, 0, null);
 
         // Assert
         assertNull(dto.getId());
         assertNull(dto.getOtherParticipantId());
         assertNull(dto.getOtherParticipantName());
+        assertNull(dto.getOtherParticipantProfilePicture());
         assertNull(dto.getLatestMessage());
         assertEquals(0, dto.getUnreadCount());
         assertNull(dto.getUpdatedAt());
@@ -183,6 +196,14 @@ class ConversationResponseDTOTest {
             "Sample message content",
             false,
             OffsetDateTime.now()
+        );
+    }
+    
+    private ProfilePictureDTO createSampleProfilePicture() {
+        return new ProfilePictureDTO(
+            "https://example.com/full-picture.jpg",
+            "https://example.com/thumbnail-picture.jpg",
+            "cloudinary-public-id"
         );
     }
 }

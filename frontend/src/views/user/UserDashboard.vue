@@ -16,6 +16,13 @@
       </div>
     </section>
 
+    <!-- Profile Picture Upload Prompt -->
+    <section class="profile-prompt-section section" v-if="showProfilePrompt">
+      <div class="container">
+        <ProfilePictureUploadPrompt />
+      </div>
+    </section>
+
     <!-- Quick Actions -->
     <section class="quick-actions-section section">
       <div class="container">
@@ -228,8 +235,9 @@
 
 <script setup>
 import MyCalendarSection from '@/components/schedule/MyCalendarSection.vue'
+import ProfilePictureUploadPrompt from '@/components/user/ProfilePictureUploadPrompt.vue'
 import { useAuthStore } from '@/stores/auth'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const authStore = useAuthStore()
@@ -243,6 +251,28 @@ const userName = computed(() => {
 const newMessage = ref('')
 const chatHistory = ref([])
 const chatMessages = ref(null)
+const showProfilePrompt = ref(false)
+
+// Check if profile picture prompt should be shown
+const checkProfilePrompt = () => {
+  // Don't show if user already has a profile picture
+  if (authStore.userInfo?.profilePicture?.fullPictureUrl) {
+    showProfilePrompt.value = false
+    return
+  }
+  
+  // Show the prompt for users without profile pictures
+  showProfilePrompt.value = true
+}
+
+const dismissProfilePrompt = () => {
+  showProfilePrompt.value = false
+}
+
+// Check on component mount
+onMounted(() => {
+  checkProfilePrompt()
+})
 
 const activeCases = ref([
   {
@@ -479,6 +509,10 @@ if (typeof window !== 'undefined' && window.location.search.includes('focus=cale
 .header-actions {
   display: flex;
   gap: 1rem;
+}
+
+.profile-prompt-section {
+  background: var(--color-background-soft);
 }
 
 .quick-actions-section {

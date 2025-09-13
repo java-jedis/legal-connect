@@ -15,11 +15,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -31,11 +33,14 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.CloudinaryService;
 import com.javajedis.legalconnect.common.utility.GetUserUtil;
 import com.javajedis.legalconnect.common.utility.JWTUtil;
 
@@ -48,6 +53,8 @@ class UserServiceTest {
     private JWTUtil jwtUtil;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private CloudinaryService cloudinaryService;
     @Mock
     private Authentication authentication;
     @Mock
@@ -73,6 +80,9 @@ class UserServiceTest {
         userInfo.put("email", "john@example.com");
         userInfo.put("role", Role.USER);
         userInfo.put("emailVerified", true);
+        userInfo.put("profilePictureUrl", "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_123.jpg");
+        userInfo.put("profilePictureThumbnailUrl", "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_123.jpg");
+        userInfo.put("profilePicturePublicId", "profile_pictures/user_123");
         userInfo.put("createdAt", OffsetDateTime.now());
         userInfo.put("updatedAt", OffsetDateTime.now());
         try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
@@ -240,5 +250,161 @@ class UserServiceTest {
         assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class, () -> {
             userService.changePassword(req);
         });
+    }
+
+    @Test
+    void uploadProfilePicture_success() throws IOException {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("john@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("john@example.com");
+        user.setProfilePicturePublicId(null); // No existing profile picture
+        
+        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        ProfilePictureDTO profilePictureDTO = new ProfilePictureDTO(
+            "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
+            "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
+            "profile_pictures/user_" + userId
+        );
+        
+        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(profilePictureDTO);
+        
+        // Act
+        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+        
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(profilePictureDTO, result.getBody().getData());
+        assertEquals("Profile picture uploaded successfully", result.getBody().getMessage());
+        
+        // Verify user entity is updated
+        assertEquals(profilePictureDTO.getFullPictureUrl(), user.getProfilePictureUrl());
+        assertEquals(profilePictureDTO.getThumbnailPictureUrl(), user.getProfilePictureThumbnailUrl());
+        assertEquals(profilePictureDTO.getPublicId(), user.getProfilePicturePublicId());
+        verify(userRepo).save(user);
+    }
+
+    @Test
+    void uploadProfilePicture_replacesExistingPicture() throws IOException {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("john@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("john@example.com");
+        user.setProfilePicturePublicId("old_profile_pictures/user_old"); // Existing profile picture
+        
+        MultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", "new image content".getBytes());
+        ProfilePictureDTO newProfilePictureDTO = new ProfilePictureDTO(
+            "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
+            "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
+            "profile_pictures/user_" + userId
+        );
+        
+        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(newProfilePictureDTO);
+        
+        // Act
+        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+        
+        // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(newProfilePictureDTO, result.getBody().getData());
+        
+        // Verify old picture is deleted and new one is saved
+        verify(cloudinaryService).deleteProfilePicture("old_profile_pictures/user_old");
+        verify(cloudinaryService).uploadProfilePicture(file, userId.toString());
+        verify(userRepo).save(user);
+    }
+
+    @Test
+    void uploadProfilePicture_notAuthenticated_returnsUnauthorized() {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        
+        // Act
+        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+        
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+    }
+
+    @Test
+    void uploadProfilePicture_userNotFound_throwsException() {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("notfound@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        when(userRepo.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
+        
+        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        
+        // Act & Assert
+        assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class, () -> {
+            userService.uploadProfilePicture(file);
+        });
+    }
+
+    @Test
+    void uploadProfilePicture_cloudinaryError_returnsError() throws IOException {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("john@example.com");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        UUID userId = UUID.randomUUID();
+        User user = new User();
+        user.setId(userId);
+        user.setEmail("john@example.com");
+        
+        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        
+        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
+        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenThrow(new IOException("Cloudinary error"));
+        
+        // Act
+        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+        
+        // Assert
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("Failed to upload profile picture", result.getBody().getError().getMessage());
+    }
+
+    @Test
+    void uploadProfilePicture_nullEmail_returnsUnauthorized() {
+        // Arrange
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn(null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        
+        // Act
+        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+        
+        // Assert
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertNotNull(result.getBody().getError());
+        assertEquals("Invalid token", result.getBody().getError().getMessage());
     }
 } 

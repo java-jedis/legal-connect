@@ -10,6 +10,7 @@ import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,6 +37,7 @@ public class LawyerInfoDTO {
     private List<SpecializationType> specializations;
     private BigDecimal hourlyCharge;
     private Boolean completeProfile;
+    private ProfilePictureDTO profilePicture;
     
     public String getPracticingCourtDisplayName() {
         return practicingCourt != null ? practicingCourt.getDisplayName() : null;

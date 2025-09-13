@@ -1,7 +1,8 @@
 package com.javajedis.legalconnect.lawyer;
 
-import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
-import com.javajedis.legalconnect.user.User;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,8 +10,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-import java.util.UUID;
+import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.User;
 
 @Repository
 public interface LawyerRepo extends JpaRepository<Lawyer, UUID> {
@@ -31,12 +32,13 @@ public interface LawyerRepo extends JpaRepository<Lawyer, UUID> {
 
     /**
      * Returns raw lawyer search results as Object[] for mapping in the service layer.
-     * Fields: lawyerId, userId, firstName, lastName, email, firm, yearsOfExperience, practicingCourt, division, district, bio, specializationCsv, averageRating
+     * Fields: lawyerId, userId, firstName, lastName, email, firm, yearsOfExperience, practicingCourt, division, district, bio, specializationCsv, averageRating, profilePictureUrl, profilePictureThumbnailUrl, profilePicturePublicId
      */
     @Query(value = "SELECT l.id, u.id, u.first_name, u.last_name, u.email, l.firm, l.years_of_experience, " +
             "l.practicing_court, l.division, l.district, l.bio, " +
             "(SELECT string_agg(ls.specialization_type, ',') FROM lawyer_specializations ls WHERE ls.lawyer_id = l.id), " +
-            "(SELECT AVG(lr.rating) FROM lawyer_reviews lr WHERE lr.lawyer_id = u.id) " +
+            "(SELECT AVG(lr.rating) FROM lawyer_reviews lr WHERE lr.lawyer_id = u.id), " +
+            "u.profile_picture_url, u.profile_picture_thumbnail_url, u.profile_picture_public_id " +
             "FROM lawyers l JOIN users u ON u.id = l.user_id " +
             "WHERE l.verification_status = 'APPROVED' " +
             "AND (:minExperience IS NULL OR l.years_of_experience >= :minExperience) " +

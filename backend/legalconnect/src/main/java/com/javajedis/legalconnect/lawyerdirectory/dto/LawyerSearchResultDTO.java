@@ -9,6 +9,7 @@ import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,6 +34,7 @@ public class LawyerSearchResultDTO {
     private String bio;
     private List<SpecializationType> specializations;
     private Double averageRating;
+    private ProfilePictureDTO profilePicture;
 
 
     // Utility method to convert specialization CSV to List<SpecializationType>

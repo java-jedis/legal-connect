@@ -1,5 +1,16 @@
 package com.javajedis.legalconnect.lawyer;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.javajedis.legalconnect.common.dto.ApiResponse;
 import com.javajedis.legalconnect.common.service.AwsService;
 import com.javajedis.legalconnect.lawyer.dto.BarCertificateUploadResponseDTO;
@@ -8,20 +19,12 @@ import com.javajedis.legalconnect.lawyer.dto.LawyerProfileDTO;
 import com.javajedis.legalconnect.lawyer.dto.UpdateHourlyChargeDTO;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -102,6 +105,22 @@ public class LawyerService {
         if (lawyer == null) {
             log.info("No profile found for user: {}", user.getEmail());
             LawyerInfoDTO emptyLawyerInfoDTO = new LawyerInfoDTO();
+            
+            // Set basic user info and profile picture even if lawyer profile doesn't exist
+            emptyLawyerInfoDTO.setId(user.getId());
+            emptyLawyerInfoDTO.setFirstName(user.getFirstName());
+            emptyLawyerInfoDTO.setLastName(user.getLastName());
+            emptyLawyerInfoDTO.setEmail(user.getEmail());
+            
+            if (user.getProfilePictureUrl() != null) {
+                ProfilePictureDTO profilePicture = new ProfilePictureDTO(
+                    user.getProfilePictureUrl(),
+                    user.getProfilePictureThumbnailUrl(),
+                    user.getProfilePicturePublicId()
+                );
+                emptyLawyerInfoDTO.setProfilePicture(profilePicture);
+            }
+            
             return ApiResponse.success(emptyLawyerInfoDTO, HttpStatus.OK, "Lawyer profile has not been created yet");
         }
         List<SpecializationType> specializations = loadLawyerSpecializations(lawyer);
