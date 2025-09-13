@@ -36,11 +36,10 @@ class ChatSession(BaseModel):
 class CreateSessionRequest(BaseModel):
     """Create session request"""
     title: Optional[str] = None
-    # Note: user_id removed - will be extracted from JWT token
 
 @router.get("/sessions")
 async def list_chat_sessions(
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db)
@@ -51,10 +50,9 @@ async def list_chat_sessions(
     try:
         from app.services.chat_service import chat_service
         
-        # ✅ Use authenticated user_id from JWT token
         sessions = chat_service.get_user_sessions(
             db=db, 
-            user_id=current_user_id,  # ✅ Secure: from JWT token
+            user_id=current_user_id,
             limit=limit
         )
         
@@ -73,7 +71,7 @@ async def list_chat_sessions(
 @router.post("/sessions")
 async def create_chat_session(
     request: CreateSessionRequest, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
     """
@@ -84,7 +82,7 @@ async def create_chat_session(
         
         session_id = chat_service.create_session(
             db=db, 
-            user_id=current_user_id,  # ✅ Use authenticated user_id from JWT
+            user_id=current_user_id,
             title=request.title
         )
         
@@ -103,7 +101,7 @@ async def create_chat_session(
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(
     session_id: str,
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db)
@@ -119,7 +117,6 @@ async def get_session_messages(
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
         
-        # ✅ Security check: Verify session ownership
         if session_info.get("user_id"):
             verify_session_ownership(session_info["user_id"], current_user_id)
         
@@ -127,7 +124,7 @@ async def get_session_messages(
         messages = chat_service.get_chat_history(
             db=db, 
             session_id=session_id, 
-            user_id=current_user_id,  # ✅ Add user_id for verification
+            user_id=current_user_id,
             limit=limit
         )
         
@@ -150,22 +147,45 @@ async def add_message_to_session(
     session_id: str,
     role: str,
     content: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
     metadata: Optional[Dict[str, Any]] = None
 ):
     """
     Add a message to a chat session
     """
     try:
-        # TODO: Implement message saving to database
+        from app.services.chat_service import chat_service
+        
+        # Verify session ownership
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
+        # Add message using chat service
+        message_id = chat_service.add_message(
+            db=db,
+            session_id=session_id,
+            role=role,
+            content=content,
+            user_id=current_user_id,
+            metadata=metadata
+        )
+        
         return {
             "session_id": session_id,
-            "message_id": "temp_message_id",
+            "message_id": message_id,
             "role": role,
             "content": content,
             "timestamp": datetime.utcnow(),
-            "message": "Message saving not yet implemented"
+            "message": "Message saved successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error adding message to session: {e}")
         raise HTTPException(status_code=500, detail=f"Save error: {str(e)}")
@@ -173,20 +193,44 @@ async def add_message_to_session(
 @router.put("/sessions/{session_id}")
 async def update_session(
     session_id: str,
-    title: Optional[str] = None
+    title: Optional[str] = None,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db)
 ):
     """
     Update a chat session
     """
     try:
-        # TODO: Implement session update in database
+        from app.services.chat_service import chat_service
+        
+        # Verify session ownership
+        session_info = chat_service.get_session_info(db=db, session_id=session_id)
+        if not session_info:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
+        if session_info.get("user_id"):
+            verify_session_ownership(session_info["user_id"], current_user_id)
+        
+        # Update session using chat service
+        updated = chat_service.update_session(
+            db=db,
+            session_id=session_id,
+            user_id=current_user_id,
+            title=title
+        )
+        
+        if not updated:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+        
         return {
             "session_id": session_id,
             "title": title,
             "updated_at": datetime.utcnow(),
-            "message": "Session update not yet implemented"
+            "message": "Session updated successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating session: {e}")
         raise HTTPException(status_code=500, detail=f"Update error: {str(e)}")
@@ -194,16 +238,12 @@ async def update_session(
 @router.delete("/sessions/{session_id}")
 async def delete_session(
     session_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    """
-    Delete a chat session and all its messages (user must own the session)
-    """
+    """Delete a chat session and all its messages"""
     try:
         from app.services.chat_service import chat_service
-        
-        # ✅ Security check: Verify session ownership before deletion
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
@@ -229,20 +269,16 @@ async def delete_session(
 @router.get("/sessions/{session_id}")
 async def get_session_details(
     session_id: str, 
-    current_user_id: str = Depends(get_current_user_id),  # ✅ Extract from JWT
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db)
 ):
-    """
-    Get details of a specific chat session (user must own the session)
-    """
+    """Get details of a specific chat session"""
     try:
         from app.services.chat_service import chat_service
         
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
-        
-        # ✅ Security check: Verify session ownership
         if session_info.get("user_id"):
             verify_session_ownership(session_info["user_id"], current_user_id)
         
@@ -253,23 +289,6 @@ async def get_session_details(
     except Exception as e:
         logger.error(f"Error getting session details for user {current_user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
-
-@router.get("/sessions/{session_id}/export")
-async def export_session(session_id: str, format: str = "json"):
-    """
-    Export chat session history
-    """
-    try:
-        # TODO: Implement session export functionality
-        return {
-            "session_id": session_id,
-            "format": format,
-            "message": "Session export not yet implemented"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error exporting session: {e}")
-        raise HTTPException(status_code=500, detail=f"Export error: {str(e)}")
 
 @router.get("/health")
 async def history_health_check():

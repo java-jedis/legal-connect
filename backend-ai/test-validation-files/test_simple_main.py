@@ -32,7 +32,7 @@ async def health_check():
         if api_key:
             genai.configure(api_key=api_key)
             # Simple test
-            model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            model = genai.GenerativeModel('gemini-2.5-pro')
             response = model.generate_content("Hello", request_options={"timeout": 5})
             checks["google_api"] = "✅ OK"
         else:
@@ -72,14 +72,14 @@ async def test_gemini(message: str = "Test message"):
             )
         
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.5-pro')
         response = model.generate_content(f"Legal AI Test: {message}")
         
         return {
             "success": True,
             "message": message,
             "response": response.text,
-            "model": "gemini-2.0-flash-exp"
+            "model": "gemini-2.5-pro"
         }
     except Exception as e:
         return JSONResponse(
@@ -99,7 +99,7 @@ async def get_config():
         "environment": os.getenv("NODE_ENV", "development"),
         "debug": os.getenv("DEBUG", "False").lower() == "true",
         "embedding_model": os.getenv("EMBEDDING_MODEL", "models/embedding-001"),
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp"),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-pro"),
         "chunk_size": int(os.getenv("CHUNK_SIZE", "1000")),
         "chunk_overlap": int(os.getenv("CHUNK_OVERLAP", "200")),
         "top_k_results": int(os.getenv("TOP_K_RESULTS", "5")),
