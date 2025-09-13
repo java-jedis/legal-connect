@@ -19,33 +19,16 @@ class ChatService:
         pass
     
     def create_session(self, db: Session, user_id: str, title: Optional[str] = None) -> str:
-        """
-        Create a new chat session
-        
-        Args:
-            db: Database session
-            user_id: User ID (REQUIRED - extracted from JWT token)
-            title: Optional session title
-            
-        Returns:
-            Session ID
-            
-        Raises:
-            ValueError: If user_id is None
-        """
+        """Create a new chat session"""
         try:
             if not user_id:
                 raise ValueError("user_id is required - extracted from JWT token")
-            
-            # Note: Don't verify user exists in AI backend database
-            # User ID comes from authenticated JWT token from main backend
-            # This allows main backend users to use AI chat without separate registration
             
             session_id = str(uuid.uuid4())
             
             session = ChatSession(
                 id=session_id,
-                user_id=user_id,  # ✅ Always required now from JWT
+                user_id=user_id,
                 title=title or "New Chat Session"
             )
             
@@ -63,20 +46,7 @@ class ChatService:
     
     def get_or_create_session(self, db: Session, session_id: Optional[str] = None, 
                              user_id: str = None) -> str:
-        """
-        Get existing session or create a new one
-        
-        Args:
-            db: Database session
-            session_id: Optional existing session ID
-            user_id: User ID (REQUIRED)
-            
-        Returns:
-            Session ID
-            
-        Raises:
-            ValueError: If user_id is None
-        """
+        """Get existing session or create a new one"""
         if not user_id:
             raise ValueError("user_id is required")
             
@@ -96,23 +66,7 @@ class ChatService:
     
     def add_message(self, db: Session, session_id: str, role: str, content: str, 
                    user_id: str, metadata: Optional[Dict[str, Any]] = None) -> str:
-        """
-        Add a message to a chat session
-        
-        Args:
-            db: Database session
-            session_id: Chat session ID
-            role: Message role ('user' or 'assistant')
-            content: Message content
-            user_id: User ID (for ownership verification)
-            metadata: Optional metadata (sources, confidence, etc.)
-            
-        Returns:
-            Message ID
-            
-        Raises:
-            ValueError: If session doesn't exist or doesn't belong to user
-        """
+        """Add a message to a chat session"""
         try:
             # Verify session exists and belongs to user
             session = db.query(ChatSession).filter(
@@ -145,21 +99,7 @@ class ChatService:
     
     def get_chat_history(self, db: Session, session_id: str, user_id: str,
                         limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """
-        Get chat history for a session
-        
-        Args:
-            db: Database session
-            session_id: Chat session ID
-            user_id: User ID (for ownership verification)
-            limit: Optional limit on number of messages to return
-            
-        Returns:
-            List of messages with metadata
-            
-        Raises:
-            ValueError: If session doesn't exist or doesn't belong to user
-        """
+        """Get chat history for a session"""
         try:
             # Verify session exists and belongs to user
             session = db.query(ChatSession).filter(
@@ -199,16 +139,7 @@ class ChatService:
             raise e
     
     def get_session_info(self, db: Session, session_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get session information
-        
-        Args:
-            db: Database session
-            session_id: Chat session ID
-            
-        Returns:
-            Session information or None if not found
-        """
+        """Get session information"""
         try:
             session = db.query(ChatSession).filter(ChatSession.id == session_id).first()
             if not session:
@@ -232,16 +163,7 @@ class ChatService:
             raise e
     
     def delete_session(self, db: Session, session_id: str) -> bool:
-        """
-        Delete a chat session and all its messages
-        
-        Args:
-            db: Database session
-            session_id: Chat session ID
-            
-        Returns:
-            True if deleted successfully, False if session not found
-        """
+        """Delete a chat session and all its messages"""
         try:
             # Delete all messages first
             db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
@@ -264,17 +186,7 @@ class ChatService:
             raise e
     
     def get_user_sessions(self, db: Session, user_id: str, limit: Optional[int] = 20) -> List[Dict[str, Any]]:
-        """
-        Get all sessions for a user
-        
-        Args:
-            db: Database session
-            user_id: User ID
-            limit: Optional limit on number of sessions
-            
-        Returns:
-            List of session information
-        """
+        """Get all sessions for a user"""
         try:
             query = db.query(ChatSession).filter(
                 ChatSession.user_id == user_id
@@ -303,6 +215,32 @@ class ChatService:
             
         except Exception as e:
             logger.error(f"Error getting user sessions: {e}")
+            raise e
+    
+    def update_session(self, db: Session, session_id: str, user_id: str, 
+                      title: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """Update a chat session title"""
+        try:
+            # Verify session exists and belongs to user
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id
+            ).first()
+            
+            if not session:
+                return False
+            if title is not None:
+                session.title = title
+            
+            db.commit()
+            db.refresh(session)
+            
+            logger.info(f"Updated session {session_id} for user {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating session: {e}")
+            db.rollback()
             raise e
 
 # Global instance

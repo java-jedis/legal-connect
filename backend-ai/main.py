@@ -1,6 +1,6 @@
 """
 Legal Connect RAG Backend - Main FastAPI Application
-Author: Backend Developer
+Author: Shakil & Majed
 Description: Agentic RAG system for legal document search and analysis
 """
 

@@ -137,7 +137,7 @@ class EnvironmentValidator:
                 self.log_success("Google AI API key and embedding model working")
                 
                 # Test generation model
-                gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+                gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
                 model = genai.GenerativeModel(gemini_model)
                 response = model.generate_content("Hello")
                 self.log_success("Google AI generation model working")
