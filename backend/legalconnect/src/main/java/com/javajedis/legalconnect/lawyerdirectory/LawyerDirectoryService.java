@@ -30,6 +30,7 @@ import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerReviewResponseDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.LawyerSearchResultDTO;
 import com.javajedis.legalconnect.lawyerdirectory.dto.UpdateLawyerReviewDTO;
 import com.javajedis.legalconnect.notifications.NotificationService;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 import com.javajedis.legalconnect.user.User;
 import com.javajedis.legalconnect.user.UserRepo;
 
@@ -290,6 +291,16 @@ public class LawyerDirectoryService {
     }
 
     private LawyerSearchResultDTO mapRowToLawyerSearchResultDTO(Object[] row) {
+        // Create profile picture DTO if profile picture data exists
+        ProfilePictureDTO profilePicture = null;
+        String profilePictureUrl = (String) row[13];
+        String profilePictureThumbnailUrl = (String) row[14];
+        String profilePicturePublicId = (String) row[15];
+        
+        if (profilePictureUrl != null) {
+            profilePicture = new ProfilePictureDTO(profilePictureUrl, profilePictureThumbnailUrl, profilePicturePublicId);
+        }
+        
         return LawyerSearchResultDTO.builder()
                 .lawyerId((UUID) row[0])
                 .userId((UUID) row[1])
@@ -304,6 +315,7 @@ public class LawyerDirectoryService {
                 .bio((String) row[10])
                 .specializations(LawyerSearchResultDTO.parseSpecializations((String) row[11]))
                 .averageRating(row[12] != null ? ((Number) row[12]).doubleValue() : null)
+                .profilePicture(profilePicture)
                 .build();
     }
 }

@@ -19,6 +19,7 @@ import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
 import com.javajedis.legalconnect.lawyer.enums.VerificationStatus;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 
 class LawyerInfoDTOTest {
 
@@ -49,6 +50,7 @@ class LawyerInfoDTOTest {
         assertNull(lawyerInfoDTO.getSpecializations());
         assertNull(lawyerInfoDTO.getHourlyCharge());
         assertNull(lawyerInfoDTO.getCompleteProfile());
+        assertNull(lawyerInfoDTO.getProfilePicture());
     }
 
     @Test
@@ -57,6 +59,8 @@ class LawyerInfoDTOTest {
         List<SpecializationType> specializations = Arrays.asList(SpecializationType.CRIMINAL_LAW, SpecializationType.CIVIL_LAW);
         UUID id = UUID.randomUUID();
         java.math.BigDecimal hourlyCharge = new java.math.BigDecimal("150.00");
+        ProfilePictureDTO profilePicture = new ProfilePictureDTO("https://example.com/full.jpg", "https://example.com/thumb.jpg", "public-id");
+        
         LawyerInfoDTO dto = new LawyerInfoDTO(
             id,
             "John",
@@ -74,7 +78,8 @@ class LawyerInfoDTOTest {
             now,
             specializations,
             hourlyCharge,
-            true
+            true,
+            profilePicture
         );
         assertEquals(id, dto.getId());
         assertEquals("John", dto.getFirstName());
@@ -93,6 +98,7 @@ class LawyerInfoDTOTest {
         assertEquals(specializations, dto.getSpecializations());
         assertEquals(hourlyCharge, dto.getHourlyCharge());
         assertEquals(true, dto.getCompleteProfile());
+        assertEquals(profilePicture, dto.getProfilePicture());
     }
 
     @Test
@@ -119,6 +125,9 @@ class LawyerInfoDTOTest {
         lawyerInfoDTO.setSpecializations(specializations);
         lawyerInfoDTO.setHourlyCharge(hourlyCharge);
         lawyerInfoDTO.setCompleteProfile(false);
+        
+        ProfilePictureDTO profilePicture = new ProfilePictureDTO("https://example.com/jane-full.jpg", "https://example.com/jane-thumb.jpg", "jane-pic-id");
+        lawyerInfoDTO.setProfilePicture(profilePicture);
 
         assertEquals(id, lawyerInfoDTO.getId());
         assertEquals("Jane", lawyerInfoDTO.getFirstName());
@@ -137,6 +146,7 @@ class LawyerInfoDTOTest {
         assertEquals(specializations, lawyerInfoDTO.getSpecializations());
         assertEquals(hourlyCharge, lawyerInfoDTO.getHourlyCharge());
         assertEquals(false, lawyerInfoDTO.getCompleteProfile());
+        assertEquals(profilePicture, lawyerInfoDTO.getProfilePicture());
     }
 
     @Test
@@ -234,19 +244,19 @@ class LawyerInfoDTOTest {
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, null, null
+            now, now, specializations, null, null, null
         );
         LawyerInfoDTO dto2 = new LawyerInfoDTO(
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, null, null
+            now, now, specializations, null, null, null
         );
         LawyerInfoDTO dto3 = new LawyerInfoDTO(
             UUID.randomUUID(), "Jane", "Smith", "jane.smith@example.com",
             "Different Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, null, null
+            now, now, specializations, null, null, null
         );
         assertEquals(dto1, dto2);
         assertNotEquals(dto1, dto3);
@@ -389,19 +399,19 @@ class LawyerInfoDTOTest {
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, hourlyCharge, true
+            now, now, specializations, hourlyCharge, true, null
         );
         LawyerInfoDTO dto2 = new LawyerInfoDTO(
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, hourlyCharge, true
+            now, now, specializations, hourlyCharge, true, null
         );
         LawyerInfoDTO dto3 = new LawyerInfoDTO(
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, new java.math.BigDecimal("200.00"), false
+            now, now, specializations, new java.math.BigDecimal("200.00"), false, null
         );
         
         assertEquals(dto1, dto2);
@@ -434,12 +444,35 @@ class LawyerInfoDTOTest {
             id, "John", "Doe", "john.doe@example.com",
             "Test Firm", 5, "BAR123456", PracticingCourt.SUPREME_COURT,
             Division.DHAKA, District.DHAKA, "Test bio", VerificationStatus.PENDING,
-            now, now, specializations, null, null
+            now, now, specializations, null, null, null
         );
         
         assertNull(dto.getHourlyCharge());
         assertNull(dto.getCompleteProfile());
         assertNull(dto.getHourlyChargeDisplayText());
         assertEquals("Unknown", dto.getCompleteProfileDisplayText());
+        assertNull(dto.getProfilePicture());
+    }
+    
+    @Test
+    void testProfilePictureSetterAndGetter() {
+        // Test setting and getting profile picture
+        ProfilePictureDTO profilePicture = new ProfilePictureDTO(
+            "https://example.com/full-picture.jpg",
+            "https://example.com/thumbnail-picture.jpg", 
+            "cloudinary-public-id"
+        );
+        lawyerInfoDTO.setProfilePicture(profilePicture);
+        assertEquals(profilePicture, lawyerInfoDTO.getProfilePicture());
+        assertEquals("https://example.com/full-picture.jpg", lawyerInfoDTO.getProfilePicture().getFullPictureUrl());
+        assertEquals("https://example.com/thumbnail-picture.jpg", lawyerInfoDTO.getProfilePicture().getThumbnailPictureUrl());
+        assertEquals("cloudinary-public-id", lawyerInfoDTO.getProfilePicture().getPublicId());
+    }
+
+    @Test
+    void testProfilePictureNullHandling() {
+        // Test null handling for profile picture
+        lawyerInfoDTO.setProfilePicture(null);
+        assertNull(lawyerInfoDTO.getProfilePicture());
     }
 }

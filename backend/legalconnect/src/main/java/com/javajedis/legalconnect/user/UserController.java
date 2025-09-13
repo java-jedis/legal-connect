@@ -1,13 +1,23 @@
 package com.javajedis.legalconnect.user;
 
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.javajedis.legalconnect.common.dto.ApiResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @Tag(name = "1. User", description = "User profile and account management endpoints for all types of users")
@@ -47,5 +57,16 @@ public class UserController {
         log.info("PUT /user/change-password called for email: [from context]");
         return userService.changePassword(data);
     }
+
+    /**
+     * Uploads a profile picture for the current user.
+     */
+    @Operation(summary = "Upload profile picture", description = "Uploads a profile picture for the current authenticated user.")
+    @PostMapping(value = "/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<ProfilePictureDTO>> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
+        log.info("POST /user/profile-picture called");
+        return userService.uploadProfilePicture(file);
+    }
+
 
 }

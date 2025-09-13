@@ -1,10 +1,25 @@
 package com.javajedis.legalconnect.chat;
 
-import com.javajedis.legalconnect.chat.dto.*;
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.WebSocketService;
-import com.javajedis.legalconnect.user.User;
-import com.javajedis.legalconnect.user.UserRepo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,15 +33,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import com.javajedis.legalconnect.chat.dto.ConversationListResponseDTO;
+import com.javajedis.legalconnect.chat.dto.ConversationResponseDTO;
+import com.javajedis.legalconnect.chat.dto.MessageListResponseDTO;
+import com.javajedis.legalconnect.chat.dto.MessageResponseDTO;
+import com.javajedis.legalconnect.chat.dto.SendMessageDTO;
+import com.javajedis.legalconnect.chat.dto.UnreadCountResponseDTO;
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.WebSocketService;
+import com.javajedis.legalconnect.user.User;
+import com.javajedis.legalconnect.user.UserRepo;
 
 @ExtendWith(MockitoExtension.class)
 class ChatServiceTest {
@@ -75,6 +91,9 @@ class ChatServiceTest {
         receiverUser.setFirstName("Jane");
         receiverUser.setLastName("Smith");
         receiverUser.setEmail("jane.smith@example.com");
+        receiverUser.setProfilePictureUrl("https://example.com/jane-full.jpg");
+        receiverUser.setProfilePictureThumbnailUrl("https://example.com/jane-thumb.jpg");
+        receiverUser.setProfilePicturePublicId("jane-profile-pic");
 
         conversation = new Conversation();
         conversation.setId(conversationId);
@@ -236,6 +255,12 @@ class ChatServiceTest {
         assertEquals(2, conversationDTO.getUnreadCount());
         assertNotNull(conversationDTO.getLatestMessage());
         assertEquals("Latest message", conversationDTO.getLatestMessage().getContent());
+        
+        // Verify profile picture data
+        assertNotNull(conversationDTO.getOtherParticipantProfilePicture());
+        assertEquals("https://example.com/jane-full.jpg", conversationDTO.getOtherParticipantProfilePicture().getFullPictureUrl());
+        assertEquals("https://example.com/jane-thumb.jpg", conversationDTO.getOtherParticipantProfilePicture().getThumbnailPictureUrl());
+        assertEquals("jane-profile-pic", conversationDTO.getOtherParticipantProfilePicture().getPublicId());
     }
 
     @Test
@@ -1018,6 +1043,19 @@ class ChatServiceTest {
                 .toList();
         assertTrue(otherParticipantIds.contains(receiverId));
         assertTrue(otherParticipantIds.contains(thirdUserId));
+        
+        // Verify profile picture handling
+        ConversationResponseDTO receiverConversation = data.getConversations().stream()
+                .filter(conv -> conv.getOtherParticipantId().equals(receiverId))
+                .findFirst().orElse(null);
+        assertNotNull(receiverConversation);
+        assertNotNull(receiverConversation.getOtherParticipantProfilePicture());
+        
+        ConversationResponseDTO thirdUserConversation = data.getConversations().stream()
+                .filter(conv -> conv.getOtherParticipantId().equals(thirdUserId))
+                .findFirst().orElse(null);
+        assertNotNull(thirdUserConversation);
+        assertNull(thirdUserConversation.getOtherParticipantProfilePicture()); // thirdUser has no profile picture
     }
 
 

@@ -83,6 +83,9 @@ class LawyerServiceTest {
         testUser.setEmailVerified(true);
         testUser.setCreatedAt(OffsetDateTime.now());
         testUser.setUpdatedAt(OffsetDateTime.now());
+        testUser.setProfilePictureUrl("https://example.com/lawyer-full.jpg");
+        testUser.setProfilePictureThumbnailUrl("https://example.com/lawyer-thumb.jpg");
+        testUser.setProfilePicturePublicId("lawyer-profile-pic");
         
         // Setup test lawyer
         testLawyer = new Lawyer();
@@ -294,10 +297,46 @@ class LawyerServiceTest {
             ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.getLawyerInfo(null);
             
             // Assert
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Lawyer profile has not been created yet", result.getBody().getMessage());
+        assertNotNull(result.getBody().getData());
+        
+        // Verify that basic user info and profile picture are included even without lawyer profile
+        LawyerInfoDTO emptyProfileData = result.getBody().getData();
+        assertEquals(testUser.getId(), emptyProfileData.getId());
+        assertEquals(testUser.getFirstName(), emptyProfileData.getFirstName());
+        assertEquals(testUser.getLastName(), emptyProfileData.getLastName());
+        assertEquals(testUser.getEmail(), emptyProfileData.getEmail());
+        assertNotNull(emptyProfileData.getProfilePicture());
+        assertEquals("https://example.com/lawyer-full.jpg", emptyProfileData.getProfilePicture().getFullPictureUrl());
+        assertEquals("https://example.com/lawyer-thumb.jpg", emptyProfileData.getProfilePicture().getThumbnailPictureUrl());
+        assertEquals("lawyer-profile-pic", emptyProfileData.getProfilePicture().getPublicId());
+        }
+    }
+    
+    @Test
+    void getLawyerInfo_noProfilePicture_returnsWithoutProfilePicture() {
+        // Arrange - user without profile picture
+        User userWithoutPicture = new User();
+        userWithoutPicture.setId(UUID.randomUUID());
+        userWithoutPicture.setFirstName("Jane");
+        userWithoutPicture.setLastName("Doe");
+        userWithoutPicture.setEmail("jane@example.com");
+        userWithoutPicture.setRole(Role.LAWYER);
+        
+        when(lawyerRepo.findByUser(userWithoutPicture)).thenReturn(Optional.empty());
+        
+        try (var mockStatic = org.mockito.Mockito.mockStatic(LawyerUtil.class)) {
+            mockStatic.when(() -> LawyerUtil.getAuthenticatedLawyerUser(userRepo)).thenReturn(userWithoutPicture);
+            
+            // Act
+            ResponseEntity<ApiResponse<LawyerInfoDTO>> result = lawyerService.getLawyerInfo(null);
+            
+            // Assert
             assertEquals(HttpStatus.OK, result.getStatusCode());
-            assertNotNull(result.getBody());
-            assertEquals("Lawyer profile has not been created yet", result.getBody().getMessage());
-            assertNotNull(result.getBody().getData());
+            LawyerInfoDTO emptyProfileData = result.getBody().getData();
+            assertNull(emptyProfileData.getProfilePicture()); // Should be null when user has no profile picture
         }
     }
 

@@ -14,6 +14,7 @@ import com.javajedis.legalconnect.lawyer.enums.District;
 import com.javajedis.legalconnect.lawyer.enums.Division;
 import com.javajedis.legalconnect.lawyer.enums.PracticingCourt;
 import com.javajedis.legalconnect.lawyer.enums.SpecializationType;
+import com.javajedis.legalconnect.user.ProfilePictureDTO;
 
 class LawyerSearchResultDTOTest {
     @Test
@@ -21,6 +22,8 @@ class LawyerSearchResultDTOTest {
         UUID lawyerId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         List<SpecializationType> specs = Arrays.asList(SpecializationType.CIVIL_LAW, SpecializationType.CRIMINAL_LAW);
+        ProfilePictureDTO profilePicture = new ProfilePictureDTO("https://example.com/full.jpg", "https://example.com/thumb.jpg", "public-id");
+        
         LawyerSearchResultDTO dto = LawyerSearchResultDTO.builder()
                 .lawyerId(lawyerId)
                 .userId(userId)
@@ -35,6 +38,7 @@ class LawyerSearchResultDTOTest {
                 .bio("Bio")
                 .specializations(specs)
                 .averageRating(4.5)
+                .profilePicture(profilePicture)
                 .build();
         assertEquals(lawyerId, dto.getLawyerId());
         assertEquals(userId, dto.getUserId());
@@ -49,6 +53,7 @@ class LawyerSearchResultDTOTest {
         assertEquals("Bio", dto.getBio());
         assertEquals(specs, dto.getSpecializations());
         assertEquals(4.5, dto.getAverageRating());
+        assertEquals(profilePicture, dto.getProfilePicture());
         // Display name assertions
         assertEquals(PracticingCourt.SUPREME_COURT.getDisplayName(), dto.getPracticingCourtDisplayName());
         assertEquals(Division.DHAKA.getDisplayName(), dto.getDivisionDisplayName());
@@ -59,18 +64,23 @@ class LawyerSearchResultDTOTest {
     @Test
     void testSettersAndGetters() {
         LawyerSearchResultDTO dto = new LawyerSearchResultDTO();
+        ProfilePictureDTO profilePicture = new ProfilePictureDTO("https://example.com/full2.jpg", "https://example.com/thumb2.jpg", "public-id-2");
+        
         dto.setFirstName("Jane");
         dto.setLastName("Smith");
         dto.setEmail("jane@example.com");
         dto.setFirm("Firm2");
         dto.setYearsOfExperience(5);
         dto.setBio("Bio2");
+        dto.setProfilePicture(profilePicture);
+        
         assertEquals("Jane", dto.getFirstName());
         assertEquals("Smith", dto.getLastName());
         assertEquals("jane@example.com", dto.getEmail());
         assertEquals("Firm2", dto.getFirm());
         assertEquals(5, dto.getYearsOfExperience());
         assertEquals("Bio2", dto.getBio());
+        assertEquals(profilePicture, dto.getProfilePicture());
     }
 
     @Test
