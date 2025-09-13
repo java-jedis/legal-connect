@@ -43,8 +43,19 @@
     <div v-else-if="profile" class="profile-content">
       <!-- Profile Header -->
       <div class="profile-header">
-        <div class="lawyer-avatar">
-          {{ getInitial(profile.firstName, profile.lastName) }}
+        <div class="lawyer-profile-container">
+          <div class="lawyer-profile-image-container">
+            <div class="lawyer-avatar-large" v-if="!profile.profilePicture?.fullPictureUrl">
+              <span>{{ getInitial(profile.firstName, profile.lastName) }}</span>
+            </div>
+            <img 
+              v-else
+              :src="profile.profilePicture.fullPictureUrl" 
+              :alt="getDisplayName(profile.firstName, profile.lastName)"
+              :key="profile.profilePicture.fullPictureUrl"
+              class="lawyer-profile-image-square"
+            />
+          </div>
         </div>
         <div class="lawyer-info">
           <h2 class="lawyer-name">
@@ -553,10 +564,57 @@ export default {
 
 .profile-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border);
+  gap: 2rem;
+}
+
+.lawyer-profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lawyer-profile-image-container {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 3px solid var(--color-border);
+  background: var(--color-background-soft);
+}
+
+.lawyer-avatar-large {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.lawyer-profile-image-square {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Keep original styles for backward compatibility */
+.lawyer-avatar-container {
+  margin-right: 1.5rem;
+  flex-shrink: 0;
 }
 
 .lawyer-avatar {
@@ -574,8 +632,15 @@ export default {
   justify-content: center;
   font-size: 2rem;
   font-weight: 700;
-  margin-right: 1.5rem;
-  flex-shrink: 0;
+  box-shadow: var(--shadow-md);
+}
+
+.lawyer-profile-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--color-background);
   box-shadow: var(--shadow-md);
 }
 
@@ -823,14 +888,36 @@ export default {
     flex-direction: column;
     text-align: center;
     margin-bottom: 1.5rem;
+    align-items: center;
+  }
+
+  .lawyer-profile-container {
+    margin-bottom: 1.5rem;
+  }
+
+  .lawyer-profile-image-container {
+    width: 150px;
+    height: 150px;
+  }
+
+  .lawyer-avatar-large {
+    font-size: 2.5rem;
+  }
+
+  .lawyer-avatar-container {
+    margin-right: 0;
+    margin-bottom: 1rem;
   }
 
   .lawyer-avatar {
     width: 60px;
     height: 60px;
     font-size: 1.5rem;
-    margin-right: 0;
-    margin-bottom: 1rem;
+  }
+
+  .lawyer-profile-image {
+    width: 60px;
+    height: 60px;
   }
 
   .lawyer-name {
@@ -887,7 +974,6 @@ export default {
   .skeleton-avatar {
     width: 60px;
     height: 60px;
-    margin-right: 0;
     margin-bottom: 1rem;
   }
 
@@ -905,10 +991,24 @@ export default {
     padding: 1rem;
   }
 
+  .lawyer-profile-image-container {
+    width: 120px;
+    height: 120px;
+  }
+
+  .lawyer-avatar-large {
+    font-size: 2rem;
+  }
+
   .lawyer-avatar {
     width: 50px;
     height: 50px;
     font-size: 1.25rem;
+  }
+
+  .lawyer-profile-image {
+    width: 50px;
+    height: 50px;
   }
 
   .lawyer-name {

@@ -126,7 +126,18 @@
             class="lawyer-card"
           >
             <div class="lawyer-header">
-              <div class="lawyer-avatar">{{ getInitial(lawyer) }}</div>
+              <div class="lawyer-avatar-container">
+                <div class="lawyer-avatar" v-if="!lawyer.profilePicture?.thumbnailPictureUrl">
+                  {{ getInitial(lawyer) }}
+                </div>
+                <img 
+                  v-else
+                  :src="lawyer.profilePicture.thumbnailPictureUrl" 
+                  :alt="`${lawyer.firstName} ${lawyer.lastName}`"
+                  :key="lawyer.profilePicture.thumbnailPictureUrl"
+                  class="lawyer-avatar-image"
+                />
+              </div>
               <div class="lawyer-info">
                 <h3 class="lawyer-name">
                   {{ lawyer.firstName }} {{ lawyer.lastName }}
@@ -473,6 +484,11 @@ function viewLawyerDetails(email) {
   margin-bottom: 1.5rem;
 }
 
+.lawyer-avatar-container {
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
 .lawyer-avatar {
   width: 60px;
   height: 60px;
@@ -488,8 +504,16 @@ function viewLawyerDetails(email) {
   justify-content: center;
   font-size: 1.5rem;
   font-weight: 700;
-  margin-right: 1rem;
   flex-shrink: 0;
+}
+
+.lawyer-avatar-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-background);
+  box-shadow: var(--shadow-sm);
 }
 
 .lawyer-info {

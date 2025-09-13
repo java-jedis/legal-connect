@@ -11,6 +11,13 @@
       </div>
     </section>
 
+    <!-- Profile Picture Upload Prompt -->
+    <section class="profile-prompt-section section" v-if="showProfilePrompt">
+      <div class="container">
+        <ProfilePictureUploadPrompt />
+      </div>
+    </section>
+
     <section class="dashboard-content section">
       <div class="container">
         <div class="dashboard-grid">
@@ -45,9 +52,35 @@
 import ComplaintsManagement from '@/components/admin/ComplaintsManagement.vue';
 import FeedbackManagement from '@/components/admin/FeedbackManagement.vue';
 import PendingLawyerVerification from '@/components/admin/PendingLawyerVerification.vue';
+import ProfilePictureUploadPrompt from '@/components/user/ProfilePictureUploadPrompt.vue';
+import { useAuthStore } from '@/stores/auth';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter()
+const authStore = useAuthStore()
+const showProfilePrompt = ref(false)
+
+// Check if profile picture prompt should be shown
+const checkProfilePrompt = () => {
+  // Don't show if user already has a profile picture
+  if (authStore.userInfo?.profilePicture?.fullPictureUrl) {
+    showProfilePrompt.value = false
+    return
+  }
+  
+  // Show the prompt for users without profile pictures
+  showProfilePrompt.value = true
+}
+
+const dismissProfilePrompt = () => {
+  showProfilePrompt.value = false
+}
+
+// Check on component mount
+onMounted(() => {
+  checkProfilePrompt()
+})
 
 const navigateToLawyerManagement = () => {
   router.push('/admin/lawyers')
@@ -64,6 +97,10 @@ const navigateToLawyerManagement = () => {
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   color: var(--color-background);
   padding: 2rem 0;
+}
+
+.profile-prompt-section {
+  background: var(--color-background-soft);
 }
 
 .header-content {
