@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { authAPI } from "../services/api";
+import { authAPI, userAPI } from "../services/api";
+import { initializeApp } from "../services/init";
 import { useNotificationStore } from "./notification";
-import { initializeApp } from '../services/init';
 
 export const useAuthStore = defineStore("auth", () => {
   // Initialize state from localStorage if available
@@ -12,6 +12,22 @@ export const useAuthStore = defineStore("auth", () => {
     JSON.parse(localStorage.getItem("auth_userInfo") || "null")
   );
   const token = ref(localStorage.getItem("auth_token") || null);
+
+  // Helper function to add cache-busting to profile picture URLs
+  const addCacheBustingToProfilePicture = (profilePicture) => {
+    if (!profilePicture) return null;
+
+    const timestamp = Date.now();
+    return {
+      ...profilePicture,
+      fullPictureUrl: profilePicture.fullPictureUrl
+        ? `${profilePicture.fullPictureUrl}?t=${timestamp}`
+        : null,
+      thumbnailPictureUrl: profilePicture.thumbnailPictureUrl
+        ? `${profilePicture.thumbnailPictureUrl}?t=${timestamp}`
+        : null,
+    };
+  };
 
   const login = async (credentials) => {
     try {
@@ -65,6 +81,9 @@ export const useAuthStore = defineStore("auth", () => {
       localStorage.setItem("auth_isLoggedIn", "true");
       localStorage.setItem("auth_userType", userType.value);
       localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
+
+      // Fetch complete user info including profile picture
+      await fetchUserInfo();
 
       await initializeApp();
 
@@ -140,7 +159,7 @@ export const useAuthStore = defineStore("auth", () => {
       localStorage.setItem("auth_isLoggedIn", "true");
       localStorage.setItem("auth_userType", userType.value);
       localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
-      
+
       // Initialize notification system and connect WebSocket
       try {
         const notificationStore = useNotificationStore();
@@ -201,7 +220,7 @@ export const useAuthStore = defineStore("auth", () => {
         console.warn("Error cleaning up chat system:", chatError);
         // Continue with logout even if chat cleanup fails
       }
-      
+
       await authAPI.logout();
     } catch {
       // Ignore errors, always clear local state
@@ -391,6 +410,76 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  const fetchUserInfo = async () => {
+    try {
+      const response = await userAPI.getUserInfo();
+      if (response.status === 200 && response.data) {
+        // Add cache-busting timestamp to profile picture URLs if they exist
+        const userData = { ...response.data };
+        userData.profilePicture = addCacheBustingToProfilePicture(
+          userData.profilePicture
+        );
+
+        // Update user info with complete data including profile picture
+        userInfo.value = {
+          ...userInfo.value,
+          ...userData,
+        };
+
+        // Persist updated info to localStorage
+        localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
+
+        return { success: true, data: userData };
+      }
+      return { success: false, message: "Failed to fetch user info" };
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.error?.message || "Failed to fetch user info.",
+      };
+    }
+  };
+
+  const uploadProfilePicture = async (file) => {
+    try {
+      const response = await userAPI.uploadProfilePicture(file);
+      if (response.status === 200 && response.data) {
+        // Add cache-busting timestamp to image URLs
+        const profilePictureData = addCacheBustingToProfilePicture(
+          response.data
+        );
+
+        // Update user info with new profile picture
+        userInfo.value = {
+          ...userInfo.value,
+          profilePicture: profilePictureData,
+        };
+
+        // Persist updated info to localStorage
+        localStorage.setItem("auth_userInfo", JSON.stringify(userInfo.value));
+
+        return {
+          success: true,
+          message: response.message || "Profile picture uploaded successfully.",
+          data: profilePictureData,
+        };
+      }
+      return { success: false, message: "Failed to upload profile picture" };
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      if (error.response?.data?.error?.message) {
+        return { success: false, message: error.response.data.error.message };
+      }
+      return {
+        success: false,
+        message:
+          error.response?.data?.message || "Failed to upload profile picture.",
+      };
+    }
+  };
+
   return {
     isLoggedIn,
     userType,
@@ -409,5 +498,7 @@ export const useAuthStore = defineStore("auth", () => {
     sendVerificationCode,
     verifyEmail,
     changePassword,
+    fetchUserInfo,
+    uploadProfilePicture,
   };
 });

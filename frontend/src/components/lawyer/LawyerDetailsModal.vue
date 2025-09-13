@@ -32,26 +32,30 @@
       </div>
 
       <div v-else-if="lawyer" class="modal-body">
-        <!-- Personal Information -->
-        <div class="detail-section">
-          <h3>Personal Information</h3>
-          <div class="detail-grid">
-            <div class="detail-item">
-              <span class="label">Full Name:</span>
-              <span class="value">{{ lawyer.user.firstName }} {{ lawyer.user.lastName }}</span>
+        <!-- Profile Picture Section -->
+        <div class="profile-picture-section">
+          <div class="profile-picture-container">
+            <div v-if="lawyer.lawyer?.profilePicture?.fullPictureUrl" class="profile-picture">
+              <img 
+                :src="lawyer.lawyer.profilePicture.fullPictureUrl" 
+                :alt="`${lawyer.user.firstName} ${lawyer.user.lastName}`"
+                :key="lawyer.lawyer.profilePicture.fullPictureUrl"
+                class="profile-image"
+              />
             </div>
-            <div class="detail-item">
-              <span class="label">Email:</span>
-              <span class="value">{{ lawyer.user.email }}</span>
+            <div v-else class="profile-picture-placeholder">
+              <span class="initials">{{ getInitials(lawyer.user) }}</span>
             </div>
-            <div class="detail-item">
-              <span class="label">Join Date:</span>
-              <span class="value">{{ formatDate(lawyer.user.createdAt) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Bar Certificate No:</span>
-              <span class="value">{{ lawyer.lawyer.barCertificateNumber || 'N/A' }}</span>
-            </div>
+          </div>
+          <div class="profile-info">
+            <h2>{{ lawyer.user.firstName }} {{ lawyer.user.lastName }}</h2>
+            <p class="profile-email">{{ lawyer.user.email }}</p>
+            <p class="profile-join-date">Joined: {{ formatDate(lawyer.user.createdAt) }}</p>
+          </div>
+          <div class="verification-status">
+            <span :class="['status-badge', `status-${lawyer.lawyer.verificationStatus?.toLowerCase()}`]">
+              {{ lawyer.lawyer.verificationStatusDisplayName || lawyer.lawyer.verificationStatus || 'N/A' }}
+            </span>
           </div>
         </div>
 
@@ -59,6 +63,10 @@
         <div class="detail-section">
           <h3>Professional Information</h3>
           <div class="detail-grid">
+            <div class="detail-item">
+              <span class="label">Bar Certificate No:</span>
+              <span class="value">{{ lawyer.lawyer.barCertificateNumber || 'N/A' }}</span>
+            </div>
             <div class="detail-item">
               <span class="label">Law Firm:</span>
               <span class="value">{{ lawyer.lawyer.firm || 'N/A' }}</span>
@@ -78,12 +86,6 @@
             <div class="detail-item">
               <span class="label">District:</span>
               <span class="value">{{ lawyer.lawyer.districtDisplayName || lawyer.lawyer.district || 'N/A' }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="label">Verification Status:</span>
-              <span :class="['status-badge', `status-${lawyer.lawyer.verificationStatus?.toLowerCase()}`]">
-                {{ lawyer.lawyer.verificationStatusDisplayName || lawyer.lawyer.verificationStatus || 'N/A' }}
-              </span>
             </div>
           </div>
         </div>
@@ -177,6 +179,17 @@ const formatDate = (dateString) => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+const getInitials = (user) => {
+  if (!user) return 'U'
+  if (user.firstName) {
+    return user.firstName.charAt(0).toUpperCase()
+  }
+  if (user.email) {
+    return user.email.charAt(0).toUpperCase()
+  }
+  return 'U'
 }
 
 const closeModal = () => {
@@ -434,6 +447,84 @@ watch(() => props.lawyer, (newVal) => {
   margin-top: 1rem;
 }
 
+/* Profile Picture Section */
+.profile-picture-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--color-background-soft);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.profile-picture-container {
+  flex-shrink: 0;
+}
+
+.profile-picture {
+  width: 150px;
+  height: 150px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-picture-placeholder {
+  width: 150px;
+  height: 150px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 700;
+  border: 3px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.profile-info h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.profile-email {
+  margin: 0 0 0.25rem 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+}
+
+.profile-join-date {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.verification-status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
 .detail-section {
   margin-bottom: 2rem;
 }
@@ -569,6 +660,32 @@ watch(() => props.lawyer, (newVal) => {
   .modal-content {
     margin: 0.5rem;
     max-height: 95vh;
+  }
+  
+  .profile-picture-section {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding-top: 3rem;
+  }
+  
+  .profile-picture,
+  .profile-picture-placeholder {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .profile-picture-placeholder {
+    font-size: 2.5rem;
+  }
+  
+  .profile-info h2 {
+    font-size: 1.25rem;
+  }
+  
+  .verification-status {
+    top: 0.5rem;
+    right: 0.5rem;
   }
   
   .detail-grid {

@@ -11,14 +11,48 @@
           </div>
           <div class="user-info-section">
             <div class="user-avatar-section">
-              <div class="user-avatar">
-                <span>{{ userInitial }}</span>
+              <div class="user-profile-container">
+                <div class="user-profile-image-container">
+                  <div class="user-avatar-large" v-if="!authStore.userInfo?.profilePicture?.fullPictureUrl">
+                    <span>{{ userInitial }}</span>
+                  </div>
+                  <img 
+                    v-else
+                    :src="authStore.userInfo.profilePicture.fullPictureUrl" 
+                    :alt="userFullName"
+                    :key="authStore.userInfo.profilePicture.fullPictureUrl"
+                    class="user-profile-image-square"
+                  />
+                </div>
+                <button class="upload-picture-btn-large" @click="triggerFileInput" :disabled="uploadingPicture">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+                    <circle cx="12" cy="13" r="3"></circle>
+                  </svg>
+                  {{ uploadingPicture ? 'Uploading...' : 'Change Photo' }}
+                </button>
+                <input 
+                  ref="fileInput" 
+                  type="file" 
+                  accept="image/*" 
+                  @change="handleFileSelect" 
+                  style="display: none;"
+                />
               </div>
               <div class="user-name-display">
                 <h2>{{ userFullName }}</h2>
                 <p class="user-email">{{ authStore.userInfo?.email }}</p>
               </div>
             </div>
+            
+            <!-- Profile Picture Upload Messages -->
+            <div v-if="pictureError" class="form-error">
+              <p class="error-message">{{ pictureError }}</p>
+            </div>
+            <div v-if="pictureSuccess" class="form-success">
+              <p class="success-message">{{ pictureSuccess }}</p>
+            </div>
+            
             <div class="user-stats">
               <div class="stat-item">
                 <div class="stat-icon">
@@ -180,6 +214,10 @@ const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 const formError = ref('')
 const formSuccess = ref('')
+const uploadingPicture = ref(false)
+const fileInput = ref(null)
+const pictureError = ref('')
+const pictureSuccess = ref('')
 
 const form = reactive({
   oldPassword: '',
@@ -289,6 +327,56 @@ const submitChangePassword = async () => {
     formError.value = 'An unexpected error occurred.'
   } finally {
     isSubmitting.value = false
+  }
+}
+
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+const handleFileSelect = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    pictureError.value = 'Please select a valid image file.'
+    return
+  }
+
+  // Validate file size (5MB limit)
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxSize) {
+    pictureError.value = 'File size must be less than 5MB.'
+    return
+  }
+
+  pictureError.value = ''
+  pictureSuccess.value = ''
+  uploadingPicture.value = true
+
+  try {
+    console.log('Starting profile picture upload...')
+    const result = await authStore.uploadProfilePicture(file)
+    console.log('Upload result:', result)
+    
+    if (result.success) {
+      pictureSuccess.value = result.message || 'Profile picture uploaded successfully!'
+      // Clear the file input
+      event.target.value = ''
+      
+      console.log('Profile picture updated successfully:', result.data)
+    } else {
+      pictureError.value = result.message || 'Failed to upload profile picture.'
+      console.error('Upload failed:', result)
+    }
+  } catch (error) {
+    console.error('Upload error:', error)
+    pictureError.value = `Failed to upload profile picture: ${error.message || 'Please try again.'}`
+  } finally {
+    uploadingPicture.value = false
   }
 }
 </script>
@@ -475,11 +563,94 @@ const submitChangePassword = async () => {
 }
 .user-avatar-section {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--color-border);
+  gap: 2rem;
 }
+
+.user-profile-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-profile-image-container {
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 3px solid var(--color-border);
+  background: var(--color-background-soft);
+}
+
+.user-avatar-large {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-lg);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.user-profile-image-square {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.upload-picture-btn-large {
+  background: var(--color-primary);
+  color: var(--color-background);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.upload-picture-btn-large:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.upload-picture-btn-large:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upload-picture-btn-large svg {
+  flex-shrink: 0;
+}
+
+/* Keep original styles for backward compatibility */
+.user-avatar-container {
+  position: relative;
+  margin-right: 2rem;
+}
+
 .user-avatar {
   width: 80px;
   height: 80px;
@@ -491,8 +662,52 @@ const submitChangePassword = async () => {
   justify-content: center;
   font-size: 2rem;
   font-weight: 700;
-  margin-right: 2rem;
   box-shadow: var(--shadow-md);
+}
+
+.user-profile-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: var(--shadow-md);
+  border: 3px solid var(--color-background);
+}
+
+.upload-picture-btn {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: var(--color-primary);
+  color: var(--color-background);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.upload-picture-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.upload-picture-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upload-picture-btn svg {
+  flex-shrink: 0;
 }
 .user-name-display h2 {
   font-size: 1.5rem;

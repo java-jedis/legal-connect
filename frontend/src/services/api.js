@@ -123,6 +123,28 @@ export const authAPI = {
   },
 };
 
+// User API methods
+export const userAPI = {
+  // Get current user info
+  getUserInfo: async () => {
+    const response = await api.get("/user/user-info");
+    return response.data;
+  },
+
+  // Upload profile picture
+  uploadProfilePicture: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await api.post("/user/profile-picture", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 2000 * 60,
+    });
+    return response.data;
+  },
+};
+
 // Lawyer API methods
 export const lawyerAPI = {
   // Get lawyer info
