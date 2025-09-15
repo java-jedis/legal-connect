@@ -19,7 +19,7 @@ def test_qdrant_simple():
             api_key=os.getenv("QDRANT_API_KEY"),
         )
         
-        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal_qd_db")
+        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal-vector-db")
         print(f"📊 Checking collection: {collection_name}")
         
         # Check if collection exists
@@ -32,7 +32,7 @@ def test_qdrant_simple():
             print(f"💾 Status: {collection_info.status}")
             
             if collection_info.points_count > 0:
-                print(f"\n🎉 GOOD NEWS! আপনার {collection_info.points_count} vectors আছে!")
+                print(f"\n🎉 GOOD NEWS! Apnar {collection_info.points_count} vectors Ache!")
                 
                 # Get a few sample points
                 try:

@@ -149,3 +149,7 @@ SESSION_MANAGEMENT_SOLUTION.md
 SOLUTION_SUMMARY.md
 OPTIMIZATION_RESULTS.md
 server.log
+
+# Chat uploads folder (contains user documents)
+chat_uploads/
+backend-ai/chat_uploads/

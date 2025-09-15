@@ -56,6 +56,9 @@ class QdrantService:
             else:
                 logger.info(f"Collection {self.collection_name} already exists")
             
+            # Create indexes for filtering capabilities
+            await self.ensure_required_indexes()
+            
             # Get collection info
             info = self.client.get_collection(self.collection_name)
             logger.info(f"Collection info: {info.points_count} points, {info.vectors_count} vectors")
@@ -99,6 +102,8 @@ class QdrantService:
                     "page_number": doc.get("page_number"),
                     "document_name": doc.get("document_name", ""),
                     "filename": doc.get("filename", ""),
+                    "session_id": doc.get("session_id"),  # Add session_id to payload
+                    "document_type": doc.get("document_type", ""),
                     "metadata": doc.get("metadata", {})
                 }
             )
@@ -144,13 +149,30 @@ class QdrantService:
             List of similar documents with metadata and scores
         """
         try:
+            # Convert filter conditions to Qdrant format
+            query_filter = None
+            if filter_conditions:
+                must_conditions = []
+                for key, value in filter_conditions.items():
+                    must_conditions.append(
+                        models.FieldCondition(
+                            key=key,
+                            match=models.MatchValue(value=value)
+                        )
+                    )
+                
+                if must_conditions:
+                    query_filter = models.Filter(
+                        must=must_conditions
+                    )
+            
             # Perform search
             search_result = self.client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
                 limit=top_k,
                 score_threshold=score_threshold,
-                query_filter=filter_conditions
+                query_filter=query_filter
             )
             
             results = []
@@ -164,6 +186,8 @@ class QdrantService:
                     "page_number": hit.payload.get("page_number"),
                     "document_name": hit.payload.get("document_name", ""),
                     "filename": hit.payload.get("filename", ""),
+                    "session_id": hit.payload.get("session_id"),  # Include session_id in results
+                    "document_type": hit.payload.get("document_type", ""),
                     "metadata": hit.payload.get("metadata", {})
                 }
                 results.append(result)
@@ -285,5 +309,27 @@ class QdrantService:
             logger.info(f"Created index on field: {field_name}")
             
         except Exception as e:
-            logger.error(f"Error creating index: {e}")
-            raise e
+            # Check if it's just that the index already exists
+            if "already exists" in str(e).lower():
+                logger.info(f"Index for {field_name} already exists")
+            else:
+                logger.error(f"Error creating index: {e}")
+                raise e
+    
+    async def ensure_required_indexes(self):
+        """Ensure all required indexes exist for filtering"""
+        try:
+            # Create session_id index
+            await self.create_index("session_id", "keyword")
+            
+            # Create document_type index  
+            await self.create_index("document_type", "keyword")
+            
+            # Create document_id index
+            await self.create_index("document_id", "keyword")
+            
+            logger.info("All required indexes ensured")
+            
+        except Exception as e:
+            logger.error(f"Error ensuring indexes: {e}")
+            # Don't raise - this shouldn't stop the application
