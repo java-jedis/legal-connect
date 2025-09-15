@@ -1,6 +1,7 @@
 alembic==1.16.4
 annotated-types==0.7.0
 anyio==4.9.0
+aiofiles==24.1.0
 bcrypt==4.3.0
 black==24.10.0
 cachetools==5.5.2
@@ -56,6 +57,8 @@ pydantic_core==2.33.2
 pyflakes==3.1.0
 PyJWT==2.10.1
 pyparsing==3.2.3
+PyPDF2==3.0.1
+python-docx==1.1.2
 pytest==7.4.4
 pytest-asyncio==0.23.8
 python-dotenv==1.1.1

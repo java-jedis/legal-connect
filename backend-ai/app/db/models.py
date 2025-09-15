@@ -10,8 +10,6 @@ import uuid
 
 Base = declarative_base()
 
-# Note: User data comes from main backend database
-# We don't replicate User model here - user_id comes from JWT tokens
 
 class Document(Base):
     """Document model for storing legal document metadata"""
@@ -25,7 +23,7 @@ class Document(Base):
     extraction_date = Column(DateTime)
     ocr_language = Column(String(10), default='ben')
     text = Column(Text)  # Full text content
-    document_metadata = Column(JSON)  # Store as JSON
+    document_metadata = Column(JSON)
     total_pages = Column(Integer)
     language = Column(String(10))
     extraction_method = Column(String(50))
@@ -55,13 +53,14 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, nullable=False)  # ✅ Required - from JWT token (no FK to allow main backend users)
+    user_id = Column(String, nullable=False)
     title = Column(String(255))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships - No user FK (user_id comes from main backend via JWT)
+    # Relationships
     messages = relationship("ChatMessage", back_populates="session")
+    documents = relationship("ChatDocument", back_populates="session")
 
 class ChatMessage(Base):
     """Chat message model"""
@@ -71,11 +70,49 @@ class ChatMessage(Base):
     session_id = Column(String, ForeignKey("chat_sessions.id"), nullable=False)
     role = Column(String(20), nullable=False)  # 'user' or 'assistant'
     content = Column(Text, nullable=False)
-    message_metadata = Column(JSON)  # Store sources, confidence, etc.
+    message_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     session = relationship("ChatSession", back_populates="messages")
+
+class ChatDocument(Base):
+    """Documents uploaded during chat sessions"""
+    __tablename__ = "chat_documents"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, ForeignKey("chat_sessions.id"), nullable=False)
+    user_id = Column(String, nullable=False)  # User who uploaded the document
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    file_type = Column(String(50), nullable=False)  # 'pdf', 'txt', 'docx'
+    file_path = Column(String(500))  # Local file storage path
+    text_content = Column(Text)  # Extracted text content
+    total_chunks = Column(Integer, default=0)
+    processing_status = Column(String(20), default='pending')  # 'pending', 'processing', 'completed', 'failed'
+    processing_error = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    session = relationship("ChatSession", back_populates="documents")
+    chunks = relationship("ChatDocumentChunk", back_populates="chat_document")
+
+class ChatDocumentChunk(Base):
+    """Chunks of chat documents for vector storage"""
+    __tablename__ = "chat_document_chunks"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    chat_document_id = Column(String, ForeignKey("chat_documents.id"), nullable=False)
+    chunk_text = Column(Text, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
+    page_number = Column(Integer)
+    vector_id = Column(String)  # ID in vector database
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    chat_document = relationship("ChatDocument", back_populates="chunks")
 
 class ProcessingJob(Base):
     """Background job tracking for document processing"""

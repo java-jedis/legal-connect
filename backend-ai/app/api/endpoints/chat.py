@@ -2,7 +2,7 @@
 Chat API endpoints for the RAG system
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ import logging
 
 from app.db.database import get_db
 from app.services.chat_service import chat_service
+from app.services.chat_document_processor import ChatDocumentProcessor
 from app.core.auth import get_current_user_id, verify_session_ownership
 from app.core.rag_config import RAGConfig
 
@@ -18,6 +19,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+
+def get_chat_document_processor():
+    from main import embedding_service, vectordb_service
+    if embedding_service is None or vectordb_service is None:
+        raise HTTPException(status_code=503, detail="Document processing services not initialized")
+    return ChatDocumentProcessor(embedding_service, vectordb_service)
 
 def get_embedding_service():
     from main import embedding_service
@@ -68,7 +75,15 @@ class SearchResponse(BaseModel):
 
 class SessionCreateRequest(BaseModel):
     """Session creation request model"""
-    title: Optional[str] = None  #extracted from JWT token
+    title: Optional[str] = None
+
+class DocumentUploadResponse(BaseModel):
+    """Document upload response model"""
+    success: bool
+    document_id: Optional[str] = None
+    filename: str
+    processing_result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
 
 class SessionResponse(BaseModel):
     """Session response model"""
@@ -118,27 +133,47 @@ async def chat_endpoint(
         
         # Convert chat history to format expected by LLM service
         formatted_history = []
-        for msg in chat_history[:-1]:  # Exclude the current message we just added
+        for msg in chat_history[:-1]:
             formatted_history.append({
                 "role": msg["role"],
                 "content": msg["content"],
                 "timestamp": msg["created_at"]
             })
         
+        # Get session documents to filter search
+        session_documents = []
+        if request.session_id:
+            chat_doc_processor = get_chat_document_processor()
+            try:
+                session_documents = await chat_doc_processor.search_session_documents(
+                    query=request.message,
+                    session_id=session_id,
+                    user_id=current_user_id,
+                    top_k=request.context_limit // 2,  # Reserve half for session docs
+                    db=db
+                )
+            except Exception as e:
+                logger.warning(f"Could not search session documents: {e}")
+        
         # Generate query embedding
         query_embedding = await embedding_service.generate_query_embedding(request.message)
         
         # Search for relevant documents with optimized parameters
+        # Reduce general search if have session-specific documents
+        general_search_limit = request.context_limit - len(session_documents) if session_documents else request.context_limit
         similar_docs = await vectordb_service.search_similar(
             query_embedding=query_embedding,
-            top_k=request.context_limit,
+            top_k=max(1, general_search_limit),
             score_threshold=RAGConfig.CHAT_DEFAULT_THRESHOLD
         )
+        
+        all_docs = session_documents + similar_docs
+        context_documents = all_docs[:request.context_limit]
         
         # Generate response with chat history context
         llm_response = await llm_service.generate_response(
             query=request.message,
-            context_documents=similar_docs,
+            context_documents=context_documents,
             chat_history=formatted_history
         )
         
@@ -204,7 +239,6 @@ async def get_chat_history(
 ):
     """Get chat history for a session"""
     try:
-        # Get session info to verify it exists and ownership
         session_info = chat_service.get_session_info(db=db, session_id=session_id)
         if not session_info:
             raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
@@ -267,6 +301,154 @@ async def delete_chat_session(
 
 
 
+@router.post("/sessions/{session_id}/upload-document", response_model=DocumentUploadResponse)
+async def upload_document_to_session(
+    session_id: str,
+    file: UploadFile = File(...),
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+    chat_doc_processor: ChatDocumentProcessor = Depends(get_chat_document_processor)
+):
+    """Upload a document to a chat session for RAG processing"""
+    try:
+        # Validate file type
+        allowed_types = ['pdf', 'txt', 'docx', 'doc']
+        file_extension = file.filename.split('.')[-1].lower() if '.' in file.filename else ''
+        
+        if file_extension not in allowed_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported file type. Allowed: {', '.join(allowed_types)}"
+            )
+        
+        # Validate file size (max 10MB)
+        content = await file.read()
+        if len(content) > 10 * 1024 * 1024:  # 10MB
+            raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+        
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Empty file uploaded")
+        
+        # Process the document
+        result = await chat_doc_processor.upload_and_process_document(
+            file_content=content,
+            filename=file.filename,
+            file_type=file_extension,
+            session_id=session_id,
+            user_id=current_user_id,
+            db=db
+        )
+        
+        if result["success"]:
+            return DocumentUploadResponse(
+                success=True,
+                document_id=result["document_id"],
+                filename=result["filename"],
+                processing_result=result["processing_result"]
+            )
+        else:
+            raise HTTPException(status_code=500, detail=result["error"])
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading document to session {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Document upload failed: {str(e)}")
+
+@router.get("/sessions/{session_id}/documents")
+async def get_session_documents(
+    session_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+    chat_doc_processor: ChatDocumentProcessor = Depends(get_chat_document_processor)
+):
+    """Get all documents uploaded to a chat session"""
+    try:
+        documents = await chat_doc_processor.get_session_documents(
+            session_id=session_id,
+            user_id=current_user_id,
+            db=db
+        )
+        
+        return {
+            "session_id": session_id,
+            "documents": documents,
+            "total_documents": len(documents)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting session documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")
+
+@router.delete("/sessions/{session_id}/documents/{document_id}")
+async def delete_session_document(
+    session_id: str,
+    document_id: str,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+    chat_doc_processor: ChatDocumentProcessor = Depends(get_chat_document_processor)
+):
+    """Delete a document from a chat session"""
+    try:
+        deleted = await chat_doc_processor.delete_session_document(
+            document_id=document_id,
+            session_id=session_id,
+            user_id=current_user_id,
+            db=db
+        )
+        
+        if deleted:
+            return {
+                "success": True,
+                "message": f"Document {document_id} deleted successfully"
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Document not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting document: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting document: {str(e)}")
+
+
+
+
+@router.post("/sessions/{session_id}/search-documents")
+async def search_session_documents(
+    session_id: str,
+    request: SearchRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+    chat_doc_processor: ChatDocumentProcessor = Depends(get_chat_document_processor)
+):
+    """Search within documents uploaded to a specific chat session"""
+    try:
+        results = await chat_doc_processor.search_session_documents(
+            query=request.query,
+            session_id=session_id,
+            user_id=current_user_id,
+            top_k=request.top_k or 5,
+            db=db
+        )
+        
+        return {
+            "session_id": session_id,
+            "query": request.query,
+            "results": results,
+            "total_found": len(results)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error searching session documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
+
+
+
+
+
+
+
 # Health Check
 @router.get("/health")
 async def chat_health_check():
@@ -274,7 +456,17 @@ async def chat_health_check():
     return {
         "status": "healthy",
         "service": "chat",
-        "endpoints": ["/chat", "/search", "/sessions/{session_id}/history", "/sessions/{session_id}", "/users/{user_id}/sessions"]
+        "endpoints": [
+            "/chat", 
+            "/search", 
+            "/sessions/{session_id}/history", 
+            "/sessions/{session_id}", 
+            "/users/{user_id}/sessions",
+            "/sessions/{session_id}/upload-document",
+            "/sessions/{session_id}/documents",
+            "/sessions/{session_id}/documents/{document_id}",
+            "/sessions/{session_id}/search-documents"
+        ]
     }
 
 @router.get("/users/{user_id}/sessions")

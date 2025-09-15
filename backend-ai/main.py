@@ -104,6 +104,18 @@ async def health_check():
         }
     }
 
+@app.post("/admin/rebuild-indexes")
+async def rebuild_indexes():
+    """Admin endpoint to rebuild Qdrant indexes"""
+    try:
+        if vectordb_service is None:
+            raise HTTPException(status_code=503, detail="Vector database service not initialized")
+        
+        await vectordb_service.ensure_required_indexes()
+        return {"message": "Indexes rebuilt successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error rebuilding indexes: {str(e)}")
+
 # Include API routers
 app.include_router(chat.router, prefix="/api/v1", tags=["chat"])
 app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
