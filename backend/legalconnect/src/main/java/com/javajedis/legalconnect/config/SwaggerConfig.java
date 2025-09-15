@@ -48,7 +48,7 @@ public class SwaggerConfig {
                                 ## 📝 API Versioning
                                 Current API version: v1
                                 
-                                Base URL: [https://api.legalconnect.live/v1](https://api.legalconnect.live/v1)
+                                Base URL: [https://core.legalconnect.live/v1](https://core.legalconnect.live/v1)
                                 
                                 ## 👨💻 Developers
                                 
@@ -65,12 +65,12 @@ public class SwaggerConfig {
                                 LinkedIn: [Shakil Ahmed](https://www.linkedin.com/in/ahmedmshakil/)
                                 
                                 ## 🔗 Related Links
-                                • [LegalConnect Website](https://legalconnect.live)
+                                • [LegalConnect Website](https://app.legalconnect.live)
                                 """)
                         .contact(new Contact()
                                 .name("LegalConnect Support Team")
                                 .email("support@legalconnect.live")
-                                .url("https://legalconnect.live/support"))
+                                .url("https://app.legalconnect.live/support"))
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
@@ -79,7 +79,7 @@ public class SwaggerConfig {
                         .url("http://localhost:8080/v1")
                         .description("Local Development Server"),
                         new Server()
-                                .url("https://api.legalconnect.live/v1")
+                                .url("https://core.legalconnect.live/v1")
                                 .description("Production Server")
    
                 ))
