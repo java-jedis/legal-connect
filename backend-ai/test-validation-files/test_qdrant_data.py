@@ -17,7 +17,7 @@ def test_qdrant_connection():
             api_key=os.getenv("QDRANT_API_KEY"),
         )
         
-        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal_qd_db")
+        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal-vector-db")
         
         # Check collection info
         collection_info = client.get_collection(collection_name)

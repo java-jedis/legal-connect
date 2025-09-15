@@ -114,6 +114,77 @@ class AIChatService {
   }
 
   /**
+   * Upload a document to a chat session
+   * @param {string} sessionId - Session ID
+   * @param {File} file - File to upload
+   * @returns {Promise<Object>} Upload result
+   */
+  async uploadDocument(sessionId, file) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await this.apiClient.post(`/sessions/${sessionId}/upload-document`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000 // 60 seconds for file upload
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Get documents uploaded to a chat session
+   * @param {string} sessionId - Session ID
+   * @returns {Promise<Object>} Session documents
+   */
+  async getSessionDocuments(sessionId) {
+    try {
+      const response = await this.apiClient.get(`/sessions/${sessionId}/documents`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Delete a document from a chat session
+   * @param {string} sessionId - Session ID
+   * @param {string} documentId - Document ID to delete
+   * @returns {Promise<Object>} Deletion result
+   */
+  async deleteSessionDocument(sessionId, documentId) {
+    try {
+      const response = await this.apiClient.delete(`/sessions/${sessionId}/documents/${documentId}`)
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
+   * Search within documents of a specific session
+   * @param {string} sessionId - Session ID
+   * @param {string} query - Search query
+   * @param {number} topK - Number of results
+   * @returns {Promise<Object>} Search results
+   */
+  async searchSessionDocuments(sessionId, query, topK = 5) {
+    try {
+      const response = await this.apiClient.post(`/sessions/${sessionId}/search-documents`, {
+        query,
+        top_k: topK
+      })
+      return response.data
+    } catch (error) {
+      throw this.handleError(error)
+    }
+  }
+
+  /**
    * Check AI chat service health
    * @returns {Promise<Object>} Health status
    */

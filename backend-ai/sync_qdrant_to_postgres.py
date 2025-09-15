@@ -40,7 +40,7 @@ def sync_qdrant_to_postgres():
             api_key=os.getenv("QDRANT_API_KEY"),
         )
         
-        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal_qd_db")
+        collection_name = os.getenv("QDRANT_COLLECTION_NAME", "legal-vector-db")
         print(f"📊 Syncing from collection: {collection_name}")
         
         # Get database session

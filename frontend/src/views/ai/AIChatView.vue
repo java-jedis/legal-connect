@@ -1,6 +1,6 @@
 <template>
   <div class="ai-chat-layout">
-    <!-- Chat History Sidebar -->
+    <!-- Left Sidebar - Chat History -->
     <div class="chat-sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="sidebar-header">
         <h3>Chat History</h3>
@@ -137,6 +137,57 @@
         <h1>Legal Connect AI Assistant</h1>
         <div class="mobile-actions">
           <button 
+            v-if="currentSessionId"
+            @click="toggleMobileDocUpload" 
+            class="mobile-clear-btn"
+            title="Upload Documents"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <polyline
+                points="14,2 14,8 20,8"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <line
+                x1="12"
+                y1="12"
+                x2="12"
+                y2="18"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <line
+                x1="9"
+                y1="15"
+                x2="12"
+                y2="12"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+              <line
+                x1="15"
+                y1="15"
+                x2="12"
+                y2="12"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+          
+          <button 
             @click="navigateToDocumentSearch" 
             class="mobile-clear-btn"
             title="Search Documents"
@@ -181,29 +232,6 @@
               />
             </svg>
           </button>
-          
-          <button 
-            @click="clearConversation" 
-            class="mobile-clear-btn"
-            :disabled="messages.length === 0"
-          >
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M3 6H5H21"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -240,78 +268,6 @@
               <h1 class="ai-name">Legal Connect AI Assistant</h1>
               <p class="ai-description">Ask me anything about Bangladesh legal documents and laws</p>
             </div>
-          </div>
-          
-          <div v-if="messages.length > 0" class="chat-actions">
-            <button 
-              @click="navigateToDocumentSearch" 
-              class="btn-action"
-              title="Search Documents"
-            >
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <polyline
-                  points="14,2 14,8 20,8"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <circle cx="11.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-                <path d="m13.5 14.5 1.5 1.5" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </button>
-            
-            <button 
-              @click="navigateToChatHistory" 
-              class="btn-action"
-              title="Chat History"
-            >
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                />
-                <path
-                  d="M12 7V12L15 15"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
-            
-            <!-- <button 
-              @click="clearConversation" 
-              class="btn-action"
-              title="Clear conversation"
-              :disabled="messages.length === 0"
-            >
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M3 6H5H21"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-                <path
-                  d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button> -->
           </div>
         </div>
       </div>
@@ -384,6 +340,12 @@
               <div v-if="message.type === 'user'" class="user-avatar">
                 {{ userInitial }}
               </div>
+              <div v-else-if="message.type === 'system'" class="system-avatar">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
               <div v-else class="ai-avatar">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -413,7 +375,11 @@
             
             <div class="message-content">
               <div class="message-header">
-                <span class="message-sender">{{ message.type === 'user' ? 'You' : 'Legal Connect AI Assistant' }}</span>
+                <span class="message-sender">{{ 
+                  message.type === 'user' ? 'You' : 
+                  message.type === 'system' ? 'System' : 
+                  'Legal Connect AI Assistant' 
+                }}</span>
                 <span class="message-time">{{ formatTime(message.timestamp) }}</span>
               </div>
               
@@ -536,75 +502,120 @@
       </div>
     </div>
 
-    <!-- Right Actions Sidebar -->
-    <div class="right-actions-sidebar">
-      <div class="actions-header">
-        <h4>Quick Actions</h4>
+    <!-- Right Sidebar - Quick Actions & Documents -->
+    <div class="right-sidebar desktop-only">
+      <!-- Quick Actions -->
+      <div class="quick-actions-panel">
+        <h3>Quick Actions</h3>
+        <div class="action-buttons">
+          <button 
+            @click="navigateToDocumentSearch" 
+            class="action-btn document-search-btn"
+            title="Search Legal Documents"
+          >
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <polyline
+                  points="14,2 14,8 20,8"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="11.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+                <path d="m13.5 14.5 1.5 1.5" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">Search Documents</span>
+              <span class="action-subtitle">Browse legal documents and laws</span>
+            </div>
+          </button>
+          
+          <button 
+            @click="navigateToChatHistory" 
+            class="action-btn chat-history-btn"
+            title="View Chat History"
+          >
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+                <path
+                  d="M12 7V12L15 15"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <div class="action-text">
+              <span class="action-title">Chat History</span>
+              <span class="action-subtitle">View past conversations</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Document Upload Section -->
+      <div v-if="currentSessionId" class="document-upload-panel">
+        <h3>Chat Documents</h3>
+        <ChatDocumentUpload 
+          :session-id="currentSessionId"
+          @document-uploaded="onDocumentUploaded"
+          @document-deleted="onDocumentDeleted"
+        />
       </div>
       
-      <div class="action-buttons">
-        <button 
-          @click="navigateToDocumentSearch" 
-          class="action-btn document-search-btn"
-          title="Search Legal Documents"
-        >
-          <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <polyline
-                points="14,2 14,8 20,8"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <circle cx="11.5" cy="12.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-              <path d="m13.5 14.5 1.5 1.5" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </div>
-          <div class="action-text">
-            <span class="action-title">Search Documents</span>
-            <span class="action-subtitle">Browse legal documents and laws</span>
-          </div>
-        </button>
-        
-        <button 
-          @click="navigateToChatHistory" 
-          class="action-btn chat-history-btn"
-          title="View Chat History"
-        >
-          <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path
-                d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z"
-                stroke="currentColor"
-                stroke-width="2"
-              />
-              <path
-                d="M12 7V12L15 15"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-          </div>
-          <div class="action-text">
-            <span class="action-title">Chat History</span>
-            <span class="action-subtitle">View past conversations</span>
-          </div>
-        </button>
+      <div v-else class="no-session-notice">
+        <div class="notice-content">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
+            <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <p>Start a conversation to upload documents</p>
+        </div>
       </div>
     </div>
 
     <!-- Sidebar Overlay for Mobile -->
     <div v-if="sidebarOpen" class="sidebar-overlay" @click="toggleSidebar"></div>
+    
+    <!-- Mobile Document Upload Modal -->
+    <div v-if="showMobileDocUpload" class="mobile-doc-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Upload Documents</h3>
+          <button @click="toggleMobileDocUpload" class="close-btn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <ChatDocumentUpload 
+            v-if="currentSessionId"
+            :session-id="currentSessionId"
+            @document-uploaded="onDocumentUploaded"
+            @document-deleted="onDocumentDeleted"
+          />
+        </div>
+      </div>
+      <div class="modal-overlay" @click="toggleMobileDocUpload"></div>
+    </div>
   </div>
 </template>
 
@@ -613,6 +624,7 @@ import { aiChatService } from '@/services/aiChatService'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ChatDocumentUpload from '@/components/ai/ChatDocumentUpload.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -634,6 +646,7 @@ const chatSessions = ref([])
 const isLoadingHistory = ref(false)
 const historySearchQuery = ref('')
 const sidebarOpen = ref(false)
+const showMobileDocUpload = ref(false)
 
 // Computed properties
 const userInitial = computed(() => {
@@ -672,6 +685,40 @@ watch(() => route.params.sessionId, async (newSessionId, oldSessionId) => {
     messages.value = []
   }
 }, { immediate: true })
+
+// Document upload handlers
+const onDocumentUploaded = (uploadResult) => {
+  console.log('Document uploaded successfully:', uploadResult)
+  // Optionally show a success message or update UI
+  // You could add a message to the chat indicating the document was uploaded
+  if (uploadResult.success) {
+    messages.value.push({
+      type: 'system',
+      content: `📄 Document "${uploadResult.filename}" has been uploaded and processed. You can now ask questions about it.`,
+      timestamp: new Date()
+    })
+    
+    // Scroll to bottom to show the system message
+    nextTick(() => {
+      scrollToBottom()
+    })
+  }
+}
+
+const onDocumentDeleted = (documentId) => {
+  console.log('Document deleted:', documentId)
+  // Optionally show a message or update UI
+  messages.value.push({
+    type: 'system',
+    content: '🗑️ Document has been removed from this chat session.',
+    timestamp: new Date()
+  })
+  
+  // Scroll to bottom to show the system message
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
 
 // Initialize session
 onMounted(async () => {
@@ -979,6 +1026,10 @@ const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
 }
 
+const toggleMobileDocUpload = () => {
+  showMobileDocUpload.value = !showMobileDocUpload.value
+}
+
 const getSessionTitle = (session) => {
   // If session has a custom title, use it
   if (session.title && session.title !== 'New Chat Session') {
@@ -1146,15 +1197,6 @@ const sendMessage = async () => {
     // Focus input
     messageInput.value?.focus()
   }
-}
-
-const clearConversation = async () => {
-  if (messages.value.length > 0) {
-    saveCurrentSession()
-  }
-  
-  // Navigate to base AI chat route to show empty state
-  await router.push('/ai-chat')
 }
 
 const handleKeydown = (event) => {
@@ -1530,6 +1572,188 @@ const formatMessage = (content) => {
   height: 100%;
   overflow: hidden;
   position: relative;
+  max-width: calc(100% - 650px); /* Account for both sidebars */
+}
+
+/* Right Sidebar Styles */
+.right-sidebar {
+  width: 350px;
+  background: linear-gradient(135deg, var(--color-background-soft), var(--color-background));
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+}
+
+.quick-actions-panel {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.quick-actions-panel h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--color-background-mute);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-primary);
+  transform: scaleY(0);
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover::before {
+  transform: scaleY(1);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: #dc2626;
+}
+
+.document-search-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  border-color: rgba(59, 130, 246, 0.15);
+}
+
+.document-search-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+  border-color: var(--color-primary);
+}
+
+.chat-history-btn {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
+  border-color: rgba(16, 185, 129, 0.15);
+}
+
+.chat-history-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+  border-color: rgb(16, 185, 129);
+}
+
+.action-btn .action-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-background);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.action-btn:hover .action-icon {
+  transform: scale(1.1);
+}
+
+.action-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.chat-history-btn .action-icon {
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(6, 182, 212));
+}
+
+.action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.action-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  line-height: 1.2;
+}
+
+.action-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.document-upload-panel {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+.document-upload-panel h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.no-session-notice {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.notice-content {
+  text-align: center;
+  color: var(--color-text-mute);
+}
+
+.notice-content svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.notice-content p {
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 .mobile-header {
@@ -1865,6 +2089,46 @@ const formatMessage = (content) => {
   color: var(--color-text-muted);
 }
 
+/* System Message Styles */
+.message--system {
+  opacity: 0.9;
+}
+
+.message--system .message-content {
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border: 1px solid #bbdefb;
+  border-radius: 12px;
+  color: #424242;
+}
+
+.message--system .system-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #2196f3, #9c27b0);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.message--system .system-avatar svg {
+  width: 16px;
+  height: 16px;
+}
+
+.message--system .message-header {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.message--system .message-text {
+  font-size: 0.9rem;
+  color: #555;
+}
+
 .message-sender {
   font-weight: 600;
 }
@@ -1925,6 +2189,19 @@ const formatMessage = (content) => {
   40% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Document Upload Section Styles */
+.document-upload-section {
+  padding: 0 20px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .document-upload-section {
+    padding: 0 16px;
+    margin-bottom: 12px;
   }
 }
 
@@ -2078,139 +2355,6 @@ const formatMessage = (content) => {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Right Actions Sidebar */
-.right-actions-sidebar {
-  width: 320px;
-  background: var(--color-background-soft);
-  border-left: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.actions-header {
-  padding: 1.5rem 1.25rem 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.actions-header h4 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-heading);
-}
-
-.action-buttons {
-  padding: 1.5rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.25rem;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: left;
-  position: relative;
-  overflow: hidden;
-}
-
-.action-btn:hover {
-  background: var(--color-background-mute);
-  border-color: var(--color-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.action-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--color-primary);
-  transform: scaleY(0);
-  transition: transform var(--transition-fast);
-}
-
-.action-btn:hover::before {
-  transform: scaleY(1);
-}
-
-.document-search-btn {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
-  border-color: rgba(59, 130, 246, 0.15);
-}
-
-.document-search-btn:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
-  border-color: var(--color-primary);
-}
-
-.chat-history-btn {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(6, 182, 212, 0.05));
-  border-color: rgba(16, 185, 129, 0.15);
-}
-
-.chat-history-btn:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
-  border-color: rgb(16, 185, 129);
-}
-
-.action-btn .action-icon {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  color: var(--color-background);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform var(--transition-fast);
-}
-
-.action-btn:hover .action-icon {
-  transform: scale(1.1);
-}
-
-.action-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.chat-history-btn .action-icon {
-  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(6, 182, 212));
-}
-
-.action-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.action-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  line-height: 1.2;
-}
-
-.action-subtitle {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
-  line-height: 1.3;
-}
-
 .sidebar-overlay {
   position: fixed;
   top: 0;
@@ -2264,6 +2408,14 @@ const formatMessage = (content) => {
     display: block;
   }
   
+  .chat-main {
+    max-width: 100%;
+  }
+  
+  .right-sidebar {
+    display: none;
+  }
+  
   .mobile-only {
     display: flex;
   }
@@ -2293,10 +2445,6 @@ const formatMessage = (content) => {
   
   .welcome-content {
     padding: 0 1rem;
-  }
-  
-  .right-actions-sidebar {
-    display: none;
   }
   
   .welcome-message {
@@ -2387,6 +2535,88 @@ const formatMessage = (content) => {
   
   .prompt-subtitle {
     font-size: 0.75rem;
+  }
+}
+
+/* Mobile Document Upload Modal */
+.mobile-doc-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--color-background);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 90vw;
+  max-height: 80vh;
+  width: 400px;
+  z-index: 1001;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-mute);
+  padding: 0.5rem;
+  margin: -0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: var(--color-background-mute);
+  color: var(--color-text);
+}
+
+.close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+@media (min-width: 769px) {
+  .mobile-doc-modal {
+    display: none;
   }
 }
 </style>
