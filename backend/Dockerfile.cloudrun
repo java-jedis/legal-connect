@@ -37,17 +37,16 @@ RUN chown spring:spring /app/app.jar
 # Switch to non-root user
 USER spring
 
-# Cloud Run optimized environment variables
+# Cloud Run environment variables
 ENV SPRING_PROFILES_ACTIVE=prod
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"
 ENV SERVER_PORT=8080
 
-# Cloud Run requires the container to listen on the PORT environment variable
 # The PORT environment variable is set by Cloud Run
 ENV PORT=8080
 
-# Expose port (Cloud Run will override this with PORT env var)
+# Expose port
 EXPOSE 8080
 
-# Cloud Run optimized entrypoint
+# Cloud Run entrypoint
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=$PORT -jar /app/app.jar"]
