@@ -8,7 +8,36 @@ const api = axios.create({
   headers: API_CONFIG.DEFAULT_HEADERS,
 });
 
-// Request interceptor to add auth token
+// Retry logic helper function
+const shouldRetry = (error, retryCount) => {
+  // Don't retry if we've exceeded max attempts
+  if (retryCount >= API_CONFIG.RETRY.ATTEMPTS) {
+    return false;
+  }
+
+  // Retry on network errors if configured
+  if (!error.response && API_CONFIG.RETRY.RETRY_ON_NETWORK_ERROR) {
+    return true;
+  }
+
+  // Retry on specific status codes
+  if (error.response && API_CONFIG.RETRY.RETRY_ON_STATUS_CODES.includes(error.response.status)) {
+    return true;
+  }
+
+  return false;
+};
+
+// Calculate delay with exponential backoff
+const getRetryDelay = (retryCount) => {
+  const delay = API_CONFIG.RETRY.DELAY * Math.pow(API_CONFIG.RETRY.DELAY_MULTIPLIER, retryCount);
+  return Math.min(delay, API_CONFIG.RETRY.MAX_DELAY);
+};
+
+// Sleep function for retry delays
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Request interceptor to add auth token and retry count
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("auth_token");
@@ -27,12 +56,20 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle common errors
+// Response interceptor to handle common errors and retries
 api.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Initialize retry count if not present
+    if (!originalRequest._retryCount) {
+      originalRequest._retryCount = 0;
+    }
+
+    // Handle 401 errors (authentication)
     if (error.response?.status === 401) {
       // Only redirect if this is not a login request and user was previously authenticated
       const isLoginRequest = error.config?.url?.includes("/auth/login");
@@ -55,7 +92,41 @@ api.interceptors.response.use(
         localStorage.removeItem("auth_userInfo");
         window.location.href = "/login";
       }
+      // Don't retry 401 errors
+      return Promise.reject(error);
     }
+
+    // Check if we should retry this request
+    if (shouldRetry(error, originalRequest._retryCount)) {
+      originalRequest._retryCount += 1;
+      
+      // Calculate delay for this retry attempt
+      const delay = getRetryDelay(originalRequest._retryCount - 1);
+      
+      console.log(`Retrying request (attempt ${originalRequest._retryCount}/${API_CONFIG.RETRY.ATTEMPTS}) after ${delay}ms delay:`, {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        status: error.response?.status,
+        message: error.message
+      });
+
+      // Wait for the calculated delay
+      await sleep(delay);
+
+      // Retry the request
+      return api(originalRequest);
+    }
+
+    // If we've exhausted retries or shouldn't retry, reject the error
+    if (originalRequest._retryCount > 0) {
+      console.log(`Request failed after ${originalRequest._retryCount} retry attempts:`, {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        status: error.response?.status,
+        message: error.message
+      });
+    }
+
     return Promise.reject(error);
   }
 );

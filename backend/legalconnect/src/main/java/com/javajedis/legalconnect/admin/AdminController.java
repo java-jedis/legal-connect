@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @Slf4j
-@Tag(name = "10. Admin", description = "Admin endpoints for system management")
+@Tag(name = "D. Admin", description = "Admin endpoints for system management")
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor

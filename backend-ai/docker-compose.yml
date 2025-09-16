@@ -1,0 +1,110 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:17.5
+    container_name: lc_postgres_ai
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-legal_connect_db}
+      - POSTGRES_USER=${POSTGRES_USER:-legal}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init_db.py:/docker-entrypoint-initdb.d/10_init_db.py:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-legal} -d ${POSTGRES_DB:-legal_connect_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env
+    networks:
+      - backend-net
+
+  redis:
+    image: redis:7
+    container_name: lc_redis_ai
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  fastapi-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lc_fastapi
+    working_dir: /app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-legal}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-legal_connect_db}
+      
+      # Qdrant (using your cloud instance)
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME}
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Google AI
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      
+      # JWT
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      
+      # App settings
+      - DEBUG=${DEBUG:-False}
+      - APP_NAME=${APP_NAME}
+      - APP_VERSION=${APP_VERSION}
+      
+      # CORS
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      
+      # RAG Configuration
+      - CHUNK_SIZE=${CHUNK_SIZE}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP}
+      - MAX_CONTEXT_LENGTH=${MAX_CONTEXT_LENGTH}
+      - TOP_K_RESULTS=${TOP_K_RESULTS}
+      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_FORMAT=${LOG_FORMAT}
+    volumes:
+      - ./bdcode_json:/app/bdcode_json:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend-net
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  backend-net:
+    driver: bridge
