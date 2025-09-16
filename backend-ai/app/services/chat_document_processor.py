@@ -5,8 +5,6 @@ Chat document processing service for handling documents uploaded during chat ses
 import os
 import uuid
 import asyncio
-import aiofiles
-from pathlib import Path
 from typing import List, Dict, Any, Optional
 import logging
 from sqlalchemy.orm import Session
@@ -33,10 +31,6 @@ class ChatDocumentProcessor:
         self.embedding_service = embedding_service
         self.vectordb_service = vectordb_service
         self.text_processor = TextProcessor()
-        
-        # Create upload directory if it doesn't exist
-        self.upload_dir = Path("chat_uploads")
-        self.upload_dir.mkdir(exist_ok=True)
         
         logger.info("Initialized ChatDocumentProcessor")
     
@@ -73,17 +67,12 @@ class ChatDocumentProcessor:
             if not session:
                 raise ValueError(f"Session {session_id} not found or not owned by user {user_id}")
             
-            # Generate unique filename
+            # Generate unique filename (for database record only)
             file_id = str(uuid.uuid4())
-            file_extension = Path(filename).suffix
+            file_extension = os.path.splitext(filename)[1]  # Use os.path.splitext instead of Path
             unique_filename = f"{file_id}{file_extension}"
-            file_path = self.upload_dir / unique_filename
             
-            # Save file to disk
-            async with aiofiles.open(file_path, 'wb') as f:
-                await f.write(file_content)
-            
-            # Create database record
+            # Create database record (no file_path since not saving to disk)
             chat_document = ChatDocument(
                 session_id=session_id,
                 user_id=user_id,  # Add user_id to match session user_id
@@ -91,7 +80,7 @@ class ChatDocumentProcessor:
                 original_filename=filename,
                 file_size=len(file_content),
                 file_type=file_type,
-                file_path=str(file_path),
+                file_path=None,  # No file saved to disk
                 processing_status='processing'
             )
             
@@ -333,10 +322,6 @@ class ChatDocumentProcessor:
             db.query(ChatDocumentChunk).filter(
                 ChatDocumentChunk.chat_document_id == document_id
             ).delete()
-            
-            # Delete file from disk
-            if document.file_path and os.path.exists(document.file_path):
-                os.remove(document.file_path)
             
             # Delete document record
             db.delete(document)
