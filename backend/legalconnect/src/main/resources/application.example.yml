@@ -1,0 +1,149 @@
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 10MB
+      max-file-size: 10MB
+  application:
+    name: LegalConnect
+  # CORS Configuration
+  cors:
+    # Comma-separated list of allowed origins (can be multiple)
+    allowed-origins: http://localhost:5173,http://localhost:3000
+    # Comma-separated list of allowed HTTP methods
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+    # Allowed headers (use "*" for all headers)
+    allowed-headers: "*"
+    # Whether to allow credentials (cookies, authorization headers)
+    allow-credentials: true
+    # How long the browser should cache the CORS preflight response (in seconds)
+    max-age: 3600
+    # Comma-separated list of exposed headers (optional)
+    exposed-headers: Authorization,Content-Type,X-Total-Count
+  datasource:
+    url: jdbc:postgresql://localhost:5432/legalconnect
+    username: your_db_username
+    password: your_db_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  # Quartz Configuration for Job Persistence
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never # Set to 'always' for first-time setup, then 'never'
+    properties:
+      org.quartz.scheduler.instanceName: LegalConnectScheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.isClustered: false
+      org.quartz.jobStore.useProperties: false
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
+      org.quartz.threadPool.threadCount: 10
+      org.quartz.threadPool.threadPriority: 5
+      org.quartz.threadPool.threadsInheritContextClassLoaderOfInitializingThread: true
+      org.quartz.plugin.triggHistory.class: org.quartz.plugins.history.LoggingTriggerHistoryPlugin
+      org.quartz.plugin.jobHistory.class: org.quartz.plugins.history.LoggingJobHistoryPlugin
+      org.quartz.scheduler.startupDelay: 0
+      org.quartz.scheduler.skipUpdateCheck: true
+  mail:
+    host: smtp.your-email-provider.com
+    port: 587
+    username: your-email@example.com
+    password: your_email_password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic # Optional: remove if no authentication
+    password: your_elasticsearch_password # Optional: remove if no authentication
+    connection-timeout: 5s
+    socket-timeout: 10s
+    restclient:
+      sniffer:
+        interval: 5m
+        delay-after-failure: 1m
+  custom:
+    security:
+      jwtsecret: your_super_secret_jwt_key_here_make_it_long_and_secure
+      sonar_token: your_sonar_cloud_token_here
+
+api:
+  version: v1
+  name: LegalConnect API
+
+springdoc:
+  swagger-ui:
+    path: /
+    tags-sorter: alpha
+
+server:
+  servlet:
+    context-path: /v1
+
+logging:
+  level:
+    root: INFO
+    com.javajedis.legalconnect: DEBUG # Set your base package to DEBUG for more detailed logs
+  file:
+    name: logs/legalconnect.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# AWS Configuration
+cloud:
+  aws:
+    credentials:
+      accessKey: YOUR_AWS_ACCESS_KEY
+      secretKey: YOUR_AWS_SECRET_KEY
+    region:
+      static: ap-southeast-2 # Change to your preferred AWS region
+    s3:
+      bucket: your-s3-bucket-name
+
+# Google OAuth Configuration
+google:
+  oauth:
+    client-id: your-google-oauth-client-id.apps.googleusercontent.com
+    client-secret: your-google-oauth-client-secret
+    redirect-uri: http://localhost:8080/v1/schedule/oauth/callback
+    scope: https://www.googleapis.com/auth/calendar
+
+# Stripe Payment Configuration
+stripe:
+  secret-key: sk_test_your_stripe_secret_key_here
+
+# Jitsi JAAS Configuration
+# Get your JAAS credentials from https://jaas.8x8.vc/#/
+# Download the private key file and place it as 'jaas-key.pk' in src/main/resources/
+jaas:
+  app-id: vpaas-magic-cookie-your-app-id-here
+  api-key: vpaas-magic-cookie-your-app-id-here/your-kid-here
+
+# Frontend URL Configuration
+frontend:
+  url: http://localhost:5173
+
+# Cloudinary Configuration
+# Sign up at https://cloudinary.com/ to get these credentials
+cloudinary:
+  cloud-name: your_cloudinary_cloud_name
+  api-key: your_cloudinary_api_key
+  api-secret: your_cloudinary_api_secret
