@@ -30,9 +30,9 @@ ENV NODE_ENV=production
 RUN npm i -g serve@14
 COPY --from=builder /app/dist /app
 
-# Cloud Run provides $PORT; default to 8080 for local use
-ENV PORT=8080
-EXPOSE 8080
+# Use port 5173 to match development server
+ENV PORT=5173
+EXPOSE 5173
 
-# Bind to 0.0.0.0 and Cloud Run port
+# Bind to 0.0.0.0 and use port 5173
 CMD ["sh","-c","serve -s /app -l tcp://0.0.0.0:${PORT}"]
