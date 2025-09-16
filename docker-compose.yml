@@ -1,0 +1,292 @@
+services:
+  # =============================================================================
+  # Database Services
+  # =============================================================================
+  
+  postgres:
+    image: postgres:17.5
+    container_name: lc_postgres_main
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-legalconnect}
+      - POSTGRES_USER=${POSTGRES_USER:-root}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/legalconnect/src/main/resources/quartz_tables.sql:/docker-entrypoint-initdb.d/10_quartz.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-root} -d ${POSTGRES_DB:-legalconnect}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: lc_redis_main
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.1
+    container_name: lc_elasticsearch_main
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+
+  # =============================================================================
+  # Backend Services
+  # =============================================================================
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lc_backend_main
+    environment:
+      # Database Configuration
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-legalconnect}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-root}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      
+      # JPA/Hibernate Configuration
+      - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-true}
+      - SPRING_JPA_GENERATE_DDL=${SPRING_JPA_GENERATE_DDL:-true}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      
+      # Redis Configuration
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      
+      # Elasticsearch Configuration
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - SPRING_ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME:-}
+      - SPRING_ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD:-}
+      
+      # Mail Configuration
+      - SPRING_MAIL_HOST=${MAIL_HOST:-smtp.zoho.com}
+      - SPRING_MAIL_PORT=${MAIL_PORT:-587}
+      - SPRING_MAIL_USERNAME=${MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${MAIL_PASSWORD}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:-true}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=${MAIL_SMTP_STARTTLS_ENABLE:-true}
+      
+      # Security Configuration
+      - SPRING_CUSTOM_SECURITY_JWTSECRET=${JWT_SECRET}
+      - SPRING_CUSTOM_SECURITY_SONAR_TOKEN=${SONAR_TOKEN}
+      
+      # CORS Configuration
+      - SPRING_CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      - SPRING_CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS,PATCH}
+      - SPRING_CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
+      - SPRING_CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
+      - SPRING_CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+      - SPRING_CORS_EXPOSED_HEADERS=${CORS_EXPOSED_HEADERS:-Authorization,Content-Type,X-Total-Count}
+      
+      # AWS Configuration
+      - CLOUD_AWS_CREDENTIALS_ACCESSKEY=${AWS_ACCESS_KEY}
+      - CLOUD_AWS_CREDENTIALS_SECRETKEY=${AWS_SECRET_KEY}
+      - CLOUD_AWS_REGION_STATIC=${AWS_REGION:-ap-southeast-2}
+      - CLOUD_AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      
+      # Google OAuth Configuration
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
+      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8080/v1/schedule/oauth/callback}
+      - GOOGLE_OAUTH_SCOPE=${GOOGLE_OAUTH_SCOPE:-https://www.googleapis.com/auth/calendar}
+      
+      # Stripe Configuration
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      
+      # Jitsi Configuration
+      - JAAS_APP_ID=${JAAS_APP_ID}
+      - JAAS_API_KEY=${JAAS_API_KEY}
+      
+      # Cloudinary Configuration
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      
+      # Application Configuration
+      - API_VERSION=${API_VERSION:-v1}
+      - API_NAME=${API_NAME:-LegalConnect API}
+      - SERVER_SERVLET_CONTEXT_PATH=${SERVER_CONTEXT_PATH:-/v1}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      
+      # Logging Configuration
+      - LOGGING_LEVEL_ROOT=${LOG_LEVEL_ROOT:-INFO}
+      - LOGGING_LEVEL_COM_JAVAJEDIS_LEGALCONNECT=${LOG_LEVEL_COM_JAVAJEDIS_LEGALCONNECT:-DEBUG}
+      
+      # Quartz Configuration
+      - SPRING_QUARTZ_JOB_STORE_TYPE=${QUARTZ_JOB_STORE_TYPE:-jdbc}
+      - SPRING_QUARTZ_JDBC_INITIALIZE_SCHEMA=${QUARTZ_INITIALIZE_SCHEMA:-never}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/legalconnect/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # AI Backend Service
+  # =============================================================================
+
+  backend-ai:
+    build:
+      context: ./backend-ai
+      dockerfile: Dockerfile
+    container_name: lc_backend_ai_main
+    environment:
+      # Database Configuration
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-root}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-legalconnect}
+      
+      # Qdrant Configuration (using cloud instance)
+      - QDRANT_URL=${QDRANT_URL}
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - QDRANT_COLLECTION_NAME=${QDRANT_COLLECTION_NAME}
+      
+      # Redis Configuration
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Google AI Configuration
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      
+      # JWT Configuration
+      - JWT_SECRET_KEY=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      
+      # App Configuration
+      - DEBUG=${DEBUG:-False}
+      - APP_NAME=${APP_NAME}
+      - APP_VERSION=${APP_VERSION}
+      
+      # CORS Configuration
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      
+      # RAG Configuration
+      - CHUNK_SIZE=${CHUNK_SIZE}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP}
+      - MAX_CONTEXT_LENGTH=${MAX_CONTEXT_LENGTH}
+      - TOP_K_RESULTS=${TOP_K_RESULTS}
+      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD}
+      
+      # Logging Configuration
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_FORMAT=${LOG_FORMAT}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend-ai/bdcode_json:/app/bdcode_json:ro
+      - ./backend-ai/logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Frontend Service
+  # =============================================================================
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080/v1}
+        - VITE_AI_CHAT_BASE_URL=${VITE_AI_CHAT_BASE_URL:-http://localhost:8000/api/v1}
+        - VITE_JITSI_APP_ID=${VITE_JITSI_APP_ID}
+    container_name: lc_frontend_main
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+      - backend-ai
+    networks:
+      - legalconnect-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# =============================================================================
+# Volumes
+# =============================================================================
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  legalconnect-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
