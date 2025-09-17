@@ -28,5 +28,9 @@ steps:
       '--platform', 'managed'
     ]
 
-# Optional: timeout
+# Logging option to avoid build.service_account error
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+# Optional: increase timeout if needed
 timeout: '1200s'
