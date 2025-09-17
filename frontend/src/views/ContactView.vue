@@ -62,8 +62,8 @@
                 </div>
                 <div class="method-content">
                   <h3>Call Us</h3>
-                  <p>+1 (555) 123-4567</p>
-                  <p>Mon-Fri: 9AM-6PM EST</p>
+                  <p>+880 1234-567890</p>
+                  <p>Mon-Fri: 9AM-6PM BDT</p>
                 </div>
               </div>
 
@@ -83,7 +83,7 @@
                 <div class="method-content">
                   <h3>Visit Us</h3>
                   <p>123 Legal Street</p>
-                  <p>New York, NY 10001</p>
+                  <p>Uttara, Dhaka 1230</p>
                 </div>
               </div>
             </div>
