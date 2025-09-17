@@ -1,0 +1,126 @@
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 10MB
+      max-file-size: 10MB
+  application:
+    name: LegalConnect
+  # CORS Configuration
+  cors:
+    # Comma-separated list of allowed origins (can be multiple)
+    allowed-origins: https://legalconnect.live,https://api.legalconnect.live,https://core.legalconnect.live,https://app.legalconnect.live
+    # Comma-separated list of allowed HTTP methods
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+    # Allowed headers (use "*" for all headers)
+    allowed-headers: "*"
+    # Whether to allow credentials (cookies, authorization headers)
+    allow-credentials: true
+    # How long the browser should cache the CORS preflight response (in seconds)
+    max-age: 3600
+    # Comma-separated list of exposed headers (optional)
+    exposed-headers: Authorization,Content-Type,X-Total-Count
+  mvc:
+    cors:
+      mappings:
+        "[/**]":
+          # Add all origins that will call your API
+          allowed-origin-patterns: "https://api.legalconnect.live, https://legalconnect.live, https://*.appspot.com, https://*.r.appspot.com, https://core.legalconnect.live, https://app.legalconnect.live"
+          allowed-methods: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+          allowed-headers: "*"
+          allow-credentials: true
+          max-age: 3600
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${POSTGRES_USER:-postgres}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  # Quartz Configuration for Job Persistence
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never  # Set to 'always' for first-time setup, then 'never'
+    properties:
+      org.quartz.scheduler.instanceName: LegalConnectScheduler
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.jobStore.isClustered: false
+      org.quartz.jobStore.useProperties: false
+      org.quartz.jobStore.misfireThreshold: 60000
+      org.quartz.threadPool.class: org.quartz.simpl.SimpleThreadPool
+      org.quartz.threadPool.threadCount: 10
+      org.quartz.threadPool.threadPriority: 5
+      org.quartz.threadPool.threadsInheritContextClassLoaderOfInitializingThread: true
+      org.quartz.plugin.triggHistory.class: org.quartz.plugins.history.LoggingTriggerHistoryPlugin
+      org.quartz.plugin.jobHistory.class: org.quartz.plugins.history.LoggingJobHistoryPlugin
+      org.quartz.scheduler.startupDelay: 0
+      org.quartz.scheduler.skipUpdateCheck: true
+  mail:
+    host: ${MAIL_HOST:-smtp.zoho.com}
+    port: ${MAIL_PORT:-587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  data:
+    redis:
+      host: ${REDIS_HOST:-10.148.0.3}
+      port: ${REDIS_PORT:-6379}
+      password: ${REDIS_PASSWORD:-}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:-http://10.148.0.2:9200}
+  custom:
+    security:
+      jwtsecret: ${JWT_SECRET}
+      sonar_token: ${SONAR_TOKEN}
+
+logging:
+  level:
+    root: INFO
+    com.javajedis.legalconnect: DEBUG  # Set your base package to DEBUG for more detailed logs
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+cloud:
+  aws:
+    credentials:
+      accessKey: ${AWS_ACCESS_KEY}
+      secretKey: ${AWS_SECRET_KEY}
+    region:
+      static: ${AWS_REGION:-ap-southeast-2}
+    s3:
+      bucket: ${AWS_S3_BUCKET}
+google:
+  oauth:
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+    client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+    redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI}
+    scope: ${GOOGLE_OAUTH_SCOPE}
+
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY}
+
+jaas:
+  app-id: ${JAAS_APP_ID}
+  api-key: ${JAAS_API_KEY}
+
+
+frontend:
+  url: https://app.legalconnect.live
+
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
