@@ -1,0 +1,35 @@
+steps:
+# --- Service frontend ---
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'build',
+      '--no-cache',
+      '--build-arg', 'VITE_API_BASE_URL=$_SUB_API_BASE_URL',
+      '--build-arg', 'VITE_AI_CHAT_BASE_URL=$_SUB_AI_CHAT_BASE_URL',
+      '--build-arg', 'VITE_JITSI_APP_ID=$_SUB_JITSI_APP_ID',
+      '-t', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/frontend:$COMMIT_SHA',
+      'frontend'
+    ]
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'push',
+      'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/frontend:$COMMIT_SHA'
+    ]
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    [
+      'run', 'deploy', 'frontend',
+      '--image', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/frontend:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed'
+    ]
+
+# Logging option
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+# Timeout
+timeout: '1200s'
