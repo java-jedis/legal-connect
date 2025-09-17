@@ -40,19 +40,24 @@ public class UserService {
     private final CloudinaryService cloudinaryService;
 
     /**
+     * Helper method to get the current authenticated user.
+     * @return the authenticated user or null if not authenticated
+     */
+    private User getAuthenticatedUser() {
+        return GetUserUtil.getAuthenticatedUser(userRepo);
+    }
+
+
+
+    /**
      * Retrieves the current authenticated user's information.
      */
     public ResponseEntity<ApiResponse<UserInfoResponseDTO>> getUserInfo() {
         log.debug("Attempting to retrieve current user info");
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            log.warn("User is not authenticated when requesting user info");
-            return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
-        }
         Map<String, Object> userInfo = GetUserUtil.getCurrentUserInfo(userRepo);
         if (userInfo.isEmpty()) {
-            log.error("User information not found in the context");
-            return ApiResponse.error(USER_NOT_FOUND_MSG, HttpStatus.NOT_FOUND);
+            log.warn("User is not authenticated when requesting user info");
+            return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
         log.info("User info retrieved for email: {}", userInfo.get("email"));
 
@@ -116,32 +121,23 @@ public class UserService {
      */
     public ResponseEntity<ApiResponse<Boolean>> changePassword(ChangePasswordReqDTO data) {
         log.debug("Attempting to change password for current user");
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
             log.warn("User is not authenticated when attempting to change password");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-        String email = authentication.getName();
-        if (email == null) {
-            log.error("Email not found in authentication context during password change");
-            return ApiResponse.error(INVALID_TOKEN_MSG, HttpStatus.UNAUTHORIZED);
-        }
-        User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("User not found for email: {} during password change", email);
-                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
-                });
+        
         if (!passwordEncoder.matches(data.getOldPassword(), user.getPassword())) {
-            log.warn("Incorrect old password for email: {}", email);
+            log.warn("Incorrect old password for email: {}", user.getEmail());
             return ApiResponse.error(OLD_PASSWORD_INCORRECT_MSG, HttpStatus.BAD_REQUEST);
         }
         if (data.getOldPassword().equals(data.getPassword())) {
-            log.warn("Old and new password are the same for email: {}", email);
+            log.warn("Old and new password are the same for email: {}", user.getEmail());
             return ApiResponse.error(OLD_NEW_PASSWORD_SAME_MSG, HttpStatus.BAD_REQUEST);
         }
         user.setPassword(passwordEncoder.encode(data.getPassword()));
         userRepo.save(user);
-        log.info("Password changed successfully for email: {}", email);
+        log.info("Password changed successfully for email: {}", user.getEmail());
         return ApiResponse.success(true, HttpStatus.OK, "Password changed successfully");
     }
 
@@ -150,23 +146,11 @@ public class UserService {
      */
     public ResponseEntity<ApiResponse<ProfilePictureDTO>> uploadProfilePicture(MultipartFile file) {
         log.debug("Attempting to upload profile picture for current user");
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        User user = getAuthenticatedUser();
+        if (user == null) {
             log.warn("User is not authenticated when attempting to upload profile picture");
             return ApiResponse.error(NOT_AUTHENTICATED_MSG, HttpStatus.UNAUTHORIZED);
         }
-        
-        String email = authentication.getName();
-        if (email == null) {
-            log.error("Email not found in authentication context during profile picture upload");
-            return ApiResponse.error(INVALID_TOKEN_MSG, HttpStatus.UNAUTHORIZED);
-        }
-        
-        User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> {
-                    log.error("User not found for email: {} during profile picture upload", email);
-                    return new UsernameNotFoundException(USER_NOT_FOUND_MSG);
-                });
 
         try {
             if (user.getProfilePicturePublicId() != null) {
@@ -180,11 +164,11 @@ public class UserService {
             user.setProfilePicturePublicId(profilePicture.getPublicId());
             userRepo.save(user);
 
-            log.info("Profile picture uploaded successfully for email: {}", email);
+            log.info("Profile picture uploaded successfully for email: {}", user.getEmail());
             return ApiResponse.success(profilePicture, HttpStatus.OK, "Profile picture uploaded successfully");
             
         } catch (IOException e) {
-            log.error("Error uploading profile picture for email: {}", email, e);
+            log.error("Error uploading profile picture for email: {}", user.getEmail(), e);
             return ApiResponse.error("Failed to upload profile picture", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

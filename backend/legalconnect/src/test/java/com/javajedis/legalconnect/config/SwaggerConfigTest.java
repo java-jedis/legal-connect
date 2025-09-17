@@ -126,7 +126,7 @@ class SwaggerConfigTest {
         assertNotNull(contact);
         assertEquals("LegalConnect Support Team", contact.getName());
         assertEquals("support@legalconnect.live", contact.getEmail());
-        assertEquals("https://legalconnect.live/support", contact.getUrl());
+        assertEquals("https://app.legalconnect.live/support", contact.getUrl());
     }
 
     @Test
@@ -238,7 +238,7 @@ class SwaggerConfigTest {
             .orElse(null);
             
         assertNotNull(productionServer);
-        assertEquals("https://api.legalconnect.live/v1", productionServer.getUrl());
+        assertEquals("https://core.legalconnect.live/v1", productionServer.getUrl());
         assertEquals("Production Server", productionServer.getDescription());
     }
 
@@ -462,7 +462,7 @@ class SwaggerConfigTest {
         
         // Check production server uses the same domain
         boolean hasProductionServer = openAPI.getServers().stream()
-            .anyMatch(server -> server.getUrl().contains("api.legalconnect.live"));
+            .anyMatch(server -> server.getUrl().contains("core.legalconnect.live"));
         assertTrue(hasProductionServer);
     }
 } 

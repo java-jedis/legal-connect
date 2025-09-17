@@ -1,29 +1,9 @@
 package com.javajedis.legalconnect.user;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
+import com.javajedis.legalconnect.common.dto.ApiResponse;
+import com.javajedis.legalconnect.common.service.CloudinaryService;
+import com.javajedis.legalconnect.common.utility.GetUserUtil;
+import com.javajedis.legalconnect.common.utility.JWTUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -39,10 +19,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.javajedis.legalconnect.common.dto.ApiResponse;
-import com.javajedis.legalconnect.common.service.CloudinaryService;
-import com.javajedis.legalconnect.common.utility.GetUserUtil;
-import com.javajedis.legalconnect.common.utility.JWTUtil;
+import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class UserServiceTest {
     @Mock
@@ -135,60 +122,75 @@ class UserServiceTest {
     @Test
     void changePassword_success() {
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getCredentials()).thenReturn("jwt.token");
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String email = "john@example.com";
+
         User user = new User();
+        user.setEmail("john@example.com");
         user.setPassword("oldHash");
-        when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
-        ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        req.setOldPassword("old");
-        req.setPassword("new");
-        when(passwordEncoder.matches("old", "oldHash")).thenReturn(true);
-        when(passwordEncoder.encode("new")).thenReturn("newHash");
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertTrue(result.getBody().getData());
-        verify(userRepo).save(user);
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+
+            ChangePasswordReqDTO req = new ChangePasswordReqDTO();
+            req.setOldPassword("old");
+            req.setPassword("new");
+            when(passwordEncoder.matches("old", "oldHash")).thenReturn(true);
+            when(passwordEncoder.encode("new")).thenReturn("newHash");
+
+            ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertTrue(result.getBody().getData());
+            verify(userRepo).save(user);
+        }
     }
 
     @Test
     void changePassword_wrongOldPassword_returnsError() {
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getCredentials()).thenReturn("jwt.token");
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String email = "john@example.com";
+
         User user = new User();
+        user.setEmail("john@example.com");
         user.setPassword("oldHash");
-        when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
-        ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        req.setOldPassword("wrong");
-        req.setPassword("new");
-        when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertNotNull(result.getBody().getError());
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+
+            ChangePasswordReqDTO req = new ChangePasswordReqDTO();
+            req.setOldPassword("wrong");
+            req.setPassword("new");
+            when(passwordEncoder.matches("wrong", "oldHash")).thenReturn(false);
+
+            ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
+            assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+            assertNotNull(result.getBody().getError());
+        }
     }
 
     @Test
     void changePassword_sameOldAndNewPassword_returnsError() {
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getCredentials()).thenReturn("jwt.token");
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String email = "john@example.com";
+
         User user = new User();
+        user.setEmail("john@example.com");
         user.setPassword("oldHash");
-        when(userRepo.findByEmail(email)).thenReturn(Optional.of(user));
-        ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        req.setOldPassword("same");
-        req.setPassword("same");
-        when(passwordEncoder.matches("same", "oldHash")).thenReturn(true);
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertNotNull(result.getBody().getError());
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+
+            ChangePasswordReqDTO req = new ChangePasswordReqDTO();
+            req.setOldPassword("same");
+            req.setPassword("same");
+            when(passwordEncoder.matches("same", "oldHash")).thenReturn(true);
+
+            ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
+            assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+            assertNotNull(result.getBody().getError());
+        }
     }
 
     @Test
@@ -203,22 +205,26 @@ class UserServiceTest {
     @Test
     void changePassword_invalidToken_returnsUnauthorized() {
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getCredentials()).thenReturn("jwt.token");
         when(authentication.getName()).thenReturn(null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
-        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(null);
+
+            ChangePasswordReqDTO req = new ChangePasswordReqDTO();
+            ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        }
     }
 
     @Test
-    void getUserInfo_authenticated_userNotFound_returnsNotFound() {
+    void getUserInfo_authenticated_userNotFound_returnsUnauthorized() {
         when(authentication.isAuthenticated()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
             mocked.when(() -> GetUserUtil.getCurrentUserInfo(any())).thenReturn(new HashMap<>());
             ResponseEntity<ApiResponse<UserInfoResponseDTO>> result = userService.getUserInfo();
-            assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         }
     }
 
@@ -237,19 +243,21 @@ class UserServiceTest {
     }
 
     @Test
-    void changePassword_userNotFound_throwsException() {
+    void changePassword_userNotFound_returnsUnauthorized() {
         when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getCredentials()).thenReturn("jwt.token");
         when(authentication.getName()).thenReturn("notfound@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String email = "notfound@example.com";
-        when(userRepo.findByEmail(email)).thenReturn(Optional.empty());
-        ChangePasswordReqDTO req = new ChangePasswordReqDTO();
-        req.setOldPassword("old");
-        req.setPassword("new");
-        assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class, () -> {
-            userService.changePassword(req);
-        });
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(null);
+
+            ChangePasswordReqDTO req = new ChangePasswordReqDTO();
+            req.setOldPassword("old");
+            req.setPassword("new");
+
+            ResponseEntity<ApiResponse<Boolean>> result = userService.changePassword(req);
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        }
     }
 
     @Test
@@ -258,37 +266,39 @@ class UserServiceTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
+
         UUID userId = UUID.randomUUID();
         User user = new User();
         user.setId(userId);
         user.setEmail("john@example.com");
         user.setProfilePicturePublicId(null); // No existing profile picture
-        
+
         MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
         ProfilePictureDTO profilePictureDTO = new ProfilePictureDTO(
-            "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
-            "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
-            "profile_pictures/user_" + userId
+                "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
+                "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
+                "profile_pictures/user_" + userId
         );
-        
-        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
-        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(profilePictureDTO);
-        
-        // Act
-        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
-        
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertEquals(profilePictureDTO, result.getBody().getData());
-        assertEquals("Profile picture uploaded successfully", result.getBody().getMessage());
-        
-        // Verify user entity is updated
-        assertEquals(profilePictureDTO.getFullPictureUrl(), user.getProfilePictureUrl());
-        assertEquals(profilePictureDTO.getThumbnailPictureUrl(), user.getProfilePictureThumbnailUrl());
-        assertEquals(profilePictureDTO.getPublicId(), user.getProfilePicturePublicId());
-        verify(userRepo).save(user);
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+            when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(profilePictureDTO);
+
+            // Act
+            ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals(profilePictureDTO, result.getBody().getData());
+            assertEquals("Profile picture uploaded successfully", result.getBody().getMessage());
+
+            // Verify user entity is updated
+            assertEquals(profilePictureDTO.getFullPictureUrl(), user.getProfilePictureUrl());
+            assertEquals(profilePictureDTO.getThumbnailPictureUrl(), user.getProfilePictureThumbnailUrl());
+            assertEquals(profilePictureDTO.getPublicId(), user.getProfilePicturePublicId());
+            verify(userRepo).save(user);
+        }
     }
 
     @Test
@@ -297,35 +307,37 @@ class UserServiceTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
+
         UUID userId = UUID.randomUUID();
         User user = new User();
         user.setId(userId);
         user.setEmail("john@example.com");
         user.setProfilePicturePublicId("old_profile_pictures/user_old"); // Existing profile picture
-        
+
         MultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", "new image content".getBytes());
         ProfilePictureDTO newProfilePictureDTO = new ProfilePictureDTO(
-            "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
-            "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
-            "profile_pictures/user_" + userId
+                "https://res.cloudinary.com/test/image/upload/v1234567890/profile_pictures/user_" + userId + ".jpg",
+                "https://res.cloudinary.com/test/image/upload/w_150,h_150,c_fill,g_face/profile_pictures/user_" + userId + ".jpg",
+                "profile_pictures/user_" + userId
         );
-        
-        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
-        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(newProfilePictureDTO);
-        
-        // Act
-        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
-        
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertEquals(newProfilePictureDTO, result.getBody().getData());
-        
-        // Verify old picture is deleted and new one is saved
-        verify(cloudinaryService).deleteProfilePicture("old_profile_pictures/user_old");
-        verify(cloudinaryService).uploadProfilePicture(file, userId.toString());
-        verify(userRepo).save(user);
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+            when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenReturn(newProfilePictureDTO);
+
+            // Act
+            ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+
+            // Assert
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertEquals(newProfilePictureDTO, result.getBody().getData());
+
+            // Verify old picture is deleted and new one is saved
+            verify(cloudinaryService).deleteProfilePicture("old_profile_pictures/user_old");
+            verify(cloudinaryService).uploadProfilePicture(file, userId.toString());
+            verify(userRepo).save(user);
+        }
     }
 
     @Test
@@ -333,12 +345,12 @@ class UserServiceTest {
         // Arrange
         when(authentication.isAuthenticated()).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
+
         MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
-        
+
         // Act
         ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
-        
+
         // Assert
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
         assertNotNull(result.getBody());
@@ -346,20 +358,25 @@ class UserServiceTest {
     }
 
     @Test
-    void uploadProfilePicture_userNotFound_throwsException() {
+    void uploadProfilePicture_userNotFound_returnsUnauthorized() {
         // Arrange
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("notfound@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        when(userRepo.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
-        
+
         MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
-        
-        // Act & Assert
-        assertThrows(org.springframework.security.core.userdetails.UsernameNotFoundException.class, () -> {
-            userService.uploadProfilePicture(file);
-        });
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(null);
+
+            // Act
+            ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertNotNull(result.getBody().getError());
+        }
     }
 
     @Test
@@ -368,25 +385,27 @@ class UserServiceTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn("john@example.com");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
+
         UUID userId = UUID.randomUUID();
         User user = new User();
         user.setId(userId);
         user.setEmail("john@example.com");
-        
+
         MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
-        
-        when(userRepo.findByEmail("john@example.com")).thenReturn(Optional.of(user));
-        when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenThrow(new IOException("Cloudinary error"));
-        
-        // Act
-        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
-        
-        // Assert
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertNotNull(result.getBody().getError());
-        assertEquals("Failed to upload profile picture", result.getBody().getError().getMessage());
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(user);
+            when(cloudinaryService.uploadProfilePicture(file, userId.toString())).thenThrow(new IOException("Cloudinary error"));
+
+            // Act
+            ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+
+            // Assert
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertNotNull(result.getBody().getError());
+            assertEquals("Failed to upload profile picture", result.getBody().getError().getMessage());
+        }
     }
 
     @Test
@@ -395,16 +414,20 @@ class UserServiceTest {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getName()).thenReturn(null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        
+
         MultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
-        
-        // Act
-        ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
-        
-        // Assert
-        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertNotNull(result.getBody().getError());
-        assertEquals("Invalid token", result.getBody().getError().getMessage());
+
+        try (org.mockito.MockedStatic<GetUserUtil> mocked = mockStatic(GetUserUtil.class)) {
+            mocked.when(() -> GetUserUtil.getAuthenticatedUser(any())).thenReturn(null);
+
+            // Act
+            ResponseEntity<ApiResponse<ProfilePictureDTO>> result = userService.uploadProfilePicture(file);
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+            assertNotNull(result.getBody());
+            assertNotNull(result.getBody().getError());
+            assertEquals("User is not authenticated", result.getBody().getError().getMessage());
+        }
     }
 } 
