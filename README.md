@@ -34,7 +34,7 @@
     ·
     <a href="https://core.legalconnect.live/v1/swagger-ui/index.html"><strong>Backend API Documentation</strong></a>
     ·
-    <a href="https://core-ai.legalconnect.live/docs"><strong>AI Backend Documentation</strong></a>
+    <a href="https://rag.legalconnect.live/docs"><strong>AI Backend Documentation</strong></a>
   </p>
 </div>
 
