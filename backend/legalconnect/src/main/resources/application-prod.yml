@@ -86,6 +86,19 @@ spring:
       jwtsecret: ${JWT_SECRET}
       sonar_token: ${SONAR_TOKEN}
 
+api:
+  version: v1
+  name: LegalConnect API
+
+springdoc:
+  swagger-ui:
+    path: /
+    tags-sorter: alpha
+
+server:
+  servlet:
+    context-path: /v1
+
 logging:
   level:
     root: INFO
@@ -124,3 +137,13 @@ cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME}
   api-key: ${CLOUDINARY_API_KEY}
   api-secret: ${CLOUDINARY_API_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
