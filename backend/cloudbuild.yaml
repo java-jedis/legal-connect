@@ -1,0 +1,32 @@
+steps:
+# --- Service backend ---
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'build',
+      '-t', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA',
+      '-f', 'backend/Dockerfile.cloudrun',
+      'backend'
+    ]
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'push',
+      'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA'
+    ]
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    [
+      'run', 'deploy', 'backend',
+      '--image', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed'
+    ]
+
+# Logging option
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+# Timeout
+timeout: '1200s'
