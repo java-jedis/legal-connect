@@ -1,21 +1,18 @@
 package com.javajedis.legalconnect.videocall;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.KeyFactory;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -46,22 +43,9 @@ public class JitsiJwtGenerator {
     @Value("${jaas.api-key}")
     private String jaasApiKey;
 
-    /**
-     * Placeholder helper string.
-     */
-    public static final String BEGIN_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----";
-    /**
-     * Placeholder helper string.
-     */
-    public static final String END_PRIVATE_KEY = "-----END PRIVATE KEY-----";
-    /**
-     * Placeholder empty string.
-     */
-    public static final String EMPTY = "";
-    /**
-     * Helper string for key algorithm.
-     */
-    public static final String RSA = "RSA";
+    @Value("${spring.custom.security.jwtsecret}")
+    private String jwtSecret;
+
     /**
      * To be used with exp value.
      * The time after which the JWT expires.
@@ -72,34 +56,18 @@ public class JitsiJwtGenerator {
      * The time before which the JWT must not be accepted for processing.
      */
     public static final long NBF_TIME_DELAY_SEC = 10;
-    /**
-     * The file that contains the generated rsa private key. See https://jaas.8x8.vc/#/start-guide Section 1. API Keys
-     * The file must be in PKCS #8 format supported by JAVA, also see https://tools.ietf.org/html/rfc5208.
-     * Use the following command to convert the generated private key to PKCS #8 :
-     * openssl pkcs8 -topk8 -inform PEM -in <input key path> -outform pem -nocrypt -out <output key path>
-     */
-    private static final String PRIVATE_KEY_FILE_RSA = "src/main/resources/jaas-key.pk";
 
     /**
-     * Reads a private key from a file in PKCS #8 format.
+     * Creates a secret key from the JWT secret string.
      *
-     * @param filename the path to the private key file
-     * @return the RSA private key
-     * @throws JwtTokenGenerationException if there's an error reading or parsing the key
+     * @return the secret key for JWT signing
+     * @throws JwtTokenGenerationException if there's an error creating the key
      */
-    public static RSAPrivateKey getPemPrivateKey(String filename) throws JwtTokenGenerationException {
+    private SecretKey getSecretKey() throws JwtTokenGenerationException {
         try {
-            String pem = new String(Files.readAllBytes(Paths.get(filename)));
-            String privKey = pem.replace(BEGIN_PRIVATE_KEY, EMPTY)
-                               .replace(END_PRIVATE_KEY, EMPTY)
-                               .replaceAll("\\s+", ""); // Remove all whitespace including newlines
-            byte[] decoded = Base64.getDecoder().decode(privKey);
-
-            PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(decoded);
-            KeyFactory kf = KeyFactory.getInstance(RSA);
-            return (RSAPrivateKey) kf.generatePrivate(spec);
+            return Keys.hmacShaKeyFor(jwtSecret.getBytes());
         } catch (Exception e) {
-            throw new JwtTokenGenerationException("Failed to read or parse private key from file: " + filename, e);
+            throw new JwtTokenGenerationException("Failed to create secret key from JWT secret", e);
         }
     }
 
@@ -118,7 +86,7 @@ public class JitsiJwtGenerator {
      */
     public String generateJaasToken(String apiKey, String userName, String userEmail, String roomName,
                                    boolean isModerator) throws JwtTokenGenerationException {
-        RSAPrivateKey rsaPrivateKey = getPemPrivateKey(PRIVATE_KEY_FILE_RSA);
+        SecretKey secretKey = getSecretKey();
 
         // Log the token generation parameters for debugging
         log.debug("Generating JaaS token for user: {}, email: {}, room: {}, moderator: {}",
@@ -133,7 +101,7 @@ public class JitsiJwtGenerator {
                 .withModerator(true)
                 .withAppID(jaasAppId);
 
-        String token = builder.signWith(rsaPrivateKey);
+        String token = builder.signWith(secretKey);
         log.debug("Generated JaaS token successfully for room: {}", roomName);
         return token;
     }
@@ -227,9 +195,6 @@ public class JitsiJwtGenerator {
 
     public static void main(String[] args) {
         try {
-            /** Read private key from file. */
-            RSAPrivateKey rsaPrivateKey = getPemPrivateKey(PRIVATE_KEY_FILE_RSA);
-
             /** Create new JaaSJwtBuilder and setup the claims. */
             String token = JaaSJwtBuilder.builder()
                     .withDefaults() // This sets default/most common values
@@ -238,7 +203,7 @@ public class JitsiJwtGenerator {
                     .withUserEmail("My email here") // Set the user email
                     .withModerator(true) // Enable user as moderator
                     .withAppID("vpaas-magic-cookie-0b2313ac61a749f09df6e9c27e20c190") // Set the AppID from config
-                    .signWith(rsaPrivateKey); /** Finally the JWT is signed with the private key */
+                    .signWith(Keys.hmacShaKeyFor("test-secret-key".getBytes())); /** Finally the JWT is signed with the secret key */
 
             log.info("Generated JaaS JWT token: {}", token);
         } catch (Exception ex) {
@@ -399,10 +364,10 @@ public class JitsiJwtGenerator {
         /**
          * Returns a signed JaaS JWT token string using JJWT library.
          *
-         * @param privateKey The private key used to sign the JWT.
+         * @param secretKey The secret key used to sign the JWT.
          * @return A signed JWT.
          */
-        public String signWith(RSAPrivateKey privateKey) {
+        public String signWith(SecretKey secretKey) {
             Map<String, Object> context = new HashMap<>();
             context.put("user", userClaims);
             context.put("features", featureClaims);
@@ -418,7 +383,7 @@ public class JitsiJwtGenerator {
                     .claim("context", context)
                     .expiration(expTime != null ? Date.from(Instant.ofEpochSecond(expTime)) : null)
                     .notBefore(nbfTime != null ? Date.from(Instant.ofEpochSecond(nbfTime)) : null)
-                    .signWith(privateKey, Jwts.SIG.RS256)
+                    .signWith(secretKey, Jwts.SIG.HS256)
                     .compact();
         }
     }
