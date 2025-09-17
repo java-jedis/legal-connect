@@ -1,6 +1,7 @@
 steps:
-# 1. Build Docker image
+# --- Service ai ---
 - name: 'gcr.io/cloud-builders/docker'
+  id: 'build-ai'
   args:
     [
       'build',
@@ -8,17 +9,15 @@ steps:
       '-f', 'backend-ai/Dockerfile.cloudrun',
       'backend-ai'
     ]
-
-# 2. Push Docker image
 - name: 'gcr.io/cloud-builders/docker'
+  id: 'push-ai'
   args:
     [
       'push',
       'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/legalconnect-ai:$COMMIT_SHA'
     ]
-
-# 3. Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: 'deploy-ai'
   entrypoint: 'gcloud'
   args:
     [
@@ -28,9 +27,37 @@ steps:
       '--platform', 'managed'
     ]
 
+# --- Service backend ---
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'build-backend'
+  args:
+    [
+      'build',
+      '-t', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA',
+      '-f', 'backend/Dockerfile.cloudrun',
+      'backend'
+    ]
+- name: 'gcr.io/cloud-builders/docker'
+  id: 'push-backend'
+  args:
+    [
+      'push',
+      'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA'
+    ]
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: 'deploy-backend'
+  entrypoint: 'gcloud'
+  args:
+    [
+      'run', 'deploy', 'backend',
+      '--image', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/backend:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed'
+    ]
+
 # Logging option to avoid build.service_account error
 options:
   logging: CLOUD_LOGGING_ONLY
 
 # Optional: increase timeout if needed
-timeout: '1200s'
+timeout: '1800s'
