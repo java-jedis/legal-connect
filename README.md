@@ -1,4 +1,4 @@
-# <div align="center"><img src="docs/logo.png" alt="Legal Connect" height="40" style="vertical-align: middle;"/> Legal Connect</div>
+# <div align="center"><img src="docs/lc-logo.png" alt="Legal Connect" height="40" style="vertical-align: middle;"/> Legal Connect</div>
 
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat&logo=openjdk&logoColor=white)](https://www.java.com/)
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5.3-6DB33F?style=flat&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
