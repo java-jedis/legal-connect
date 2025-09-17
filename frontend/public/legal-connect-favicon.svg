@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7c3aed;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f9ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect x="2" y="2" width="28" height="28" rx="6" ry="6" fill="url(#bgGradient)"/>
+  
+  <!-- Stylish LC Text -->
+  <g font-family="serif" font-weight="bold" fill="url(#textGradient)">
+    <!-- L -->
+    <text x="10" y="21" font-size="16" text-anchor="middle">L</text>
+    <!-- C -->
+    <text x="22" y="21" font-size="16" text-anchor="middle">C</text>
+  </g>
+  
+  <!-- Small decorative dot between L and C -->
+  <circle cx="16" cy="18" r="1" fill="#ffffff" opacity="0.7"/>
+</svg>
