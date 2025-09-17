@@ -238,7 +238,13 @@ Each service includes example configuration files:
 
 The system uses multiple databases optimized for different use cases:
 
-![Database Schema](docs/database_schema.png)
+### Backend Database Schema
+
+![Backend Database Schema](docs/legalconnect%20-%20public.png)
+
+### AI Backend Database Schema
+
+![AI Backend Database Schema](docs/legalconnect_db%20-%20public.png)
 
 ### Database Architecture
 
