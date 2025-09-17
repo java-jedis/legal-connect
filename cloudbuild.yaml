@@ -1,0 +1,32 @@
+steps:
+# 1. Build Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'build',
+      '-t', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/legalconnect-ai:$COMMIT_SHA',
+      '-f', 'backend-ai/Dockerfile.cloudrun',
+      'backend-ai'
+    ]
+
+# 2. Push Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    [
+      'push',
+      'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/legalconnect-ai:$COMMIT_SHA'
+    ]
+
+# 3. Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+    [
+      'run', 'deploy', 'ai',
+      '--image', 'asia-southeast1-docker.pkg.dev/legalconnect-live/apps/legalconnect-ai:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed'
+    ]
+
+# Optional: timeout
+timeout: '1200s'
