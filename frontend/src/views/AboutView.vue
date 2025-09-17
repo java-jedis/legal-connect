@@ -10,6 +10,62 @@
       </div>
     </section>
 
+        <!-- Team Section -->
+    <section class="team-section section">
+      <div class="container">
+        <div class="section-header">
+          <!-- <h2 class="section-title">Leadership Team</h2> -->
+          <p class="section-subtitle">Meet the visionaries behind LegalConnect</p>
+        </div>
+
+        <div class="team-grid grid grid-2">
+          <div v-for="member in team" :key="member.id" class="team-card">
+            <div class="member-avatar">
+              <img 
+                v-if="member.photo" 
+                :src="member.photo" 
+                :alt="member.name" 
+                class="avatar-image"
+              />
+              <div v-else class="avatar-placeholder">{{ member.initials }}</div>
+            </div>
+            <h3 class="member-name">{{ member.name }}</h3>
+            <p class="member-title">{{ member.title }}</p>
+            <p class="member-bio">{{ member.bio }}</p>
+            
+            <!-- Social Links -->
+            <div class="member-social-links">
+              <a 
+                v-if="member.linkedin" 
+                :href="member.linkedin" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="social-link linkedin"
+                title="LinkedIn Profile"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+              </a>
+              
+              <a 
+                v-if="member.github" 
+                :href="member.github" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="social-link github"
+                title="GitHub Profile"
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Mission Section -->
     <section class="mission-section section">
       <div class="container">
@@ -73,42 +129,46 @@
 
         <div class="story-timeline">
           <div class="timeline-item">
-            <div class="timeline-marker">2020</div>
+            <div class="timeline-marker">June</div>
             <div class="timeline-content">
               <h3>The Beginning</h3>
               <p>
-                Founded by a team of legal professionals and AI researchers who recognized the need
-                for more accessible legal services.
+                Our journey began when we united as a passionate team for the Therap Java Fest, 
+                driven by a shared vision to revolutionize legal services through innovative 
+                technology and make quality legal assistance accessible to everyone.
               </p>
             </div>
           </div>
           <div class="timeline-item">
-            <div class="timeline-marker">2021</div>
+            <div class="timeline-marker">July</div>
+            <div class="timeline-content">
+              <h3>Backend Development</h3>
+              <p>
+                We focused on comprehensive system design and robust backend development using 
+                Java Spring Boot, creating a scalable foundation that ensures secure, efficient, 
+                and reliable legal service delivery.
+              </p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">August</div>
             <div class="timeline-content">
               <h3>AI Development</h3>
               <p>
-                Developed our proprietary AI legal assistant, trained on millions of legal documents
-                and cases.
+                Dedicated months to implementing advanced RAG (Retrieval-Augmented Generation) 
+                systems and completing major AI development milestones, creating intelligent 
+                legal assistance capabilities that understand context and provide accurate guidance.
               </p>
             </div>
           </div>
           <div class="timeline-item">
-            <div class="timeline-marker">2022</div>
+            <div class="timeline-marker">September</div>
             <div class="timeline-content">
               <h3>Platform Launch</h3>
               <p>
-                Launched our beta platform with 100+ verified lawyers and thousands of satisfied
-                users.
-              </p>
-            </div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-marker">2023</div>
-            <div class="timeline-content">
-              <h3>Expansion</h3>
-              <p>
-                Expanded to cover all major practice areas with 500+ expert lawyers and advanced AI
-                capabilities.
+                Successfully completed full system integration and proudly launched our beta 
+                version, bringing together all components to deliver a seamless legal assistance 
+                platform ready to serve users worldwide.
               </p>
             </div>
           </div>
@@ -124,7 +184,7 @@
           <p class="section-subtitle">The principles that guide everything we do</p>
         </div>
 
-        <div class="values-grid grid grid-3">
+        <div class="values-grid grid grid-4">
           <div v-for="value in values" :key="value.id" class="value-card">
             <div class="value-icon">
               <component :is="value.icon" />
@@ -136,26 +196,7 @@
       </div>
     </section>
 
-    <!-- Team Section -->
-    <section class="team-section section">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">Leadership Team</h2>
-          <p class="section-subtitle">Meet the visionaries behind LegalConnect</p>
-        </div>
 
-        <div class="team-grid grid grid-3">
-          <div v-for="member in team" :key="member.id" class="team-card">
-            <div class="member-avatar">
-              <div class="avatar-placeholder">{{ member.initials }}</div>
-            </div>
-            <h3 class="member-name">{{ member.name }}</h3>
-            <p class="member-title">{{ member.title }}</p>
-            <p class="member-bio">{{ member.bio }}</p>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Stats Section -->
     <section class="stats-section section">
@@ -302,25 +343,31 @@ const values = [
 const team = [
   {
     id: 1,
-    name: 'Dr. Sarah Chen',
+    name: 'Shakil Ahmed',
     title: 'CEO & Co-Founder',
-    initials: 'SC',
-    bio: 'Former partner at a top-tier law firm with 15+ years of experience in corporate law and AI applications.',
+    initials: 'SK',
+    photo: '/shakil.png',
+    bio: 'Full stack developer with expertise in Machine Learning, Python, legal technology systems and AI applications.',
+    linkedin: 'https://www.linkedin.com/in/ahmedmshakil/',
+    github: 'https://github.com/ahmedmshakil'
   },
   {
     id: 2,
-    name: 'Michael Rodriguez',
+    name: 'Majedul Islam',
     title: 'CTO & Co-Founder',
-    initials: 'MR',
-    bio: 'AI researcher with expertise in natural language processing and legal technology systems.',
+    initials: 'MJ',
+    photo: '/majed.jpeg',
+    bio: 'Full stack developer with expertise in Java, Spring Boot, legal technology systems and AI applications.',
+    linkedin: 'https://www.linkedin.com/in/majedul-islam-041637220/',
+    github: 'https://github.com/mr-majed7'
   },
-  {
-    id: 3,
-    name: 'Jennifer Park',
-    title: 'Head of Legal Operations',
-    initials: 'JP',
-    bio: 'Experienced legal professional specializing in legal process optimization and quality assurance.',
-  },
+  // {
+  //   id: 3,
+  //   name: 'Barrister XYZ',
+  //   title: 'Head of Legal Operations',
+  //   initials: 'SH',
+  //   bio: 'Experienced legal professional specializing in legal process optimization and quality assurance.',
+  // },
 ]
 
 const stats = [
@@ -441,9 +488,11 @@ const stats = [
   left: 50%;
   top: 0;
   bottom: 0;
-  width: 2px;
-  background: var(--color-border);
+  width: 4px;
+  background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
   transform: translateX(-50%);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .timeline-item {
@@ -453,23 +502,29 @@ const stats = [
   position: relative;
 }
 
+.timeline-item:nth-child(odd) {
+  flex-direction: row;
+}
+
 .timeline-item:nth-child(even) {
   flex-direction: row-reverse;
 }
 
 .timeline-marker {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 40px;
   background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-  border-radius: 50%;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-background);
   font-weight: 600;
-  font-size: 1.125rem;
-  z-index: 1;
+  font-size: 0.9rem;
+  z-index: 2;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 3px solid var(--color-background);
 }
 
 .timeline-content {
@@ -479,7 +534,8 @@ const stats = [
   border: 1px solid var(--color-border);
   margin: 0 2rem;
   flex: 1;
-  max-width: 300px;
+  max-width: 350px;
+  min-height: 120px;
 }
 
 .timeline-content h3 {
@@ -545,6 +601,12 @@ const stats = [
   background: var(--color-background-soft);
 }
 
+.team-grid {
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 .team-card {
   background: var(--color-background);
   padding: 2rem;
@@ -561,6 +623,23 @@ const stats = [
 
 .member-avatar {
   margin-bottom: 1.5rem;
+}
+
+.avatar-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto;
+  display: block;
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-normal);
+}
+
+.avatar-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .avatar-placeholder {
@@ -594,6 +673,53 @@ const stats = [
   color: var(--color-text-muted);
   line-height: 1.6;
   font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.member-social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.social-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+.social-link.linkedin {
+  background: #0077b5;
+  color: white;
+}
+
+.social-link.linkedin:hover {
+  background: #005582;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 119, 181, 0.3);
+}
+
+.social-link.github {
+  background: #333;
+  color: white;
+}
+
+.social-link.github:hover {
+  background: #24292e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(51, 51, 51, 0.3);
 }
 
 .stats-section {
